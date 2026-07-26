@@ -220,25 +220,6 @@ export default function Attendance() {
         <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{t('trackAttendanceDesc')}</p>
       </div>
 
-      {/* ── Stats Row ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
-          <div key={i} className={`relative rounded-2xl card-3d overflow-hidden p-6 flex flex-col justify-between gap-4`}>
-            {/* subtle gradient tint behind card */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-[0.07] pointer-events-none`} />
-            {/* top accent bar */}
-            <div className={`absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r ${s.gradient}`} />
-            <div className={`relative w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-lg`}>
-              <s.icon className="w-6 h-6 text-white" />
-            </div>
-            <div className="relative">
-              <div className="text-4xl font-bold font-data leading-none">{s.value}</div>
-              <div className="text-xs mt-2 font-semibold tracking-widest uppercase" style={{ color: 'var(--muted)' }}>{s.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* ── Main Grid ── */}
       <div className="grid lg:grid-cols-5 gap-6">
 
@@ -497,6 +478,23 @@ export default function Attendance() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── Stats Row ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s, i) => (
+          <div key={i} className="relative rounded-2xl card-3d overflow-hidden p-6 flex flex-col justify-between gap-4">
+            <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-[0.07] pointer-events-none`} />
+            <div className={`absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r ${s.gradient}`} />
+            <div className={`relative w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-lg`}>
+              <s.icon className="w-6 h-6 text-white" />
+            </div>
+            <div className="relative">
+              <div className="text-4xl font-bold font-data leading-none">{s.value}</div>
+              <div className="text-xs mt-2 font-semibold tracking-widest uppercase" style={{ color: 'var(--muted)' }}>{s.label}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ════════════════ CARD 3 — ATTENDANCE LOG ════════════════ */}
