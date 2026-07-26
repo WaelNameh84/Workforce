@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import {
   Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, AlertCircle, Camera,
   Navigation, X, AlertTriangle, Timer, TrendingUp, QrCode,
-  CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass
+  CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass, ExternalLink
 } from 'lucide-react';
 import { format, differenceInMinutes } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -68,13 +68,39 @@ export default function Attendance() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsAddress, setGpsAddress] = useState<string | null>(null);
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ar`,
+        { headers: { 'Accept-Language': 'ar' } },
+      );
+      const data = await res.json();
+      const addr = data.address || {};
+      const parts = [
+        addr.road || addr.pedestrian || addr.footway || addr.path,
+        addr.suburb || addr.neighbourhood || addr.quarter,
+        addr.city || addr.town || addr.village || addr.county,
+      ].filter(Boolean);
+      setGpsAddress(parts.length ? parts.join('، ') : data.display_name || null);
+    } catch {
+      setGpsAddress(null);
+    }
+  };
 
   const detectGPS = () => {
     if (!navigator.geolocation) return;
     setGpsLoading(true);
+    setGpsAddress(null);
     navigator.geolocation.getCurrentPosition(
-      pos => { setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGpsLoading(false); },
-      ()  => { setGpsLoading(false); },
+      pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setGpsCoords({ lat, lng });
+        setGpsLoading(false);
+        reverseGeocode(lat, lng);
+      },
+      () => { setGpsLoading(false); },
       { timeout: 8000 },
     );
   };
@@ -346,11 +372,25 @@ export default function Attendance() {
               )}
               {/* GPS status */}
               {checkMethod === 'gps' && (
-                <div className="mt-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs flex items-center gap-2">
+                <div className="mt-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs flex items-center gap-2 flex-wrap">
                   {gpsLoading ? (
                     <><Loader2 className="w-3 h-3 animate-spin text-indigo-400" /><span className="text-white/50">{ar ? 'جارٍ تحديد الموقع…' : 'Detecting location…'}</span></>
                   ) : gpsCoords ? (
-                    <><Navigation className="w-3 h-3 text-emerald-400" /><span className="text-emerald-300 font-data">{gpsCoords.lat.toFixed(4)}, {gpsCoords.lng.toFixed(4)}</span></>
+                    <>
+                      <Navigation className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                      <span className="text-emerald-300 flex-1 leading-snug">
+                        {gpsAddress ?? `${gpsCoords.lat.toFixed(4)}, ${gpsCoords.lng.toFixed(4)}`}
+                      </span>
+                      <a
+                        href={`https://www.google.com/maps?q=${gpsCoords.lat},${gpsCoords.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 transition-all text-[10px] font-semibold"
+                      >
+                        <ExternalLink className="w-2.5 h-2.5" />
+                        {ar ? 'Google Maps' : 'Google Maps'}
+                      </a>
+                    </>
                   ) : (
                     <><AlertCircle className="w-3 h-3 text-amber-400" /><span className="text-amber-300">{ar ? 'تعذّر تحديد الموقع' : 'Could not detect location'}</span></>
                   )}
