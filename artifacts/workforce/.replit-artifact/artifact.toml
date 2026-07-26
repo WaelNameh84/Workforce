@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "WorkforceOS"
+version = "1.0.0"
+id = "artifacts/workforce"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21728
+
+[services.development]
+run = "pnpm --filter @workspace/workforce run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/workforce", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/workforce/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21728"
+BASE_PATH = "/"
