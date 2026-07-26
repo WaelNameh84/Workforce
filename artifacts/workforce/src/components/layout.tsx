@@ -162,15 +162,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto scrollbar-thin" aria-label="Dashboard sections">
         {navGroups.map(group => (
           <div key={group.id} className="mb-2">
             <button
               onClick={() => setOpenGroups(p => ({ ...p, [group.id]: !p[group.id] }))}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-slate-300 hover:text-white transition-colors"
             >
               {group.title}
-              <ChevronDown className={`w-3 h-3 transition-transform ${openGroups[group.id] ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-300 transition-transform ${openGroups[group.id] ? 'rotate-180' : ''}`} />
             </button>
             {openGroups[group.id] && (
               <div className="mt-1 space-y-0.5">
@@ -183,7 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                         active
                           ? 'text-white'
-                          : 'text-muted-foreground hover:text-white hover:bg-white/5'
+                          : 'text-slate-200 hover:text-white hover:bg-white/10'
                       }`}
                     >
                       {active && (
@@ -192,7 +192,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       {active && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-gradient-to-b from-indigo-400 to-purple-500 rounded-full" />
                       )}
-                      <item.icon className={`relative w-4 h-4 shrink-0 ${active ? 'text-indigo-400' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                      <item.icon className={`relative w-4 h-4 shrink-0 ${active ? 'text-indigo-300' : 'text-slate-300 group-hover:text-white'}`} />
                       <span className="relative">{item.label}</span>
                     </Link>
                   );
@@ -224,16 +224,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={`min-h-screen flex ${dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'}`} style={{ background: 'var(--background)' }}>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 shrink-0 border-r border-white/5 h-screen sticky top-0 overflow-hidden" style={{ background: 'var(--sidebar)' }}>
+      <aside className="hidden lg:flex flex-col w-60 shrink-0 border-r border-white/5 h-screen sticky top-0 overflow-hidden" style={{ background: 'var(--sidebar-bg)' }}>
         <SidebarContent />
       </aside>
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
-          <div className={`relative z-10 w-64 h-full flex flex-col ${dir === 'rtl' ? 'mr-auto' : 'ml-0'}`} style={{ background: 'var(--sidebar)' }}>
-            <button onClick={() => setSidebarOpen(false)} className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/10 transition">
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
+          <div
+            className={`relative z-10 w-[min(86vw,20rem)] h-full flex flex-col shadow-2xl border-white/10 ${dir === 'rtl' ? 'mr-auto border-l' : 'ml-0 border-r'}`}
+            style={{ background: 'var(--sidebar-bg)' }}
+          >
+            <button
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close navigation menu"
+              className={`absolute top-4 p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition ${dir === 'rtl' ? 'left-4' : 'right-4'}`}
+            >
               <X className="w-4 h-4" />
             </button>
             <SidebarContent />
@@ -245,7 +252,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Header */}
         <header className="sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 border-b border-white/5" style={{ background: 'var(--background)', backdropFilter: 'blur(10px)' }}>
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open navigation menu"
+            aria-expanded={sidebarOpen}
+            className="lg:hidden p-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 transition"
+          >
             <Menu className="w-5 h-5" />
           </button>
 
@@ -321,39 +333,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page content */}
-        <main className="flex-1 page-shell p-4 lg:p-8 max-w-[1600px] w-full mx-auto pb-24 lg:pb-8">
+        <main className="flex-1 page-shell p-4 lg:p-8 max-w-[1600px] w-full mx-auto pb-4 lg:pb-8">
           {children}
         </main>
       </div>
-
-      {/* Bottom Nav — mobile (employee-aware) */}
-      <nav className="bottom-nav lg:hidden" style={{ flexDirection: 'row' }}>
-        {(isEmployee
-          ? [
-              { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-              { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
-              { href: '/dashboard/leaves', label: t('leaves'), icon: CalendarCheck },
-              { href: '/dashboard/requests', label: t('requests'), icon: Inbox },
-              { href: '/dashboard/settings', label: t('settings'), icon: Settings },
-            ]
-          : [
-              { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-              { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
-              { href: '/dashboard/employees', label: t('employees'), icon: Users },
-              { href: '/dashboard/leaves', label: t('leaves'), icon: CalendarCheck },
-              { href: '/dashboard/settings', label: t('settings'), icon: Settings },
-            ]
-        ).map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link key={item.href} href={item.href} className={`flex flex-col items-center justify-center w-full h-full relative transition-colors ${active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              {active && <div className="absolute top-0 w-12 h-[3px] bg-gradient-to-r from-indigo-500 to-purple-600 rounded-b-full shadow-[0_2px_8px_rgba(124,58,237,0.5)]" />}
-              <item.icon className="w-5 h-5 mb-1" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
     </div>
   );
 }
