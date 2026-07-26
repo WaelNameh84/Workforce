@@ -32,7 +32,8 @@ import {
   Automation,
   Integrations,
   Security,
-  Developers
+  Developers,
+  Documentation,
 } from '@/pages';
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ function Router() {
       <ProtectedRoute path="/dashboard/employees" component={Employees} adminOnly />
       <ProtectedRoute path="/dashboard/departments" component={Departments} adminOnly />
       <ProtectedRoute path="/dashboard/locations" component={Locations} adminOnly />
+      <ProtectedRoute path="/dashboard/documentation" component={Documentation} adminOnly />
       <ProtectedRoute path="/dashboard/reports" component={Reports} adminOnly />
       <ProtectedRoute path="/dashboard/ai" component={AI} adminOnly />
       <ProtectedRoute path="/dashboard/communication" component={Communication} adminOnly />

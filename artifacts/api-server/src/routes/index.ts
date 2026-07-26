@@ -11,6 +11,7 @@ import payrollRouter from "./payroll";
 import requestsRouter from "./requests";
 import assetsRouter from "./assets";
 import locationsRouter from "./locations";
+import workDocsRouter from "./work-docs";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(payrollRouter);
 router.use(requestsRouter);
 router.use(assetsRouter);
 router.use(locationsRouter);
+router.use(workDocsRouter);
 
 export default router;

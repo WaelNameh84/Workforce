@@ -51,6 +51,7 @@ import type {
   GetRequestsParams,
   GetSchedulesParams,
   GetTodayAttendanceParams,
+  GetWorkDocsParams,
   Leave,
   LeaveInput,
   LeaveList,
@@ -66,6 +67,9 @@ import type {
   Schedule,
   ScheduleInput,
   ScheduleList,
+  WorkDoc,
+  WorkDocInput,
+  WorkDocList,
   WorkRequest,
   WorkRequestInput,
   WorkRequestList,
@@ -2820,5 +2824,231 @@ export const useDeleteAsset = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteAssetMutationOptions(options));
+    }
+
+export const getGetWorkDocsUrl = (params: GetWorkDocsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/work-docs?${stringifiedParams}` : `/api/work-docs`
+}
+
+/**
+ * @summary List work documents
+ */
+export const getWorkDocs = async (params: GetWorkDocsParams, options?: RequestInit): Promise<WorkDocList> => {
+
+  return customFetch<WorkDocList>(getGetWorkDocsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkDocsQueryKey = (params?: GetWorkDocsParams,) => {
+    return [
+    `/api/work-docs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetWorkDocsQueryOptions = <TData = Awaited<ReturnType<typeof getWorkDocs>>, TError = ErrorType<unknown>>(params: GetWorkDocsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkDocs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkDocsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkDocs>>> = ({ signal }) => getWorkDocs(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkDocs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkDocsQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkDocs>>>
+export type GetWorkDocsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List work documents
+ */
+
+export function useGetWorkDocs<TData = Awaited<ReturnType<typeof getWorkDocs>>, TError = ErrorType<unknown>>(
+ params: GetWorkDocsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkDocs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkDocsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateWorkDocUrl = () => {
+
+
+
+
+  return `/api/work-docs`
+}
+
+/**
+ * @summary Upload a work document / photo
+ */
+export const createWorkDoc = async (workDocInput: WorkDocInput, options?: RequestInit): Promise<WorkDoc> => {
+
+  return customFetch<WorkDoc>(getCreateWorkDocUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(workDocInput)
+  }
+);}
+
+
+
+
+
+export const getCreateWorkDocMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorkDoc>>, TError,{data: BodyType<WorkDocInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWorkDoc>>, TError,{data: BodyType<WorkDocInput>}, TContext> => {
+
+const mutationKey = ['createWorkDoc'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWorkDoc>>, {data: BodyType<WorkDocInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createWorkDoc(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWorkDocMutationResult = NonNullable<Awaited<ReturnType<typeof createWorkDoc>>>
+    export type CreateWorkDocMutationBody = BodyType<WorkDocInput>
+    export type CreateWorkDocMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Upload a work document / photo
+ */
+export const useCreateWorkDoc = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorkDoc>>, TError,{data: BodyType<WorkDocInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWorkDoc>>,
+        TError,
+        {data: BodyType<WorkDocInput>},
+        TContext
+      > => {
+      return useMutation(getCreateWorkDocMutationOptions(options));
+    }
+
+export const getDeleteWorkDocUrl = (id: number,) => {
+
+
+
+
+  return `/api/work-docs/${id}`
+}
+
+/**
+ * @summary Delete a work document
+ */
+export const deleteWorkDoc = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteWorkDocUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteWorkDocMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWorkDoc>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteWorkDoc>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteWorkDoc'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWorkDoc>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteWorkDoc(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteWorkDocMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWorkDoc>>>
+
+    export type DeleteWorkDocMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a work document
+ */
+export const useDeleteWorkDoc = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWorkDoc>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteWorkDoc>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteWorkDocMutationOptions(options));
     }
 

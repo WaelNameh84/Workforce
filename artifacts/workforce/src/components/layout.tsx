@@ -9,7 +9,7 @@ import {
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
   LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User,
-  Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2, Zap,
+  Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2, Zap, FolderOpen,
 } from 'lucide-react';
 import {
   useGetAttendance, getGetAttendanceQueryKey,
@@ -164,6 +164,13 @@ const navVisuals: Record<string, {
     badgeBorder: 'border-rose-400/30',
     glow: 'shadow-rose-500/20',
   },
+  '/dashboard/documentation': {
+    icon: 'text-indigo-300 bg-indigo-950/70 border-indigo-400/40',
+    border: 'border-indigo-500/30',
+    badge: 'text-indigo-200 bg-indigo-950/80',
+    badgeBorder: 'border-indigo-400/30',
+    glow: 'shadow-indigo-500/20',
+  },
 };
 
 const navBadges: Record<string, string> = {
@@ -187,6 +194,7 @@ const navBadges: Record<string, string> = {
   '/dashboard/settings': 'CONFIG',
   '/dashboard/departments': 'DEPTS',
   '/dashboard/locations': 'SITES',
+  '/dashboard/documentation': 'DOCS',
 };
 
 // ─── Live Clock widget ────────────────────────────────────────────────────────
@@ -333,13 +341,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       id: 'hr-management',
       title: 'HR Management',
       items: [
-        { href: '/dashboard/employees',   label: t('employees'),   icon: Users },
-        { href: '/dashboard/departments', label: 'الأقسام',        icon: Building2 },
-        { href: '/dashboard/locations',   label: 'المواقع',        icon: MapPin },
-        { href: '/dashboard/attendance',  label: t('attendance'),  icon: Clock },
-        { href: '/dashboard/leaves',      label: t('leaves'),      icon: CalendarCheck },
-        { href: '/dashboard/payroll',     label: t('payroll'),     icon: CreditCard },
-        { href: '/dashboard/requests',    label: t('requests'),    icon: Inbox },
+        { href: '/dashboard/employees',     label: t('employees'),   icon: Users },
+        { href: '/dashboard/departments',   label: 'الأقسام',        icon: Building2 },
+        { href: '/dashboard/locations',     label: 'المواقع',        icon: MapPin },
+        { href: '/dashboard/documentation', label: 'التوثيق',        icon: FolderOpen },
+        { href: '/dashboard/attendance',    label: t('attendance'),  icon: Clock },
+        { href: '/dashboard/leaves',        label: t('leaves'),      icon: CalendarCheck },
+        { href: '/dashboard/payroll',       label: t('payroll'),     icon: CreditCard },
+        { href: '/dashboard/requests',      label: t('requests'),    icon: Inbox },
       ],
     },
     {

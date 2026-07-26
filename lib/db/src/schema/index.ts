@@ -162,6 +162,18 @@ export const locations = pgTable('locations', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const workDocs = pgTable('work_docs', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull(),
+  employeeId: integer('employee_id').notNull(),
+  attendanceId: integer('attendance_id'),
+  photoData: text('photo_data').notNull(),
+  photoName: varchar('photo_name', { length: 255 }),
+  caption: text('caption'),
+  uploadedBy: integer('uploaded_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const auditLogs = pgTable('audit_logs', {
   id: serial('id').primaryKey(),
   userId: integer('user_id'),
@@ -185,6 +197,7 @@ export const insertPayrollSchema = createInsertSchema(payroll).omit({ id: true, 
 export const insertRequestSchema = createInsertSchema(requests).omit({ id: true, createdAt: true });
 export const insertAssetSchema = createInsertSchema(assets).omit({ id: true, createdAt: true });
 export const insertLocationSchema = createInsertSchema(locations).omit({ id: true, createdAt: true });
+export const insertWorkDocSchema = createInsertSchema(workDocs).omit({ id: true, createdAt: true });
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -198,3 +211,4 @@ export type Payroll = typeof payroll.$inferSelect;
 export type Request = typeof requests.$inferSelect;
 export type Asset = typeof assets.$inferSelect;
 export type Location = typeof locations.$inferSelect;
+export type WorkDoc = typeof workDocs.$inferSelect;

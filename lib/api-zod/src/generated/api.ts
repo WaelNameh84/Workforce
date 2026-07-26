@@ -921,3 +921,69 @@ export const DeleteAssetParams = zod.object({
 export const DeleteAssetResponse = zod.void()
 
 
+/**
+ * @summary List work documents
+ */
+export const GetWorkDocsQueryParams = zod.object({
+  "companyId": zod.coerce.number(),
+  "employeeId": zod.coerce.number().optional(),
+  "departmentId": zod.coerce.number().optional()
+})
+
+export const GetWorkDocsResponse = zod.object({
+  "docs": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "companyId": zod.number().optional(),
+  "employeeId": zod.number().optional(),
+  "employeeName": zod.string().nullish(),
+  "departmentId": zod.number().nullish(),
+  "departmentName": zod.string().nullish(),
+  "attendanceId": zod.number().nullish(),
+  "photoData": zod.string().optional(),
+  "photoName": zod.string().nullish(),
+  "caption": zod.string().nullish(),
+  "uploadedBy": zod.number().nullish(),
+  "createdAt": zod.coerce.date().optional()
+})).optional(),
+  "total": zod.number().optional()
+})
+
+
+/**
+ * @summary Upload a work document / photo
+ */
+export const CreateWorkDocBody = zod.object({
+  "companyId": zod.number(),
+  "employeeId": zod.number(),
+  "attendanceId": zod.number().optional(),
+  "photoData": zod.string(),
+  "photoName": zod.string().optional(),
+  "caption": zod.string().optional()
+})
+
+export const CreateWorkDocResponse = zod.object({
+  "id": zod.number().optional(),
+  "companyId": zod.number().optional(),
+  "employeeId": zod.number().optional(),
+  "employeeName": zod.string().nullish(),
+  "departmentId": zod.number().nullish(),
+  "departmentName": zod.string().nullish(),
+  "attendanceId": zod.number().nullish(),
+  "photoData": zod.string().optional(),
+  "photoName": zod.string().nullish(),
+  "caption": zod.string().nullish(),
+  "uploadedBy": zod.number().nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete a work document
+ */
+export const DeleteWorkDocParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteWorkDocResponse = zod.void()
+
+

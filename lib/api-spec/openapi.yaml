@@ -700,6 +700,70 @@ components:
           items:
             $ref: '#/components/schemas/Department'
 
+    # WorkDoc
+    WorkDoc:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+          nullable: true
+        departmentId:
+          type: integer
+          nullable: true
+        departmentName:
+          type: string
+          nullable: true
+        attendanceId:
+          type: integer
+          nullable: true
+        photoData:
+          type: string
+        photoName:
+          type: string
+          nullable: true
+        caption:
+          type: string
+          nullable: true
+        uploadedBy:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    WorkDocInput:
+      type: object
+      required: [companyId, employeeId, photoData]
+      properties:
+        companyId:
+          type: integer
+        employeeId:
+          type: integer
+        attendanceId:
+          type: integer
+        photoData:
+          type: string
+        photoName:
+          type: string
+        caption:
+          type: string
+
+    WorkDocList:
+      type: object
+      properties:
+        docs:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkDoc'
+        total:
+          type: integer
+
     # Location
     Location:
       type: object
@@ -1467,6 +1531,63 @@ paths:
     delete:
       operationId: deleteAsset
       summary: Delete asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: No content
+
+  # Work Docs (Documentation)
+  /work-docs:
+    get:
+      operationId: getWorkDocs
+      summary: List work documents
+      parameters:
+        - name: companyId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: employeeId
+          in: query
+          schema:
+            type: integer
+        - name: departmentId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkDocList'
+    post:
+      operationId: createWorkDoc
+      summary: Upload a work document / photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkDocInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkDoc'
+
+  /work-docs/{id}:
+    delete:
+      operationId: deleteWorkDoc
+      summary: Delete a work document
       parameters:
         - name: id
           in: path

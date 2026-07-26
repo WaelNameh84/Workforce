@@ -18,6 +18,7 @@ import Automation from '@/pages/automation';
 import Integrations from '@/pages/integrations';
 import Security from '@/pages/security';
 import Developers from '@/pages/developers';
+import Documentation from '@/pages/documentation';
 
 export {
   ActionCenter,
@@ -39,5 +40,6 @@ export {
   Automation,
   Integrations,
   Security,
-  Developers
+  Developers,
+  Documentation,
 };

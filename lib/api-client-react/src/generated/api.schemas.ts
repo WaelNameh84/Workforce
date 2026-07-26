@@ -660,6 +660,42 @@ export interface DepartmentList {
   departments?: Department[];
 }
 
+export interface WorkDoc {
+  id?: number;
+  companyId?: number;
+  employeeId?: number;
+  /** @nullable */
+  employeeName?: string | null;
+  /** @nullable */
+  departmentId?: number | null;
+  /** @nullable */
+  departmentName?: string | null;
+  /** @nullable */
+  attendanceId?: number | null;
+  photoData?: string;
+  /** @nullable */
+  photoName?: string | null;
+  /** @nullable */
+  caption?: string | null;
+  /** @nullable */
+  uploadedBy?: number | null;
+  createdAt?: string;
+}
+
+export interface WorkDocInput {
+  companyId: number;
+  employeeId: number;
+  attendanceId?: number;
+  photoData: string;
+  photoName?: string;
+  caption?: string;
+}
+
+export interface WorkDocList {
+  docs?: WorkDoc[];
+  total?: number;
+}
+
 export interface Location {
   id?: number;
   companyId?: number;
@@ -748,5 +784,11 @@ type?: string;
 export type GetAssetsParams = {
 companyId: number;
 status?: string;
+};
+
+export type GetWorkDocsParams = {
+companyId: number;
+employeeId?: number;
+departmentId?: number;
 };
 
