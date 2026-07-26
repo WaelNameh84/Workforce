@@ -10,6 +10,154 @@ import {
   LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User
 } from 'lucide-react';
 
+const navVisuals: Record<string, {
+  icon: string;
+  border: string;
+  badge: string;
+  badgeBorder: string;
+  glow: string;
+}> = {
+  '/dashboard': {
+    icon: 'text-indigo-300 bg-indigo-950/70 border-indigo-400/40',
+    border: 'border-indigo-500/30',
+    badge: 'text-indigo-200 bg-indigo-950/80',
+    badgeBorder: 'border-indigo-400/30',
+    glow: 'shadow-indigo-500/20',
+  },
+  '/dashboard/employees': {
+    icon: 'text-purple-300 bg-purple-950/70 border-purple-400/40',
+    border: 'border-purple-500/30',
+    badge: 'text-purple-200 bg-purple-950/80',
+    badgeBorder: 'border-purple-400/30',
+    glow: 'shadow-purple-500/20',
+  },
+  '/dashboard/attendance': {
+    icon: 'text-emerald-300 bg-emerald-950/70 border-emerald-400/40',
+    border: 'border-emerald-500/30',
+    badge: 'text-emerald-200 bg-emerald-950/80',
+    badgeBorder: 'border-emerald-400/30',
+    glow: 'shadow-emerald-500/20',
+  },
+  '/dashboard/schedule': {
+    icon: 'text-amber-300 bg-amber-950/70 border-amber-400/40',
+    border: 'border-amber-500/30',
+    badge: 'text-amber-200 bg-amber-950/80',
+    badgeBorder: 'border-amber-400/30',
+    glow: 'shadow-amber-500/20',
+  },
+  '/dashboard/leaves': {
+    icon: 'text-teal-300 bg-teal-950/70 border-teal-400/40',
+    border: 'border-teal-500/30',
+    badge: 'text-teal-200 bg-teal-950/80',
+    badgeBorder: 'border-teal-400/30',
+    glow: 'shadow-teal-500/20',
+  },
+  '/dashboard/payroll': {
+    icon: 'text-green-300 bg-green-950/70 border-green-400/40',
+    border: 'border-green-500/30',
+    badge: 'text-green-200 bg-green-950/80',
+    badgeBorder: 'border-green-400/30',
+    glow: 'shadow-green-500/20',
+  },
+  '/dashboard/requests': {
+    icon: 'text-orange-300 bg-orange-950/70 border-orange-400/40',
+    border: 'border-orange-500/30',
+    badge: 'text-orange-200 bg-orange-950/80',
+    badgeBorder: 'border-orange-400/30',
+    glow: 'shadow-orange-500/20',
+  },
+  '/dashboard/reports': {
+    icon: 'text-cyan-300 bg-cyan-950/70 border-cyan-400/40',
+    border: 'border-cyan-500/30',
+    badge: 'text-cyan-200 bg-cyan-950/80',
+    badgeBorder: 'border-cyan-400/30',
+    glow: 'shadow-cyan-500/20',
+  },
+  '/dashboard/ai': {
+    icon: 'text-pink-300 bg-pink-950/70 border-pink-400/40',
+    border: 'border-pink-500/30',
+    badge: 'text-pink-200 bg-pink-950/80',
+    badgeBorder: 'border-pink-400/30',
+    glow: 'shadow-pink-500/20',
+  },
+  '/dashboard/communication': {
+    icon: 'text-sky-300 bg-sky-950/70 border-sky-400/40',
+    border: 'border-sky-500/30',
+    badge: 'text-sky-200 bg-sky-950/80',
+    badgeBorder: 'border-sky-400/30',
+    glow: 'shadow-sky-500/20',
+  },
+  '/dashboard/performance': {
+    icon: 'text-violet-300 bg-violet-950/70 border-violet-400/40',
+    border: 'border-violet-500/30',
+    badge: 'text-violet-200 bg-violet-950/80',
+    badgeBorder: 'border-violet-400/30',
+    glow: 'shadow-violet-500/20',
+  },
+  '/dashboard/purchases': {
+    icon: 'text-fuchsia-300 bg-fuchsia-950/70 border-fuchsia-400/40',
+    border: 'border-fuchsia-500/30',
+    badge: 'text-fuchsia-200 bg-fuchsia-950/80',
+    badgeBorder: 'border-fuchsia-400/30',
+    glow: 'shadow-fuchsia-500/20',
+  },
+  '/dashboard/automation': {
+    icon: 'text-lime-300 bg-lime-950/70 border-lime-400/40',
+    border: 'border-lime-500/30',
+    badge: 'text-lime-200 bg-lime-950/80',
+    badgeBorder: 'border-lime-400/30',
+    glow: 'shadow-lime-500/20',
+  },
+  '/dashboard/integrations': {
+    icon: 'text-blue-300 bg-blue-950/70 border-blue-400/40',
+    border: 'border-blue-500/30',
+    badge: 'text-blue-200 bg-blue-950/80',
+    badgeBorder: 'border-blue-400/30',
+    glow: 'shadow-blue-500/20',
+  },
+  '/dashboard/security': {
+    icon: 'text-rose-300 bg-rose-950/70 border-rose-400/40',
+    border: 'border-rose-500/30',
+    badge: 'text-rose-200 bg-rose-950/80',
+    badgeBorder: 'border-rose-400/30',
+    glow: 'shadow-rose-500/20',
+  },
+  '/dashboard/developers': {
+    icon: 'text-slate-200 bg-slate-800/80 border-slate-400/40',
+    border: 'border-slate-500/30',
+    badge: 'text-slate-200 bg-slate-800/80',
+    badgeBorder: 'border-slate-400/30',
+    glow: 'shadow-slate-500/20',
+  },
+  '/dashboard/settings': {
+    icon: 'text-purple-200 bg-purple-950/70 border-purple-300/40',
+    border: 'border-purple-400/30',
+    badge: 'text-purple-100 bg-purple-950/80',
+    badgeBorder: 'border-purple-300/30',
+    glow: 'shadow-purple-400/20',
+  },
+};
+
+const navBadges: Record<string, string> = {
+  '/dashboard': 'LIVE',
+  '/dashboard/employees': 'TEAM',
+  '/dashboard/attendance': '5G',
+  '/dashboard/schedule': 'SHIFTS',
+  '/dashboard/leaves': '21 DAYS',
+  '/dashboard/payroll': 'SAR',
+  '/dashboard/requests': 'PENDING',
+  '/dashboard/reports': 'CSV/PDF',
+  '/dashboard/ai': 'AI',
+  '/dashboard/communication': 'CHANNELS',
+  '/dashboard/performance': 'KPIs',
+  '/dashboard/purchases': 'STORE',
+  '/dashboard/automation': 'AUTO',
+  '/dashboard/integrations': 'LINK',
+  '/dashboard/security': 'AES-256',
+  '/dashboard/developers': 'API',
+  '/dashboard/settings': 'CONFIG',
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -162,38 +310,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto scrollbar-thin" aria-label="Dashboard sections">
+      <nav className="flex-1 px-3 py-3 space-y-2 overflow-y-auto scrollbar-thin" aria-label="Dashboard sections">
         {navGroups.map(group => (
-          <div key={group.id} className="mb-2">
+          <div key={group.id} className="mb-3">
             <button
               onClick={() => setOpenGroups(p => ({ ...p, [group.id]: !p[group.id] }))}
-              className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-slate-300 hover:text-white transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300 hover:text-white transition-colors"
             >
-              {group.title}
+              <span className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${openGroups[group.id] ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                {group.title}
+              </span>
               <ChevronDown className={`w-3.5 h-3.5 text-slate-300 transition-transform ${openGroups[group.id] ? 'rotate-180' : ''}`} />
             </button>
             {openGroups[group.id] && (
-              <div className="mt-1 space-y-0.5">
+              <div className="mt-1.5 space-y-1.5">
                 {group.items.map(item => {
                   const active = isActive(item.href);
+                  const visual = navVisuals[item.href] || navVisuals['/dashboard'];
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                        active
-                          ? 'text-white'
-                          : 'text-slate-200 hover:text-white hover:bg-white/10'
+                      aria-current={active ? 'page' : undefined}
+                      className={`nav-card group relative flex items-center justify-between gap-3 px-3 py-2.5 rounded-2xl border text-sm font-black transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${visual.border} ${visual.glow} ${
+                        active ? 'nav-card-active text-white' : 'text-slate-200'
                       }`}
                     >
-                      {active && (
-                        <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-500/20 to-purple-500/10 border border-indigo-500/20" />
-                      )}
-                      {active && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-gradient-to-b from-indigo-400 to-purple-500 rounded-full" />
-                      )}
-                      <item.icon className={`relative w-4 h-4 shrink-0 ${active ? 'text-indigo-300' : 'text-slate-300 group-hover:text-white'}`} />
-                      <span className="relative">{item.label}</span>
+                      <span className="relative flex min-w-0 items-center gap-3">
+                        <span className={`nav-card-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-lg ${visual.icon} ${active ? 'nav-card-icon-active' : ''}`}>
+                          <item.icon className="h-4 w-4" />
+                        </span>
+                        <span className="truncate">{item.label}</span>
+                      </span>
+                      <span className={`relative shrink-0 rounded-lg border px-2 py-1 text-[9px] font-black tracking-wide ${visual.badge} ${visual.badgeBorder}`}>
+                        {navBadges[item.href]}
+                      </span>
                     </Link>
                   );
                 })}
