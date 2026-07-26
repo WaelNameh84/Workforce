@@ -8,7 +8,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, AlertCircle, Camera,
-  Navigation, Upload, X, ChevronDown, AlertTriangle, Timer, TrendingUp,
+  Navigation, X, AlertTriangle, Timer, TrendingUp, QrCode,
   CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass
 } from 'lucide-react';
 import { format, differenceInMinutes } from 'date-fns';
@@ -45,6 +45,15 @@ export default function Attendance() {
   const ar = locale === 'ar';
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  /* ── check method ── */
+  const [checkMethod, setCheckMethod] = useState<'gps' | 'wifi' | 'bluetooth' | 'qr'>('gps');
+  const methods = [
+    { id: 'gps'       as const, icon: Navigation, label: 'GPS'  },
+    { id: 'wifi'      as const, icon: Wifi,       label: 'WiFi' },
+    { id: 'bluetooth' as const, icon: Bluetooth,  label: 'BT'   },
+    { id: 'qr'        as const, icon: QrCode,     label: 'QR'   },
+  ];
 
   /* ── time ── */
   const [now, setNow] = useState(new Date());
@@ -139,7 +148,7 @@ export default function Attendance() {
         ? `GPS: ${gpsCoords.lat.toFixed(5)}, ${gpsCoords.lng.toFixed(5)}`
         : locationName(locationKey) || 'Office';
       const rec = await clockInMutation.mutateAsync({
-        data: { employeeId: user?.id || 0, location: locStr, method: locationKey },
+        data: { employeeId: user?.id || 0, location: locStr, method: checkMethod },
       });
       invalidate();
       if (rec?.isLate) {
@@ -214,13 +223,17 @@ export default function Attendance() {
       {/* ── Stats Row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s, i) => (
-          <div key={i} className="p-5 rounded-2xl card-3d flex flex-col justify-between gap-3">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-md`}>
-              <s.icon className="w-4 h-4 text-white" />
+          <div key={i} className={`relative rounded-2xl card-3d overflow-hidden p-6 flex flex-col justify-between gap-4`}>
+            {/* subtle gradient tint behind card */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-[0.07] pointer-events-none`} />
+            {/* top accent bar */}
+            <div className={`absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r ${s.gradient}`} />
+            <div className={`relative w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-lg`}>
+              <s.icon className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <div className="text-2xl font-bold font-data">{s.value}</div>
-              <div className="text-xs mt-0.5 font-medium tracking-wide uppercase" style={{ color: 'var(--muted)' }}>{s.label}</div>
+            <div className="relative">
+              <div className="text-4xl font-bold font-data leading-none">{s.value}</div>
+              <div className="text-xs mt-2 font-semibold tracking-widest uppercase" style={{ color: 'var(--muted)' }}>{s.label}</div>
             </div>
           </div>
         ))}
@@ -300,6 +313,28 @@ export default function Attendance() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Check method selector */}
+            <div className="w-full">
+              <label className="text-white/40 text-xs font-medium mb-2 block text-left">
+                {ar ? 'طريقة التسجيل' : 'Check-in Method'}
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {methods.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => setCheckMethod(m.id)}
+                    className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-[11px] font-semibold transition-all
+                      ${checkMethod === m.id
+                        ? 'bg-indigo-500 text-white shadow-[0_0_16px_rgba(99,102,241,0.5)]'
+                        : 'bg-white/5 text-white/45 hover:bg-white/10 border border-white/10'}`}
+                  >
+                    <m.icon className="w-4 h-4" />
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Photo capture */}
