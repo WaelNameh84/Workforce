@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useGetDashboardStats, useGetAttendance, useGetEmployees, useGetLeaves, useGetPayroll, getGetDashboardStatsQueryKey, getGetAttendanceQueryKey, getGetEmployeesQueryKey, getGetLeavesQueryKey, getGetPayrollQueryKey } from '@workspace/api-client-react';
+import { useGetDashboardStats, useGetAttendance, useGetEmployees, useGetLeaves, useGetPayroll, useGetRequests, getGetDashboardStatsQueryKey, getGetAttendanceQueryKey, getGetEmployeesQueryKey, getGetLeavesQueryKey, getGetPayrollQueryKey, getGetRequestsQueryKey } from '@workspace/api-client-react';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { Link, useLocation } from 'wouter';
 import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Bot, MessageSquare, TrendingUp,
   Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, AlertCircle,
-  ChevronDown, UserRound, UserX, Stethoscope, Timer, X, ChevronLeft
+  ChevronDown, UserRound, UserX, Stethoscope, Timer, X, ChevronLeft,
+  BarChart3, BellRing, Banknote, TimerReset, Calendar, Activity, ArrowUpRight
 } from 'lucide-react';
 
 type AdminDetailCard = {
@@ -52,11 +53,20 @@ function AdminDashboard() {
     { companyId },
     { query: { enabled: !!companyId, queryKey: getGetLeavesQueryKey({ companyId }) } }
   );
+  const { data: payrollData } = useGetPayroll(
+    { companyId },
+    { query: { enabled: !!companyId, queryKey: getGetPayrollQueryKey({ companyId }) } }
+  );
+  const { data: requestsData } = useGetRequests(
+    { companyId },
+    { query: { enabled: !!companyId, queryKey: getGetRequestsQueryKey({ companyId }) } }
+  );
 
   const employees = employeesData?.employees || [];
   const attendance = attendanceData?.attendance || [];
   const leaves = leavesData?.leaves || [];
-  const today = new Date();
+  const payroll = payrollData?.payroll || [];
+  const requests = requestsData?.requests || [];
   const activeLeaves = leaves.filter((leave: any) =>
     leave.status === 'approved' &&
     leave.startDate <= todayStr &&
@@ -70,6 +80,32 @@ function AdminDashboard() {
   const absentEmployees = employees.filter((employee: any) =>
     employee.status !== 'inactive' && !presentIds.has(employee.id) && !leaveIds.has(employee.id)
   );
+  const hoursForRecord = (record: any) => {
+    if (record.totalHours) return Number(record.totalHours) || 0;
+    if (!record.clockIn) return 0;
+    const end = record.clockOut ? new Date(record.clockOut).getTime() : now.getTime();
+    return Math.max(0, (end - new Date(record.clockIn).getTime()) / 3_600_000);
+  };
+  const totalWorkHours = attendance.reduce((sum: number, record: any) => sum + hoursForRecord(record), 0);
+  const overtimeHours = attendance.reduce((sum: number, record: any) => sum + Math.max(0, hoursForRecord(record) - 8), 0);
+  const currentPeriod = now.toISOString().slice(0, 7);
+  const currentPayroll = payroll.filter((entry: any) => entry.period === currentPeriod);
+  const payrollTotal = currentPayroll.length
+    ? currentPayroll.reduce((sum: number, entry: any) => sum + (Number(entry.netSalary) || 0), 0)
+    : Number(stats?.monthlyPayroll || 0);
+  const pendingRequests = requests.filter((request: any) => request.status === 'pending');
+  const recentAttendance = stats?.recentAttendance || [];
+  const maxChartValue = Math.max(
+    1,
+    ...recentAttendance.flatMap((entry: any) => [Number(entry.present) || 0, Number(entry.absent) || 0])
+  );
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthOffset = monthStart.getDay();
+  const calendarDays = Array.from({ length: monthOffset + daysInMonth }, (_, index) =>
+    index < monthOffset ? null : index - monthOffset + 1
+  );
+  const isToday = (day: number | null) => day === now.getDate();
 
   const timeLabel = now.toLocaleTimeString('ar-SA', {
     hour: '2-digit',
@@ -135,11 +171,84 @@ function AdminDashboard() {
       iconTone: 'bg-violet-500 text-white shadow-violet-500/40',
       items: detailItems(lateRecords, 'لا يوجد تأخير اليوم'),
     },
+    {
+      id: 'employees',
+      title: 'عدد الموظفين',
+      value: stats?.totalEmployees || employees.length,
+      subtitle: 'إجمالي فريق الشركة',
+      icon: Users,
+      tone: 'from-blue-500/25 to-indigo-950/80 border-blue-400/30',
+      iconTone: 'bg-blue-500 text-white shadow-blue-500/40',
+      items: detailItems(employees, 'لا يوجد موظفون'),
+    },
+    {
+      id: 'on-leave',
+      title: 'المجازون',
+      value: activeLeaves.length,
+      subtitle: 'إجازات فعالة اليوم',
+      icon: CalendarCheck,
+      tone: 'from-orange-500/20 to-amber-950/80 border-orange-400/30',
+      iconTone: 'bg-orange-500 text-white shadow-orange-500/40',
+      items: detailItems(activeLeaves, 'لا توجد إجازات اليوم'),
+    },
+    {
+      id: 'hours',
+      title: 'ساعات العمل',
+      value: `${totalWorkHours.toFixed(1)}h`,
+      subtitle: 'إجمالي ساعات اليوم',
+      icon: Activity,
+      tone: 'from-cyan-500/20 to-sky-950/80 border-cyan-400/30',
+      iconTone: 'bg-cyan-500 text-white shadow-cyan-500/40',
+      items: [{ name: 'إجمالي ساعات الحضور', meta: `${totalWorkHours.toFixed(2)} ساعة مسجلة اليوم` }],
+    },
+    {
+      id: 'overtime',
+      title: 'ساعات إضافية',
+      value: `${overtimeHours.toFixed(1)}h`,
+      subtitle: 'فوق 8 ساعات يومياً',
+      icon: TimerReset,
+      tone: 'from-fuchsia-500/20 to-purple-950/80 border-fuchsia-400/30',
+      iconTone: 'bg-fuchsia-500 text-white shadow-fuchsia-500/40',
+      items: [{ name: 'إجمالي الوقت الإضافي', meta: `${overtimeHours.toFixed(2)} ساعة إضافية اليوم` }],
+    },
+    {
+      id: 'payroll',
+      title: 'الرواتب',
+      value: `${payrollTotal.toLocaleString('ar-SA')} SAR`,
+      subtitle: `رواتب ${currentPeriod}`,
+      icon: Banknote,
+      tone: 'from-green-500/20 to-emerald-950/80 border-green-400/30',
+      iconTone: 'bg-green-500 text-white shadow-green-500/40',
+      items: currentPayroll.length
+        ? currentPayroll.map((entry: any) => ({ name: entry.employeeName || 'موظف', meta: `${Number(entry.netSalary || 0).toLocaleString('ar-SA')} SAR`, status: entry.status === 'paid' ? 'مدفوع' : 'معلق' }))
+        : [{ name: 'لا توجد رواتب لهذا الشهر', meta: 'ستظهر هنا بعد إنشاء مسيرات الرواتب' }],
+    },
   ];
 
   const attendanceCards = [...attendance]
     .sort((a: any, b: any) => Number(Boolean(b.isLate)) - Number(Boolean(a.isLate)))
     .slice(0, 8);
+  const operationItems = [
+    ...attendance.slice(0, 5).map((record: any) => ({
+      icon: Clock,
+      title: record.employeeName || 'موظف',
+      text: record.isLate ? 'سجّل حضوراً متأخراً' : 'سجّل الحضور',
+      time: record.clockIn ? new Date(record.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : 'اليوم',
+      tone: record.isLate ? 'text-violet-300 bg-violet-500/15' : 'text-emerald-300 bg-emerald-500/15',
+    })),
+    ...pendingRequests.slice(0, 3).map((request: any) => ({
+      icon: Inbox,
+      title: request.employeeName || 'طلب موظف',
+      text: request.title || 'طلب جديد بانتظار المراجعة',
+      time: request.createdAt ? new Date(request.createdAt).toLocaleDateString('ar-SA') : 'اليوم',
+      tone: 'text-amber-300 bg-amber-500/15',
+    })),
+  ].slice(0, 6);
+  const notificationItems = [
+    lateRecords.length ? `${lateRecords.length} موظف سجل حضوراً متأخراً` : 'لا يوجد تأخير مسجل اليوم',
+    pendingRequests.length ? `${pendingRequests.length} طلب بانتظار المراجعة` : 'لا توجد طلبات معلقة',
+    activeLeaves.length ? `${activeLeaves.length} موظف في إجازة اليوم` : 'لا توجد إجازات فعالة اليوم',
+  ];
 
   const openAttendanceDetails = (record: any) => {
     setSelectedCard({
@@ -229,6 +338,109 @@ function AdminDashboard() {
           );
         })}
       </div>
+
+      <section className="rounded-3xl border border-indigo-400/25 bg-gradient-to-br from-indigo-950/70 via-slate-950/90 to-purple-950/70 p-4 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-lg font-extrabold text-white">نظرة الحضور الأسبوعية</h2>
+            <p className="text-[11px] font-bold text-slate-400">مقارنة الحاضرين والغائبين لآخر 7 أيام</p>
+          </div>
+          <span className="rounded-xl border border-indigo-400/30 bg-indigo-500/15 p-2 text-indigo-300">
+            <BarChart3 className="h-5 w-5" />
+          </span>
+        </div>
+        <div className="flex h-40 items-end gap-2">
+          {recentAttendance.length ? recentAttendance.map((entry: any) => {
+            const presentHeight = `${Math.max(8, ((Number(entry.present) || 0) / maxChartValue) * 100)}%`;
+            const absentHeight = `${Math.max(5, ((Number(entry.absent) || 0) / maxChartValue) * 100)}%`;
+            return (
+              <div key={entry.date} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+                <div className="flex h-full w-full items-end justify-center gap-1">
+                  <span className="w-2 rounded-t-full bg-gradient-to-t from-cyan-500 to-cyan-300 shadow-lg shadow-cyan-500/20 transition-all" style={{ height: presentHeight }} title={`حاضر: ${entry.present || 0}`} />
+                  <span className="w-2 rounded-t-full bg-gradient-to-t from-rose-500 to-orange-300 shadow-lg shadow-rose-500/20 transition-all" style={{ height: absentHeight }} title={`غائب: ${entry.absent || 0}`} />
+                </div>
+                <span className="text-[9px] font-bold text-slate-500">{String(entry.date).slice(5)}</span>
+              </div>
+            );
+          }) : (
+            <div className="flex w-full items-center justify-center text-center">
+              <div>
+                <BarChart3 className="mx-auto mb-2 h-7 w-7 text-slate-600" />
+                <p className="text-xs font-bold text-slate-400">لا توجد بيانات كافية للرسم بعد</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="mt-3 flex items-center gap-4 text-[10px] font-bold text-slate-400">
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cyan-400" />حاضرون</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" />غائبون</span>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/95 to-slate-950 p-4 shadow-xl">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-lg font-extrabold text-white">آخر العمليات</h2>
+            <p className="text-[11px] font-bold text-slate-400">آخر ما تم تسجيله في النظام</p>
+          </div>
+          <span className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-2 text-cyan-300"><ArrowUpRight className="h-4 w-4" /></span>
+        </div>
+        <div className="space-y-2">
+          {operationItems.length ? operationItems.map((operation, index) => {
+            const Icon = operation.icon;
+            return (
+              <div key={`${operation.title}-${index}`} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[.035] p-3">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${operation.tone}`}><Icon className="h-4 w-4" /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-extrabold text-white">{operation.title}</p>
+                  <p className="mt-1 truncate text-[10px] font-bold text-slate-400">{operation.text}</p>
+                </div>
+                <span className="shrink-0 text-[10px] font-bold text-slate-500">{operation.time}</span>
+              </div>
+            );
+          }) : (
+            <p className="rounded-2xl bg-white/[.035] p-4 text-center text-xs font-bold text-slate-500">لا توجد عمليات حديثة</p>
+          )}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-3xl border border-amber-400/25 bg-gradient-to-br from-amber-950/60 to-slate-950 p-4 shadow-xl">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="font-display text-base font-extrabold text-white">الإشعارات</h2>
+              <p className="text-[10px] font-bold text-slate-400">تنبيهات تحتاج انتباهك</p>
+            </div>
+            <BellRing className="h-5 w-5 text-amber-300" />
+          </div>
+          <div className="space-y-2">
+            {notificationItems.map((notification, index) => (
+              <div key={notification} className="flex items-start gap-2 rounded-xl border border-white/5 bg-black/15 p-2.5">
+                <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${index === 0 && lateRecords.length ? 'bg-violet-400' : index === 1 && pendingRequests.length ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                <span className="text-[11px] font-bold leading-relaxed text-slate-300">{notification}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-purple-400/25 bg-gradient-to-br from-purple-950/60 to-slate-950 p-4 shadow-xl">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="font-display text-base font-extrabold text-white">التقويم</h2>
+              <p className="text-[10px] font-bold text-slate-400">{now.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}</p>
+            </div>
+            <Calendar className="h-5 w-5 text-purple-300" />
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'].map((day) => <span key={day} className="py-1 text-[9px] font-black text-purple-300">{day}</span>)}
+            {calendarDays.map((day, index) => (
+              <span key={`${day}-${index}`} className={`flex h-6 items-center justify-center rounded-lg text-[10px] font-bold ${isToday(day) ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30' : day ? 'text-slate-300' : 'text-transparent'}`}>
+                {day || '·'}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <div className="flex items-center justify-between px-1 pt-2">
         <div>
