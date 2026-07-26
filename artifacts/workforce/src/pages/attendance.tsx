@@ -535,13 +535,33 @@ export default function Attendance() {
 
             <div className="p-5 flex flex-col gap-4">
               {docSubmitted ? (
-                <div className="flex flex-col items-center justify-center gap-3 py-6">
-                  <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                <div className="flex flex-col gap-3">
+                  {/* success badge */}
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                      {ar ? 'تم إرسال الصورة بنجاح ✓' : 'Photo submitted successfully ✓'}
+                    </span>
                   </div>
-                  <p className="font-semibold text-emerald-600 dark:text-emerald-400">{ar ? 'تم إرسال الصورة بنجاح ✓' : 'Photo submitted successfully ✓'}</p>
-                  <button onClick={() => { setDocPhoto(null); setDocSubmitted(false); }}
-                          className="text-xs text-muted-foreground underline underline-offset-2">
+                  {/* submitted photo — stays visible */}
+                  {docPhoto && (
+                    <div className="relative rounded-xl overflow-hidden border border-emerald-500/30">
+                      <img src={docPhoto} alt="work doc" className="w-full h-48 object-cover" />
+                      {/* delete button */}
+                      <button
+                        onClick={() => { setDocPhoto(null); setDocSubmitted(false); }}
+                        className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold transition-all backdrop-blur-sm shadow"
+                      >
+                        <X className="w-3 h-3" />
+                        {ar ? 'حذف' : 'Delete'}
+                      </button>
+                    </div>
+                  )}
+                  {/* add another */}
+                  <button
+                    onClick={() => { setDocPhoto(null); setDocSubmitted(false); }}
+                    className="text-xs text-muted-foreground underline underline-offset-2 text-center"
+                  >
                     {ar ? 'إرسال صورة أخرى' : 'Submit another photo'}
                   </button>
                 </div>
