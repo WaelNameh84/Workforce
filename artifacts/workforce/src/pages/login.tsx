@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLogin } from '@workspace/api-client-react';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, type ExtendedAuthUser } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ export default function Login() {
     try {
       const result = await loginMutation.mutateAsync({ data: { email, password } });
       if (result.token && result.user) {
-        login(result.user, result.token);
+        login(result.user as ExtendedAuthUser, result.token);
         setLocation('/dashboard');
       }
     } catch (err: any) {

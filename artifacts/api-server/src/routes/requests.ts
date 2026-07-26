@@ -15,6 +15,12 @@ router.get("/requests", authMiddleware, async (req, res) => {
     const status = req.query.status as string | undefined;
     const type = req.query.type as string | undefined;
 
+    // Employees can only see their own requests
+    let filterEmployeeId: number | undefined;
+    if (req.user?.role === "employee" && req.user.employeeId) {
+      filterEmployeeId = req.user.employeeId;
+    }
+
     const rows = await db
       .select({
         id: requests.id,
@@ -33,6 +39,7 @@ router.get("/requests", authMiddleware, async (req, res) => {
       .where(
         and(
           eq(employees.companyId, companyId),
+          filterEmployeeId ? eq(requests.employeeId, filterEmployeeId) : undefined,
           status ? eq(requests.status, status) : undefined,
           type ? eq(requests.type, type) : undefined,
         ),

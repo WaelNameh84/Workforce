@@ -59,6 +59,9 @@ components:
           type: string
         companyId:
           type: integer
+        employeeId:
+          type: integer
+          nullable: true
 
     # Dashboard
     DashboardStats:

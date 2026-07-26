@@ -12,7 +12,11 @@ router.get("/leaves", authMiddleware, async (req, res) => {
     const companyId = parseInt(req.query.companyId as string);
     if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
 
-    const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
+    // Employees can only see their own leaves
+    let employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
+    if (req.user?.role === "employee" && req.user.employeeId) {
+      employeeId = req.user.employeeId;
+    }
     const status = req.query.status as string | undefined;
 
     const rows = await db

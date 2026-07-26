@@ -1,33 +1,34 @@
 import { useAuth } from '@/hooks/use-auth';
-import { useGetDashboardStats, getGetDashboardStatsQueryKey } from '@workspace/api-client-react';
+import { useGetDashboardStats, useGetAttendance, useGetLeaves, useGetPayroll, getGetDashboardStatsQueryKey, getGetAttendanceQueryKey, getGetLeavesQueryKey, getGetPayrollQueryKey } from '@workspace/api-client-react';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { Link, useLocation } from 'wouter';
 import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Bot, MessageSquare, TrendingUp,
-  Shield, Settings, Download, Printer, DollarSign
+  Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, XCircle, AlertCircle
 } from 'lucide-react';
 
-export default function Dashboard() {
+// Admin dashboard showing all modules + company stats
+function AdminDashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [location] = useLocation();
 
-  const { data: stats, isLoading } = useGetDashboardStats(
+  const { data: stats } = useGetDashboardStats(
     { companyId: user?.companyId || 0 },
     { query: { enabled: !!user?.companyId, queryKey: getGetDashboardStatsQueryKey({ companyId: user?.companyId || 0 }) } }
   );
 
   const modules = [
     { id: 1, name: 'لوحة التحكم', badge: 'Live', badgeColor: 'bg-green-500/10 text-green-500 border-green-500/20', icon: LayoutDashboard, iconColor: 'bg-green-500', href: '/dashboard' },
-    { id: 2, name: 'الموظفون', badge: `+${stats?.totalEmployees || 110}`, badgeColor: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Users, iconColor: 'bg-blue-500', href: '/dashboard/employees' },
+    { id: 2, name: 'الموظفون', badge: `${stats?.totalEmployees || 0}`, badgeColor: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Users, iconColor: 'bg-blue-500', href: '/dashboard/employees' },
     { id: 3, name: 'الحضور', badge: 'Today', badgeColor: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20', icon: Clock, iconColor: 'bg-cyan-500', href: '/dashboard/attendance' },
     { id: 4, name: 'الجداول', badge: 'Shifts', badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: CalendarDays, iconColor: 'bg-indigo-500', href: '/dashboard/schedule' },
     { id: 5, name: 'الإجازات', badge: 'Days 21', badgeColor: 'bg-amber-500/10 text-amber-500 border-amber-500/20', icon: CalendarCheck, iconColor: 'bg-amber-500', href: '/dashboard/leaves' },
     { id: 6, name: 'الرواتب', badge: 'SAR', badgeColor: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: CreditCard, iconColor: 'bg-emerald-500', href: '/dashboard/payroll' },
-    { id: 7, name: 'الطلبات', badge: `${stats?.pendingRequests || 12}`, badgeColor: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: Inbox, iconColor: 'bg-orange-500', href: '/dashboard/requests' },
+    { id: 7, name: 'الطلبات', badge: `${stats?.pendingRequests || 0} معلق`, badgeColor: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: Inbox, iconColor: 'bg-orange-500', href: '/dashboard/requests' },
     { id: 8, name: 'التقارير', badge: 'CSV/PDF', badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20', icon: FileText, iconColor: 'bg-purple-500', href: '/dashboard/reports' },
-    { id: 9, name: 'المساعد الذكي', badge: 'GPT-4o', badgeColor: 'bg-violet-500/10 text-violet-400 border-violet-500/20', icon: Bot, iconColor: 'bg-violet-500', href: '/dashboard/ai' },
+    { id: 9, name: 'المساعد الذكي', badge: 'AI', badgeColor: 'bg-violet-500/10 text-violet-400 border-violet-500/20', icon: Bot, iconColor: 'bg-violet-500', href: '/dashboard/ai' },
     { id: 10, name: 'الاتصالات', badge: 'Channels', badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20', icon: MessageSquare, iconColor: 'bg-sky-500', href: '/dashboard/communication' },
     { id: 11, name: 'الأداء', badge: 'KPIs', badgeColor: 'bg-teal-500/10 text-teal-400 border-teal-500/20', icon: TrendingUp, iconColor: 'bg-teal-500', href: '/dashboard/performance' },
     { id: 12, name: 'الأمن', badge: 'AES-256', badgeColor: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Shield, iconColor: 'bg-red-500', href: '/dashboard/security' },
@@ -36,7 +37,6 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn pb-20">
-      
       {/* Welcome Banner */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -47,6 +47,24 @@ export default function Dashboard() {
           <span className="text-white font-bold text-lg">{user?.fullName?.charAt(0) || 'U'}</span>
         </div>
       </div>
+
+      {/* Stats strip */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl border border-white/5 p-4 text-center" style={{ background: 'var(--card)' }}>
+            <div className="font-data font-bold text-2xl text-blue-400">{stats.totalEmployees || 0}</div>
+            <div className="text-xs text-muted-foreground mt-1">موظف</div>
+          </div>
+          <div className="rounded-xl border border-white/5 p-4 text-center" style={{ background: 'var(--card)' }}>
+            <div className="font-data font-bold text-2xl text-green-400">{stats.presentToday || 0}</div>
+            <div className="text-xs text-muted-foreground mt-1">حاضر اليوم</div>
+          </div>
+          <div className="rounded-xl border border-white/5 p-4 text-center" style={{ background: 'var(--card)' }}>
+            <div className="font-data font-bold text-2xl text-amber-400">{stats.pendingRequests || 0}</div>
+            <div className="text-xs text-muted-foreground mt-1">طلبات معلقة</div>
+          </div>
+        </div>
+      )}
 
       {/* Module List */}
       <div className="space-y-3">
@@ -75,16 +93,13 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Featured Detail Card (Reference 2) */}
+      {/* Reports Feature Card */}
       <div className="mt-8 rounded-2xl bg-gradient-to-br from-[#141424] to-[#1a1a2e] border border-white/5 p-6 shadow-2xl relative overflow-hidden">
-        {/* Glow effect */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-[60px]" />
-        
-        <h3 className="font-display text-2xl font-bold mb-3 text-white relative z-10">التقارير الإدارية، مؤشرات الأداء وتصدير البيانات</h3>
+        <h3 className="font-display text-2xl font-bold mb-3 text-white relative z-10">التقارير الإدارية ومؤشرات الأداء</h3>
         <p className="text-muted-foreground text-sm leading-relaxed mb-6 relative z-10 max-w-[90%]">
-          نظام متكامل لاستخراج تقارير الحضور والانصراف، الرواتب، وتقييم الأداء بضغطة زر. يدعم التصدير بصيغ متعددة مع إمكانية جدولة التقارير التلقائية.
+          نظام متكامل لاستخراج تقارير الحضور والانصراف، الرواتب، وتقييم الأداء بضغطة زر.
         </p>
-
         <div className="flex flex-wrap items-center gap-3 mb-8 relative z-10">
           <button className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors">
             <Download className="w-4 h-4" />
@@ -95,15 +110,6 @@ export default function Dashboard() {
             طباعة PDF
           </button>
         </div>
-
-        {/* Tab Chips */}
-        <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-6 relative z-10">
-          <span className="px-4 py-1.5 rounded-full bg-white/10 text-white text-xs font-bold">تقارير شهرية</span>
-          <span className="px-4 py-1.5 rounded-full text-muted-foreground text-xs font-bold">أسبوعية</span>
-          <span className="px-4 py-1.5 rounded-full text-muted-foreground text-xs font-bold">يومية</span>
-        </div>
-
-        {/* Stat Cards inside Featured */}
         <div className="grid grid-cols-2 gap-4 relative z-10">
           <div className="bg-black/20 border border-white/5 rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
@@ -125,7 +131,148 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
     </div>
   );
+}
+
+// Employee dashboard — only shows their own quick stats
+function EmployeeDashboard() {
+  const { user } = useAuth();
+  const { t } = useLanguage();
+
+  const empId = (user as any)?.employeeId;
+  const companyId = user?.companyId || 0;
+
+  const { data: attendanceData } = useGetAttendance(
+    { companyId, employeeId: empId },
+    { query: { enabled: !!companyId && !!empId, queryKey: getGetAttendanceQueryKey({ companyId, employeeId: empId }) } }
+  );
+  const { data: leavesData } = useGetLeaves(
+    { companyId, employeeId: empId },
+    { query: { enabled: !!companyId && !!empId, queryKey: getGetLeavesQueryKey({ companyId, employeeId: empId }) } }
+  );
+  const { data: payrollData } = useGetPayroll(
+    { companyId, employeeId: empId },
+    { query: { enabled: !!companyId && !!empId, queryKey: getGetPayrollQueryKey({ companyId, employeeId: empId }) } }
+  );
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayRecord = attendanceData?.attendance?.find((a: any) => a.date === todayStr);
+  const pendingLeaves = leavesData?.leaves?.filter((l: any) => l.status === 'pending').length || 0;
+  const approvedLeaves = leavesData?.leaves?.filter((l: any) => l.status === 'approved').length || 0;
+  const latestPayroll = payrollData?.payroll?.[payrollData.payroll.length - 1];
+
+  const quickLinks = [
+    { href: '/dashboard/attendance', label: t('attendance'), icon: Clock, color: 'from-cyan-500 to-blue-500' },
+    { href: '/dashboard/schedule', label: t('schedule'), icon: CalendarDays, color: 'from-indigo-500 to-purple-500' },
+    { href: '/dashboard/leaves', label: t('leaves'), icon: CalendarCheck, color: 'from-amber-500 to-orange-500' },
+    { href: '/dashboard/payroll', label: t('payroll'), icon: CreditCard, color: 'from-emerald-500 to-teal-500' },
+    { href: '/dashboard/requests', label: t('requests'), icon: Inbox, color: 'from-orange-500 to-red-500' },
+    { href: '/dashboard/settings', label: t('settings'), icon: Settings, color: 'from-slate-500 to-gray-500' },
+  ];
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn pb-24">
+      {/* Welcome */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-white mb-1">مرحباً، {user?.fullName?.split(' ')[0]}</h1>
+          <p className="text-muted-foreground text-sm">{new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+          <span className="text-white font-bold text-lg">{user?.fullName?.charAt(0) || 'U'}</span>
+        </div>
+      </div>
+
+      {/* Today Attendance Status */}
+      <div className={`rounded-2xl p-5 border ${todayRecord?.clockIn ? 'bg-green-500/5 border-green-500/20' : 'bg-amber-500/5 border-amber-500/20'}`}>
+        <div className="flex items-center gap-3 mb-3">
+          {todayRecord?.clockIn
+            ? <CheckCircle2 className="w-5 h-5 text-green-400" />
+            : <AlertCircle className="w-5 h-5 text-amber-400" />
+          }
+          <span className="font-bold text-white">حضور اليوم</span>
+        </div>
+        {todayRecord?.clockIn ? (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-xs text-muted-foreground">وقت الحضور</div>
+              <div className="font-data font-bold text-green-400">{new Date(todayRecord.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+            {todayRecord.clockOut && (
+              <div>
+                <div className="text-xs text-muted-foreground">وقت الانصراف</div>
+                <div className="font-data font-bold text-blue-400">{new Date(todayRecord.clockOut).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-muted-foreground text-sm">لم تسجّل حضورك بعد اليوم</div>
+        )}
+        <Link href="/dashboard/attendance" className="mt-3 inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+          تسجيل الحضور ←
+        </Link>
+      </div>
+
+      {/* My Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border border-white/5 p-4 text-center" style={{ background: 'var(--card)' }}>
+          <div className="font-data font-bold text-2xl text-amber-400">{pendingLeaves}</div>
+          <div className="text-xs text-muted-foreground mt-1">طلبات معلقة</div>
+        </div>
+        <div className="rounded-xl border border-white/5 p-4 text-center" style={{ background: 'var(--card)' }}>
+          <div className="font-data font-bold text-2xl text-green-400">{approvedLeaves}</div>
+          <div className="text-xs text-muted-foreground mt-1">إجازات موافق</div>
+        </div>
+        <div className="rounded-xl border border-white/5 p-4 text-center" style={{ background: 'var(--card)' }}>
+          <div className="font-data font-bold text-2xl text-blue-400">{attendanceData?.attendance?.length || 0}</div>
+          <div className="text-xs text-muted-foreground mt-1">أيام حضور</div>
+        </div>
+      </div>
+
+      {/* Latest Payroll */}
+      {latestPayroll && (
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <CreditCard className="w-4 h-4 text-emerald-400" />
+            <span className="font-bold text-white text-sm">آخر راتب — {latestPayroll.period}</span>
+            <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${latestPayroll.status === 'paid' ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+              {latestPayroll.status === 'paid' ? 'مدفوع' : 'معلق'}
+            </span>
+          </div>
+          <div className="font-data font-bold text-3xl text-emerald-400">
+            {parseFloat(latestPayroll.netSalary || '0').toLocaleString('ar-SA')} SAR
+          </div>
+          <Link href="/dashboard/payroll" className="mt-2 inline-flex text-sm text-muted-foreground hover:text-foreground transition-colors">
+            عرض تفاصيل الراتب ←
+          </Link>
+        </div>
+      )}
+
+      {/* Quick Links */}
+      <div>
+        <h2 className="font-bold text-white mb-3 text-sm uppercase tracking-wider opacity-60">الوصول السريع</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {quickLinks.map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex items-center gap-3 p-4 rounded-xl border border-white/5 hover:border-white/10 transition-all hover:scale-[1.02]"
+              style={{ background: 'var(--card)' }}
+            >
+              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${link.color} flex items-center justify-center shadow-lg`}>
+                <link.icon className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-medium text-sm text-foreground">{link.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  return user?.role === 'employee' ? <EmployeeDashboard /> : <AdminDashboard />;
 }

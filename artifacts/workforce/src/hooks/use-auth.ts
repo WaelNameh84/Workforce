@@ -2,11 +2,14 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useLocation } from 'wouter';
 import { AuthUser } from '@workspace/api-client-react';
 
+// Extend AuthUser to include employeeId (returned by login but not in generated schema)
+export type ExtendedAuthUser = AuthUser & { employeeId?: number | null };
+
 interface AuthContextType {
-  user: AuthUser | null;
+  user: ExtendedAuthUser | null;
   token: string | null;
   isLoading: boolean;
-  login: (user: AuthUser, token: string) => void;
+  login: (user: ExtendedAuthUser, token: string) => void;
   logout: () => void;
 }
 
@@ -24,7 +27,7 @@ export function useAuth(): AuthContextType {
 
 export function useAuthState(): AuthContextType {
   const [, setLocation] = useLocation();
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<ExtendedAuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,7 +48,7 @@ export function useAuthState(): AuthContextType {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback((newUser: AuthUser, newToken: string) => {
+  const login = useCallback((newUser: ExtendedAuthUser, newToken: string) => {
     localStorage.setItem('user', JSON.stringify(newUser));
     localStorage.setItem('token', newToken);
     setUser(newUser);

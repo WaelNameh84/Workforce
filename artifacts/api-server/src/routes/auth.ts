@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 import { db } from "@workspace/db";
-import { users, companies } from "@workspace/db";
+import { users, companies, employees } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 
@@ -17,6 +17,8 @@ const signToken = async (payload: {
   userId: number;
   email: string;
   role: string;
+  employeeId?: number | null;
+  companyId?: number | null;
 }) => {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
@@ -50,10 +52,23 @@ router.post("/auth/login", async (req, res) => {
       return;
     }
 
+    // Find linked employee record
+    let employeeId: number | null = user.employeeId || null;
+    if (!employeeId && user.companyId) {
+      const [emp] = await db
+        .select({ id: employees.id })
+        .from(employees)
+        .where(eq(employees.email, user.email))
+        .limit(1);
+      if (emp) employeeId = emp.id;
+    }
+
     const token = await signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
+      employeeId,
+      companyId: user.companyId,
     });
 
     res.json({
@@ -64,6 +79,7 @@ router.post("/auth/login", async (req, res) => {
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,
+        employeeId,
       },
     });
   } catch (err) {

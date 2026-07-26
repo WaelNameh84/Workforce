@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
-  LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown
+  LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -25,6 +25,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     advanced: false,
     system: false,
   });
+
+  const isEmployee = user?.role === 'employee';
+  const isAdmin = user?.role === 'admin' || user?.role === 'manager';
 
   useEffect(() => {
     if (!isLoading && !user) setLocation('/login');
@@ -47,7 +50,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setLocale(order[(order.indexOf(locale) + 1) % order.length]);
   };
 
-  const navGroups = [
+  // Employee nav — only their own data
+  const employeeNavGroups = [
+    {
+      id: 'main',
+      title: 'Main',
+      items: [{ href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
+    },
+    {
+      id: 'my-info',
+      title: 'My Info',
+      items: [
+        { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
+        { href: '/dashboard/schedule',   label: t('schedule'),   icon: CalendarDays },
+        { href: '/dashboard/leaves',     label: t('leaves'),     icon: CalendarCheck },
+        { href: '/dashboard/payroll',    label: t('payroll'),    icon: CreditCard },
+        { href: '/dashboard/requests',   label: t('requests'),   icon: Inbox },
+      ],
+    },
+    {
+      id: 'account',
+      title: 'Account',
+      items: [
+        { href: '/dashboard/settings', label: t('settings'), icon: Settings },
+      ],
+    },
+  ];
+
+  // Admin/Manager nav — full access
+  const adminNavGroups = [
     {
       id: 'main',
       title: 'Main',
@@ -89,248 +120,183 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ];
 
+  const navGroups = isEmployee ? employeeNavGroups : adminNavGroups;
+
   const isActive = (href: string) =>
     href === '/dashboard' ? location === '/dashboard' : location.startsWith(href);
 
   useEffect(() => {
-    const activeGroup = navGroups.find((group) => group.items.some((item) => isActive(item.href)));
+    const activeGroup = navGroups.find(g => g.items.some(i => isActive(i.href)));
     if (activeGroup) {
-      setOpenGroups((groups) => ({ ...groups, [activeGroup.id]: true }));
+      setOpenGroups(prev => ({ ...prev, [activeGroup.id]: true }));
     }
   }, [location]);
 
-  const sidebarContent = (
+  const roleBadge = isEmployee
+    ? { label: 'موظف', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
+    : user?.role === 'manager'
+      ? { label: 'مدير', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' }
+      : { label: 'أدمن', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
+
+  const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--sidebar-border)' }}>
+      <div className="px-6 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-900/20">
-            <Globe className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-sm">W</span>
           </div>
-          <span className="font-display font-bold text-lg tracking-tight" style={{ color: 'var(--sidebar-fg)' }}>{t('appName')}</span>
+          <div>
+            <div className="font-display font-bold text-sm text-white">WorkforceOS</div>
+            <div className="text-[10px] text-muted-foreground">HR Management</div>
+          </div>
         </div>
-        <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1 rounded-lg hover:bg-white/10 transition" style={{ color: 'var(--sidebar-fg)' }}>
-          <X className="w-5 h-5" />
-        </button>
+      </div>
+
+      {/* Role badge */}
+      <div className="px-4 py-3">
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${roleBadge.color}`}>
+          {isEmployee ? <User className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+          {roleBadge.label}
+        </span>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar">
-        {navGroups.map((group) => (
-          <div key={group.id}>
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto scrollbar-thin">
+        {navGroups.map(group => (
+          <div key={group.id} className="mb-2">
             <button
-              type="button"
-              onClick={() => setOpenGroups((groups) => ({ ...groups, [group.id]: !groups[group.id] }))}
-              className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-start text-xs font-bold uppercase tracking-wider opacity-50 transition hover:bg-white/5"
-              style={{ color: 'var(--sidebar-fg)' }}
-              aria-expanded={!!openGroups[group.id]}
+              onClick={() => setOpenGroups(p => ({ ...p, [group.id]: !p[group.id] }))}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
             >
-              <span>{group.title}</span>
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${openGroups[group.id] ? '' : '-rotate-90'}`} />
+              {group.title}
+              <ChevronDown className={`w-3 h-3 transition-transform ${openGroups[group.id] ? 'rotate-180' : ''}`} />
             </button>
-            {openGroups[group.id] && <div className="space-y-1">
-              {group.items.map((item, i) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={i}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all pressable ${
-                      active
-                         ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/20'
-                        : 'hover:bg-white/5'
-                    }`}
-                    style={active ? {} : { color: 'var(--sidebar-fg)', opacity: 0.75 }}
-                  >
-                    <item.icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'opacity-70'}`} />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>}
+            {openGroups[group.id] && (
+              <div className="mt-1 space-y-0.5">
+                {group.items.map(item => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                        active
+                          ? 'text-white'
+                          : 'text-muted-foreground hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {active && (
+                        <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-500/20 to-purple-500/10 border border-indigo-500/20" />
+                      )}
+                      {active && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-gradient-to-b from-indigo-400 to-purple-500 rounded-full" />
+                      )}
+                      <item.icon className={`relative w-4 h-4 shrink-0 ${active ? 'text-indigo-400' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                      <span className="relative">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ))}
       </nav>
 
-      {/* User */}
-      <div className="p-4 border-t flex flex-col gap-4" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-           <span className="text-xs font-bold text-indigo-400">نظام بدون جداول روتينية</span>
-        </div>
+      {/* User info at bottom */}
+      <div className="px-4 py-4 border-t border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            {user.fullName?.charAt(0) || 'U'}
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            {user?.fullName?.charAt(0) || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold truncate" style={{ color: 'var(--sidebar-fg)' }}>{user.fullName}</div>
-            <div className="text-xs font-medium truncate opacity-50" style={{ color: 'var(--sidebar-fg)' }}>{user.email}</div>
+            <div className="text-sm font-medium text-white truncate">{user?.fullName}</div>
+            <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
           </div>
+          <button onClick={logout} className="text-muted-foreground hover:text-red-400 transition-colors">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'var(--background)', color: 'var(--foreground)' }} dir={dir}>
-      {/* Sidebar — desktop */}
-      <aside
-        className="hidden lg:flex flex-col w-64 fixed inset-y-0 z-30"
-        style={{
-          background: 'var(--sidebar-bg)',
-          [dir === 'rtl' ? 'right' : 'left']: 0,
-          borderRight: dir === 'ltr' ? '1px solid var(--sidebar-border)' : 'none',
-          borderLeft: dir === 'rtl' ? '1px solid var(--sidebar-border)' : 'none',
-        }}
-      >
-        {sidebarContent}
+    <div className={`min-h-screen flex ${dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'}`} style={{ background: 'var(--background)' }}>
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex flex-col w-60 shrink-0 border-r border-white/5 h-screen sticky top-0 overflow-hidden" style={{ background: 'var(--sidebar)' }}>
+        <SidebarContent />
       </aside>
 
-      {/* Sidebar — mobile */}
+      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          {/* Drawer */}
-          <aside
-            className="absolute top-0 bottom-0 w-72 flex flex-col"
-            style={{
-              background: 'var(--sidebar-bg)',
-              [dir === 'rtl' ? 'right' : 'left']: 0,
-            }}
-          >
-            {sidebarContent}
-          </aside>
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
+          <div className={`relative z-10 w-64 h-full flex flex-col ${dir === 'rtl' ? 'mr-auto' : 'ml-0'}`} style={{ background: 'var(--sidebar)' }}>
+            <button onClick={() => setSidebarOpen(false)} className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/10 transition">
+              <X className="w-4 h-4" />
+            </button>
+            <SidebarContent />
+          </div>
         </div>
       )}
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-h-[100dvh] min-w-0 lg:ms-64">
-        {/* Topbar */}
-        <header
-          className="sticky top-0 z-20 h-[4.5rem] flex items-center justify-between px-3 sm:px-4 lg:px-6 backdrop-blur-xl border-b"
-          style={{ background: 'color-mix(in srgb, var(--background) 85%, transparent)', borderColor: 'var(--border)' }}
-        >
-          {/* Left: hamburger + search */}
-          <div className="flex items-center gap-3 flex-1">
-            <button
-              onClick={() => setSidebarOpen(true)}
-               className="lg:hidden p-2.5 rounded-xl transition pressable"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <div className="relative hidden md:block max-w-xs w-full">
-              <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 left-3" style={{ color: 'var(--muted)' }} />
-              <input
-                type="text"
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter' || !searchText.trim()) return;
-                  const query = searchText.trim().toLowerCase();
-                  const match = navGroups
-                    .flatMap((group) => group.items)
-                    .find((item) => item.label.toLowerCase().includes(query));
-                  if (match) {
-                    setLocation(match.href);
-                    setSearchText('');
-                  }
-                }}
-                placeholder={`${t('search')}...`}
-                className="w-full ps-9 pe-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
-              />
-            </div>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
+        {/* Header */}
+        <header className="sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 border-b border-white/5" style={{ background: 'var(--background)', backdropFilter: 'blur(10px)' }}>
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition">
+            <Menu className="w-5 h-5" />
+          </button>
+
+          {/* Search */}
+          <div className="flex-1 max-w-sm hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-muted-foreground">
+            <Search className="w-4 h-4 shrink-0" />
+            <input
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              placeholder="Search..."
+              className="bg-transparent outline-none w-full text-sm"
+            />
           </div>
 
-          {/* Right: theme + lang + bell + user */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-               data-testid="button-toggle-theme"
-               className="p-2.5 rounded-xl hover:opacity-80 transition pressable"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            >
+          <div className="flex-1 lg:hidden" />
+
+          {/* Right side actions */}
+          <div className="flex items-center gap-2">
+            <button onClick={toggleLanguage} className="p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
+              <Globe className="w-4 h-4" />
+            </button>
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-
-            <button
-              onClick={toggleLanguage}
-               data-testid="button-toggle-language"
-               className="px-3 py-2 rounded-xl text-xs font-bold hover:opacity-80 transition uppercase"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            >
-              {locale}
+            <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="relative p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
             </button>
 
-            <div className="relative hidden sm:block">
-              <button
-                onClick={() => setNotificationsOpen((open) => !open)}
-                aria-label={t('notifications')}
-                 data-testid="button-notifications"
-                 className="relative p-2.5 rounded-xl hover:opacity-80 transition pressable"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-              >
-                <Bell className="w-4 h-4" />
-                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full status-live" />
-              </button>
-              {notificationsOpen && (
-                <div
-                  className="absolute right-0 top-12 z-30 w-72 rounded-2xl p-4 shadow-xl"
-                  style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold">{t('notifications')}</span>
-                    <button className="text-xs text-indigo-500" onClick={() => setNotificationsOpen(false)}>Close</button>
-                  </div>
-                  <button
-                    onClick={() => { setNotificationsOpen(false); setLocation('/dashboard/requests'); }}
-                    className="w-full rounded-xl p-3 text-left text-sm hover:bg-muted/50"
-                    style={{ background: 'var(--background)' }}
-                  >
-                    You have pending requests to review.
-                  </button>
-                  <button
-                    onClick={() => { setNotificationsOpen(false); setLocation('/dashboard/attendance'); }}
-                    className="w-full mt-2 rounded-xl p-3 text-left text-sm hover:bg-muted/50"
-                    style={{ background: 'var(--background)' }}
-                  >
-                    Attendance activity was updated today.
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* User dropdown */}
+            {/* User menu */}
             <div className="relative">
               <button
-                onClick={() => setUserMenuOpen(o => !o)}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:opacity-80 transition"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 transition"
               >
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                  {user.fullName?.charAt(0) || 'U'}
+                  {user?.fullName?.charAt(0) || 'U'}
                 </div>
-                <span className="hidden md:block text-sm font-medium">{user.fullName?.split(' ')[0]}</span>
-                <ChevronDown className="w-3 h-3 hidden md:block" style={{ color: 'var(--muted)' }} />
+                <span className="hidden sm:block text-sm font-medium">{user?.fullName?.split(' ')[0]}</span>
+                <ChevronDown className="w-3 h-3 text-muted-foreground" />
               </button>
-
               {userMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                  <div
-                    className="absolute top-full mt-2 w-56 rounded-2xl shadow-xl py-1 z-20"
-                    style={{
-                      background: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      [dir === 'rtl' ? 'left' : 'right']: 0,
-                    }}
-                  >
-                    <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-                      <div className="font-medium text-sm">{user.fullName}</div>
-                      <div className="text-xs" style={{ color: 'var(--muted)' }}>{user.email}</div>
+                  <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-xl border border-white/10 shadow-xl py-1" style={{ background: 'var(--card)' }}>
+                    <div className="px-4 py-2 border-b border-white/5">
+                      <div className="text-sm font-medium truncate">{user?.fullName}</div>
+                      <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+                      <span className={`inline-flex mt-1 items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${roleBadge.color}`}>
+                        {roleBadge.label}
+                      </span>
                     </div>
                     <Link
                       href="/dashboard/settings"
@@ -360,15 +326,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
-      {/* Bottom Nav — mobile */}
+      {/* Bottom Nav — mobile (employee-aware) */}
       <nav className="bottom-nav lg:hidden" style={{ flexDirection: 'row' }}>
-        {[
-          { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-          { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
-          { href: '/dashboard/employees', label: t('employees'), icon: Users },
-          { href: '/dashboard/leaves', label: t('leaves'), icon: CalendarCheck },
-          { href: '/dashboard/settings', label: t('settings'), icon: Settings },
-        ].map((item) => {
+        {(isEmployee
+          ? [
+              { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+              { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
+              { href: '/dashboard/leaves', label: t('leaves'), icon: CalendarCheck },
+              { href: '/dashboard/requests', label: t('requests'), icon: Inbox },
+              { href: '/dashboard/settings', label: t('settings'), icon: Settings },
+            ]
+          : [
+              { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+              { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
+              { href: '/dashboard/employees', label: t('employees'), icon: Users },
+              { href: '/dashboard/leaves', label: t('leaves'), icon: CalendarCheck },
+              { href: '/dashboard/settings', label: t('settings'), icon: Settings },
+            ]
+        ).map((item) => {
           const active = isActive(item.href);
           return (
             <Link key={item.href} href={item.href} className={`flex flex-col items-center justify-center w-full h-full relative transition-colors ${active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>

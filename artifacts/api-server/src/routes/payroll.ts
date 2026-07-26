@@ -13,7 +13,11 @@ router.get("/payroll", authMiddleware, async (req, res) => {
     if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
 
     const period = req.query.period as string | undefined;
-    const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
+    // Employees can only see their own payroll
+    let employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
+    if (req.user?.role === "employee" && req.user.employeeId) {
+      employeeId = req.user.employeeId;
+    }
 
     const rows = await db
       .select({
