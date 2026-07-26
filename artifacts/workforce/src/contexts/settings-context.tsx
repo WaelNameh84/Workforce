@@ -10,6 +10,12 @@ export interface AppSettings {
   companyPhone: string;
   companyEmail: string;
 
+  // Uploaded images (base64)
+  logoUrl: string;
+  iconUrl: string;
+  splashUrl: string;
+  assistantAvatarUrl: string;
+
   // Appearance
   appColor: string;
   fontSize: 'small' | 'medium' | 'large';
@@ -41,6 +47,7 @@ export interface AppSettings {
 
   // API Keys
   apiKeys: Record<string, string>;
+  customKeys: Array<{ name: string; value: string }>;
 
   // Notifications
   notif: {
@@ -53,8 +60,16 @@ export interface AppSettings {
     salary: boolean;
     leaves: boolean;
   };
+  notifSoundTone: string;
   shiftStartAlarm: string;
   shiftEndAlarm: string;
+
+  // Security / Biometric
+  biometric: {
+    faceId: boolean;
+    fingerprint: boolean;
+    pin: boolean;
+  };
 
   // Attendance
   workStart: string;
@@ -76,6 +91,11 @@ const DEFAULTS: AppSettings = {
   companyAddr: '',
   companyPhone: '',
   companyEmail: '',
+
+  logoUrl: '',
+  iconUrl: '',
+  splashUrl: '',
+  assistantAvatarUrl: '',
 
   appColor: '#6366f1',
   fontSize: 'medium',
@@ -107,13 +127,21 @@ const DEFAULTS: AppSettings = {
     openai: '', gemini: '', claude: '',
     firebase: '', maps: '', smtp: '', whatsapp: '',
   },
+  customKeys: [{ name: '', value: '' }, { name: '', value: '' }, { name: '', value: '' }],
 
   notif: {
     app: true, email: true, whatsapp: false,
     sound: true, shiftStart: true, shiftEnd: true, salary: true, leaves: true,
   },
+  notifSoundTone: 'default',
   shiftStartAlarm: '08:45',
   shiftEndAlarm: '17:00',
+
+  biometric: {
+    faceId: false,
+    fingerprint: false,
+    pin: true,
+  },
 
   workStart: '09:00',
   workEnd: '17:00',

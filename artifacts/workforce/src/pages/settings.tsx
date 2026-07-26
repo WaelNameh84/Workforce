@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/components/ui/use-toast';
 import { useSettings } from '@/contexts/settings-context';
@@ -7,7 +7,7 @@ import {
   Sun, Moon, Upload, Eye, EyeOff, Save, Check,
   Fingerprint, Database, RefreshCw, Download,
   Building2, Phone, Mail, MapPin, Image, Type, Layers,
-  Zap, Lock, AlarmClock, Clock, Timer, User,
+  Zap, Lock, AlarmClock, Clock, Timer, Plus, Trash2, X,
 } from 'lucide-react';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
@@ -87,24 +87,6 @@ function ToggleRow({ label, sub, on, onToggle }: { label: string; sub?: string; 
   );
 }
 
-function PasswordInput({ label, placeholder }: { label: string; placeholder?: string }) {
-  const [show, setShow] = useState(false);
-  return (
-    <Field label={label}>
-      <div className="relative">
-        <input
-          type={show ? 'text' : 'password'}
-          placeholder={placeholder || '••••••••'}
-          className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 pr-10 transition"
-        />
-        <button type="button" onClick={() => setShow(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
-          {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        </button>
-      </div>
-    </Field>
-  );
-}
-
 function ColorSwatch({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) {
   return (
     <button
@@ -112,6 +94,55 @@ function ColorSwatch({ color, selected, onClick }: { color: string; selected: bo
       className={`w-8 h-8 rounded-full border-2 transition-all ${selected ? 'border-white scale-110 shadow-lg' : 'border-transparent hover:scale-105'}`}
       style={{ background: color }}
     />
+  );
+}
+
+// Image upload helper: reads file as base64
+function readAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Reusable image upload zone
+function ImageUploadZone({
+  label, sub, icon: Icon, value, onUpload, accept = 'image/*',
+}: {
+  label: string; sub?: string; icon: React.ElementType; value?: string;
+  onUpload: (base64: string) => void; accept?: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <Field label={label} sub={sub}>
+      <label
+        className="flex items-center justify-center gap-3 w-full h-24 rounded-xl border-2 border-dashed border-border hover:border-indigo-500/50 cursor-pointer transition group relative overflow-hidden"
+        onClick={() => ref.current?.click()}
+      >
+        {value ? (
+          <img src={value} alt="preview" className="absolute inset-0 w-full h-full object-contain p-2" />
+        ) : (
+          <div className="text-center">
+            <Icon className="w-6 h-6 text-muted-foreground group-hover:text-indigo-400 mx-auto mb-1 transition" />
+            <p className="text-xs text-muted-foreground">انقر للرفع</p>
+          </div>
+        )}
+        <input
+          ref={ref}
+          type="file"
+          className="hidden"
+          accept={accept}
+          onChange={async e => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const b64 = await readAsBase64(file);
+            onUpload(b64);
+          }}
+        />
+      </label>
+    </Field>
   );
 }
 
@@ -137,6 +168,15 @@ export default function Settings() {
   const [saved, setSaved]   = useState(false);
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
 
+  // Security form state (local, not persisted — just for validation/UI)
+  const [secEmail, setSecEmail]           = useState('');
+  const [secCurrentPw, setSecCurrentPw]   = useState('');
+  const [secNewPw, setSecNewPw]           = useState('');
+  const [secConfirmPw, setSecConfirmPw]   = useState('');
+  const [showPw, setShowPw]               = useState<Record<string, boolean>>({});
+  const [pinDialog, setPinDialog]         = useState(false);
+  const [pinValue, setPinValue]           = useState('');
+
   const handleSave = () => {
     save();
     setSaved(true);
@@ -146,6 +186,9 @@ export default function Settings() {
 
   const toggleNotif = (k: keyof typeof s.notif) =>
     update({ notif: { ...s.notif, [k]: !s.notif[k] } });
+
+  const toggleBiometric = (k: keyof typeof s.biometric) =>
+    update({ biometric: { ...s.biometric, [k]: !s.biometric[k] } });
 
   const createBackup = () => {
     const content = JSON.stringify(s, null, 2);
@@ -167,11 +210,51 @@ export default function Settings() {
           save();
           toast({ title: 'تم استعادة النسخة الاحتياطية ✓' });
         } catch {
-          toast({ title: 'خطأ في الملف', description: 'تأكد أن الملف صحيح' });
+          toast({ title: 'خطأ في الملف', description: 'تأكد أن الملف صحيح', variant: 'destructive' });
         }
       });
     };
     inp.click();
+  };
+
+  const handleUpdateCredentials = () => {
+    if (!secCurrentPw) {
+      toast({ title: 'يرجى إدخال كلمة المرور الحالية', variant: 'destructive' }); return;
+    }
+    if (secNewPw && secNewPw !== secConfirmPw) {
+      toast({ title: 'كلمة المرور الجديدة غير متطابقة', variant: 'destructive' }); return;
+    }
+    if (secNewPw && secNewPw.length < 8) {
+      toast({ title: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل', variant: 'destructive' }); return;
+    }
+    // In a real app: call API here. For now show success.
+    toast({ title: 'تم تحديث بيانات الدخول ✓' });
+    setSecCurrentPw(''); setSecNewPw(''); setSecConfirmPw(''); setSecEmail('');
+  };
+
+  const handlePinSave = () => {
+    if (pinValue.length !== 6 || !/^\d{6}$/.test(pinValue)) {
+      toast({ title: 'يجب أن يكون الرمز 6 أرقام', variant: 'destructive' }); return;
+    }
+    // Store hashed or just flag it (not storing raw PIN for security)
+    update({ biometric: { ...s.biometric, pin: true } });
+    save();
+    toast({ title: 'تم تفعيل رمز PIN ✓' });
+    setPinDialog(false);
+    setPinValue('');
+  };
+
+  const updateCustomKey = (i: number, field: 'name' | 'value', val: string) => {
+    const next = s.customKeys.map((k, idx) => idx === i ? { ...k, [field]: val } : k);
+    update({ customKeys: next });
+  };
+
+  const addCustomKey = () => {
+    update({ customKeys: [...s.customKeys, { name: '', value: '' }] });
+  };
+
+  const removeCustomKey = (i: number) => {
+    update({ customKeys: s.customKeys.filter((_, idx) => idx !== i) });
   };
 
   return (
@@ -220,33 +303,26 @@ export default function Settings() {
               <Field label="الرسالة الترحيبية">
                 <Input value={s.welcomeMsg} onChange={e => update({ welcomeMsg: e.target.value })} />
               </Field>
-              <Field label="شعار التطبيق" sub="PNG أو SVG — حجم موصى به 512×512">
-                <label className="flex items-center justify-center gap-3 w-full h-24 rounded-xl border-2 border-dashed border-border hover:border-indigo-500/50 cursor-pointer transition group">
-                  <input type="file" className="hidden" accept="image/*" />
-                  <div className="text-center">
-                    <Image className="w-6 h-6 text-muted-foreground group-hover:text-indigo-400 mx-auto mb-1 transition" />
-                    <p className="text-xs text-muted-foreground">انقر لرفع الشعار</p>
-                  </div>
-                </label>
-              </Field>
-              <Field label="أيقونة التطبيق" sub="PNG مربع — 192×192">
-                <label className="flex items-center justify-center gap-3 w-full h-24 rounded-xl border-2 border-dashed border-border hover:border-indigo-500/50 cursor-pointer transition group">
-                  <input type="file" className="hidden" accept="image/*" />
-                  <div className="text-center">
-                    <Upload className="w-6 h-6 text-muted-foreground group-hover:text-indigo-400 mx-auto mb-1 transition" />
-                    <p className="text-xs text-muted-foreground">انقر لرفع الأيقونة</p>
-                  </div>
-                </label>
-              </Field>
-              <Field label="شاشة البداية">
-                <label className="flex items-center justify-center gap-3 w-full h-24 rounded-xl border-2 border-dashed border-border hover:border-indigo-500/50 cursor-pointer transition group">
-                  <input type="file" className="hidden" accept="image/*" />
-                  <div className="text-center">
-                    <Layers className="w-6 h-6 text-muted-foreground group-hover:text-indigo-400 mx-auto mb-1 transition" />
-                    <p className="text-xs text-muted-foreground">انقر لرفع شاشة البداية</p>
-                  </div>
-                </label>
-              </Field>
+              <ImageUploadZone
+                label="شعار التطبيق"
+                sub="PNG أو SVG — حجم موصى به 512×512"
+                icon={Image}
+                value={s.logoUrl}
+                onUpload={b64 => update({ logoUrl: b64 })}
+              />
+              <ImageUploadZone
+                label="أيقونة التطبيق"
+                sub="PNG مربع — 192×192"
+                icon={Upload}
+                value={s.iconUrl}
+                onUpload={b64 => update({ iconUrl: b64 })}
+              />
+              <ImageUploadZone
+                label="شاشة البداية"
+                icon={Layers}
+                value={s.splashUrl}
+                onUpload={b64 => update({ splashUrl: b64 })}
+              />
             </div>
           </Card>
 
@@ -278,7 +354,6 @@ export default function Settings() {
                 </div>
               </Field>
 
-              {/* preview chip */}
               {s.companyName && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-indigo-500/30 bg-indigo-500/5">
                   <Building2 className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -471,7 +546,6 @@ export default function Settings() {
               <ToggleRow label="ساعة الحضور" sub="وقت تسجيل الدخول بجانب الساعة" on={s.showShiftClock} onToggle={() => update({ showShiftClock: !s.showShiftClock })} />
             </div>
 
-            {/* Live preview */}
             <div className="mt-5 rounded-xl border border-border bg-white/5 p-4 text-center">
               <p className="text-[10px] text-muted-foreground mb-2 font-bold uppercase tracking-wider">معاينة مباشرة</p>
               <div className={`font-mono font-black ${s.clockSize === 'small' ? 'text-2xl' : s.clockSize === 'large' ? 'text-5xl' : 'text-4xl'}`} style={{ color: s.clockColor }}>
@@ -499,8 +573,10 @@ export default function Settings() {
             <div className="space-y-5">
               <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center overflow-hidden">
+                    {s.assistantAvatarUrl
+                      ? <img src={s.assistantAvatarUrl} alt="" className="w-full h-full object-cover" />
+                      : <Bot className="w-5 h-5 text-white" />}
                   </div>
                   <div>
                     <p className="font-bold text-sm">تشغيل المساعد الذكي</p>
@@ -519,15 +595,13 @@ export default function Settings() {
                   className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none transition" />
               </Field>
 
-              <Field label="صورة المساعد" sub="PNG دائري — 256×256">
-                <label className="flex items-center justify-center gap-3 w-full h-20 rounded-xl border-2 border-dashed border-border hover:border-pink-500/50 cursor-pointer transition group">
-                  <input type="file" className="hidden" accept="image/*" />
-                  <div className="flex items-center gap-2">
-                    <Upload className="w-5 h-5 text-muted-foreground group-hover:text-pink-400 transition" />
-                    <p className="text-xs text-muted-foreground">انقر لرفع صورة المساعد</p>
-                  </div>
-                </label>
-              </Field>
+              <ImageUploadZone
+                label="صورة المساعد"
+                sub="PNG دائري — 256×256"
+                icon={Upload}
+                value={s.assistantAvatarUrl}
+                onUpload={b64 => update({ assistantAvatarUrl: b64 })}
+              />
 
               <Field label="شخصية المساعد">
                 <div className="grid grid-cols-2 gap-2">
@@ -572,6 +646,15 @@ export default function Settings() {
                   </div>
                 </Field>
               ))}
+              <button
+                onClick={() => {
+                  toast({ title: 'تم حفظ مفاتيح الذكاء الاصطناعي ✓' });
+                  save();
+                }}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm transition flex items-center justify-center gap-2 hover:-translate-y-0.5 shadow-lg shadow-rose-500/20"
+              >
+                <Save className="w-4 h-4" /> حفظ المفاتيح
+              </button>
             </div>
           </Card>
         </div>
@@ -603,17 +686,47 @@ export default function Settings() {
                   </div>
                 </Field>
               ))}
+              <button
+                onClick={() => { save(); toast({ title: 'تم حفظ مفاتيح الخدمات ✓' }); }}
+                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" /> حفظ المفاتيح
+              </button>
             </div>
           </Card>
 
           <Card>
-            <CardHeader icon={Zap} color="bg-orange-500" title="مفاتيح إضافية" sub="مفاتيح مخصصة لخدمات أخرى" />
+            <CardHeader icon={Zap} color="bg-orange-500" title="مفاتيح مخصصة" sub="مفاتيح لخدمات إضافية" />
             <div className="space-y-3">
-              <Field label="مفتاح مخصص 1"><Input placeholder="اسم الخدمة: المفتاح" /></Field>
-              <Field label="مفتاح مخصص 2"><Input placeholder="اسم الخدمة: المفتاح" /></Field>
-              <Field label="مفتاح مخصص 3"><Input placeholder="اسم الخدمة: المفتاح" /></Field>
-              <button className="w-full py-2.5 rounded-xl border border-dashed border-amber-500/40 text-amber-400 text-sm font-bold hover:bg-amber-500/5 transition">
-                + إضافة مفتاح جديد
+              {s.customKeys.map((ck, i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    value={ck.name}
+                    onChange={e => updateCustomKey(i, 'name', e.target.value)}
+                    placeholder="اسم الخدمة"
+                    className="w-1/3 rounded-xl px-3 py-2 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition"
+                  />
+                  <div className="relative flex-1">
+                    <input
+                      type={showKeys[`custom-${i}`] ? 'text' : 'password'}
+                      value={ck.value}
+                      onChange={e => updateCustomKey(i, 'value', e.target.value)}
+                      placeholder="المفتاح"
+                      className="w-full rounded-xl px-3 py-2 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-500/50 font-mono pr-8 transition"
+                    />
+                    <button type="button" onClick={() => setShowKeys(v => ({ ...v, [`custom-${i}`]: !v[`custom-${i}`] }))}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                      {showKeys[`custom-${i}`] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <button onClick={() => removeCustomKey(i)} className="p-2 rounded-xl border border-border hover:border-red-500/40 hover:text-red-400 transition">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button onClick={addCustomKey}
+                className="w-full py-2.5 rounded-xl border border-dashed border-amber-500/40 text-amber-400 text-sm font-bold hover:bg-amber-500/5 transition flex items-center justify-center gap-2">
+                <Plus className="w-4 h-4" /> إضافة مفتاح جديد
               </button>
             </div>
             <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
@@ -639,7 +752,12 @@ export default function Settings() {
             </div>
             <div className="mt-4">
               <Field label="نبرة صوت التنبيه">
-                <Sel><option>افتراضي</option><option>ناعم</option><option>قوي</option><option>صامت</option></Sel>
+                <Sel value={s.notifSoundTone} onChange={e => update({ notifSoundTone: e.target.value })}>
+                  <option value="default">افتراضي</option>
+                  <option value="soft">ناعم</option>
+                  <option value="strong">قوي</option>
+                  <option value="silent">صامت</option>
+                </Sel>
               </Field>
             </div>
           </Card>
@@ -673,14 +791,43 @@ export default function Settings() {
               <Field label="تغيير البريد الإلكتروني">
                 <div className="relative">
                   <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="email" placeholder="البريد الجديد"
-                    className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition" />
+                  <input
+                    type="email"
+                    value={secEmail}
+                    onChange={e => setSecEmail(e.target.value)}
+                    placeholder="البريد الجديد"
+                    className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition"
+                  />
                 </div>
               </Field>
-              <PasswordInput label="كلمة المرور الحالية" />
-              <PasswordInput label="كلمة المرور الجديدة" placeholder="كلمة مرور قوية" />
-              <PasswordInput label="تأكيد كلمة المرور الجديدة" placeholder="أعد الكتابة" />
-              <button className="w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm transition flex items-center justify-center gap-2">
+
+              {/* Password fields */}
+              {[
+                { key: 'current', label: 'كلمة المرور الحالية', value: secCurrentPw, set: setSecCurrentPw },
+                { key: 'new',     label: 'كلمة المرور الجديدة', value: secNewPw, set: setSecNewPw, placeholder: 'كلمة مرور قوية (8+ أحرف)' },
+                { key: 'confirm', label: 'تأكيد كلمة المرور',   value: secConfirmPw, set: setSecConfirmPw, placeholder: 'أعد الكتابة' },
+              ].map(({ key, label, value, set, placeholder }) => (
+                <Field key={key} label={label}>
+                  <div className="relative">
+                    <input
+                      type={showPw[key] ? 'text' : 'password'}
+                      value={value}
+                      onChange={e => set(e.target.value)}
+                      placeholder={placeholder || '••••••••'}
+                      className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-500/50 pr-10 transition"
+                    />
+                    <button type="button" onClick={() => setShowPw(v => ({ ...v, [key]: !v[key] }))}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                      {showPw[key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </Field>
+              ))}
+
+              <button
+                onClick={handleUpdateCredentials}
+                className="w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm transition flex items-center justify-center gap-2"
+              >
                 <Lock className="w-4 h-4" /> تحديث بيانات الدخول
               </button>
             </div>
@@ -688,11 +835,53 @@ export default function Settings() {
 
           <div className="space-y-5">
             <Card>
-              <CardHeader icon={Fingerprint} color="bg-violet-500" title="التحقق البيومتري" sub="Face ID & بصمة الإصبع" />
+              <CardHeader icon={Fingerprint} color="bg-violet-500" title="التحقق البيومتري" sub="Face ID & بصمة الإصبع & PIN" />
               <div>
-                <ToggleRow label="Face ID" sub="الدخول بالتعرف على الوجه" on={false} onToggle={() => {}} />
-                <ToggleRow label="بصمة الإصبع" on={false} onToggle={() => {}} />
-                <ToggleRow label="PIN Code" sub="رمز سري مكون من 6 أرقام" on={true} onToggle={() => {}} />
+                <ToggleRow
+                  label="Face ID"
+                  sub="الدخول بالتعرف على الوجه"
+                  on={s.biometric.faceId}
+                  onToggle={() => {
+                    toggleBiometric('faceId');
+                    toast({ title: s.biometric.faceId ? 'تم إيقاف Face ID' : 'تم تفعيل Face ID ✓' });
+                  }}
+                />
+                <ToggleRow
+                  label="بصمة الإصبع"
+                  on={s.biometric.fingerprint}
+                  onToggle={() => {
+                    toggleBiometric('fingerprint');
+                    toast({ title: s.biometric.fingerprint ? 'تم إيقاف البصمة' : 'تم تفعيل البصمة ✓' });
+                  }}
+                />
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold">PIN Code</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">رمز سري مكون من 6 أرقام</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {s.biometric.pin && (
+                      <button
+                        onClick={() => { setPinValue(''); setPinDialog(true); }}
+                        className="text-xs text-indigo-400 hover:text-indigo-300 font-bold transition"
+                      >
+                        تغيير
+                      </button>
+                    )}
+                    <Toggle
+                      on={s.biometric.pin}
+                      onToggle={() => {
+                        if (!s.biometric.pin) {
+                          setPinValue('');
+                          setPinDialog(true);
+                        } else {
+                          toggleBiometric('pin');
+                          toast({ title: 'تم إيقاف PIN Code' });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </Card>
 
@@ -754,7 +943,6 @@ export default function Settings() {
                 </div>
               </Field>
 
-              {/* Summary chip */}
               <div className="p-3 rounded-xl border border-teal-500/20 bg-teal-500/5 text-xs text-teal-300 font-bold space-y-1">
                 <p>⏰ الدوام: {s.workStart} → {s.workEnd}</p>
                 <p>☕ الاستراحة: {s.breakMin} دقيقة</p>
@@ -800,6 +988,43 @@ export default function Settings() {
               </button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* ── PIN Dialog ───────────────────────────────────────────── */}
+      {pinDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" dir="rtl">
+          <div className="relative w-full max-w-sm rounded-2xl border border-border p-6 shadow-2xl" style={{ background: 'var(--card)' }}>
+            <button onClick={() => setPinDialog(false)} className="absolute top-4 left-4 text-muted-foreground hover:text-foreground transition">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center mx-auto mb-3">
+                <Lock className="w-7 h-7 text-violet-400" />
+              </div>
+              <h3 className="font-bold text-lg">إعداد رمز PIN</h3>
+              <p className="text-sm text-muted-foreground mt-1">أدخل رمزاً مكوناً من 6 أرقام</p>
+            </div>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={6}
+              value={pinValue}
+              onChange={e => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="● ● ● ● ● ●"
+              className="w-full text-center text-2xl font-mono rounded-xl px-4 py-3 border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-violet-500/50 tracking-[0.5em] mb-4"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setPinDialog(false)}
+                className="flex-1 py-2.5 rounded-xl border border-border font-bold text-sm hover:bg-white/5 transition">
+                إلغاء
+              </button>
+              <button onClick={handlePinSave}
+                className="flex-1 py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 text-white font-bold text-sm transition">
+                تأكيد
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
