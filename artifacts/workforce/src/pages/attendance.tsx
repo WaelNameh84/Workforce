@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import {
   Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, AlertCircle, Camera,
   Navigation, X, AlertTriangle, Timer, TrendingUp, QrCode,
-  CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass, ExternalLink
+  CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass, ExternalLink, Download
 } from 'lucide-react';
 import { format, differenceInMinutes } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -116,14 +116,27 @@ export default function Attendance() {
   };
 
   /* ── photo documentation card ── */
-  const [docPhoto, setDocPhoto] = useState<string | null>(null);
-  const [docSubmitted, setDocSubmitted] = useState(false);
+  const [docPhotos, setDocPhotos] = useState<{ id: number; src: string; name: string }[]>([]);
+  const docPhotoCounter = useRef(0);
   const handleDocPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => { setDocPhoto(ev.target?.result as string); setDocSubmitted(false); };
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        docPhotoCounter.current += 1;
+        setDocPhotos(prev => [...prev, { id: docPhotoCounter.current, src: ev.target?.result as string, name: file.name }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    // reset input so same file can be re-added
+    e.target.value = '';
+  };
+  const removeDocPhoto = (id: number) => setDocPhotos(prev => prev.filter(p => p.id !== id));
+  const downloadDocPhoto = (src: string, name: string) => {
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = name || `work-photo-${Date.now()}.jpg`;
+    a.click();
   };
 
   /* ── API hooks ── */
@@ -534,69 +547,89 @@ export default function Attendance() {
             </div>
 
             <div className="p-5 flex flex-col gap-4">
-              {docSubmitted ? (
+              {/* hidden multi-file input */}
+              <input
+                ref={docPhotoInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleDocPhotoChange}
+              />
+
+              {/* gallery of added photos */}
+              {docPhotos.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  {/* success badge */}
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                    <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                      {ar ? 'تم إرسال الصورة بنجاح ✓' : 'Photo submitted successfully ✓'}
-                    </span>
-                  </div>
-                  {/* submitted photo — stays visible */}
-                  {docPhoto && (
-                    <div className="relative rounded-xl overflow-hidden border border-emerald-500/30">
-                      <img src={docPhoto} alt="work doc" className="w-full h-48 object-cover" />
-                      {/* delete button */}
+                  {/* count badge */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs text-emerald-500 font-semibold">
+                      <CheckCircle2 className="w-4 h-4" />
+                      {ar
+                        ? `${docPhotos.length} ${docPhotos.length === 1 ? 'صورة مضافة' : 'صور مضافة'}`
+                        : `${docPhotos.length} photo${docPhotos.length > 1 ? 's' : ''} added`}
+                    </div>
+                    {docPhotos.length > 1 && (
                       <button
-                        onClick={() => { setDocPhoto(null); setDocSubmitted(false); }}
-                        className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold transition-all backdrop-blur-sm shadow"
+                        onClick={() => setDocPhotos([])}
+                        className="text-xs text-red-400 hover:text-red-300 underline underline-offset-2"
                       >
-                        <X className="w-3 h-3" />
-                        {ar ? 'حذف' : 'Delete'}
+                        {ar ? 'حذف الكل' : 'Delete all'}
                       </button>
-                    </div>
-                  )}
-                  {/* add another */}
-                  <button
-                    onClick={() => { setDocPhoto(null); setDocSubmitted(false); }}
-                    className="text-xs text-muted-foreground underline underline-offset-2 text-center"
-                  >
-                    {ar ? 'إرسال صورة أخرى' : 'Submit another photo'}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {docPhoto ? (
-                    <div className="relative rounded-xl overflow-hidden border border-border">
-                      <img src={docPhoto} alt="work doc" className="w-full h-36 object-cover" />
-                      <button onClick={() => setDocPhoto(null)}
-                              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => docPhotoInputRef.current?.click()}
-                            className="w-full h-32 rounded-xl border-2 border-dashed transition flex flex-col items-center justify-center gap-2.5
-                                       border-purple-300/40 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-400/60 text-purple-400">
-                      <div className="w-10 h-10 rounded-full bg-purple-500/15 flex items-center justify-center">
-                        <ImagePlus className="w-5 h-5" />
+                    )}
+                  </div>
+
+                  {/* photo cards */}
+                  <div className="flex flex-col gap-2">
+                    {docPhotos.map((photo, idx) => (
+                      <div key={photo.id} className="relative rounded-xl overflow-hidden border border-emerald-500/25 bg-black/10">
+                        <img src={photo.src} alt={`work doc ${idx + 1}`} className="w-full h-44 object-cover" />
+                        {/* overlay actions */}
+                        <div className="absolute inset-x-0 bottom-0 flex gap-2 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                          {/* download */}
+                          <button
+                            onClick={() => downloadDocPhoto(photo.src, photo.name)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/20 text-white text-xs font-semibold transition-all backdrop-blur-sm"
+                          >
+                            <Download className="w-3 h-3" />
+                            {ar ? 'تحميل' : 'Download'}
+                          </button>
+                          {/* delete */}
+                          <button
+                            onClick={() => removeDocPhoto(photo.id)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-red-600/70 hover:bg-red-600 border border-red-500/30 text-white text-xs font-semibold transition-all backdrop-blur-sm"
+                          >
+                            <X className="w-3 h-3" />
+                            {ar ? 'حذف' : 'Delete'}
+                          </button>
+                        </div>
+                        {/* index badge */}
+                        <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-white text-[10px] font-bold backdrop-blur-sm">
+                          {idx + 1}
+                        </div>
                       </div>
-                      <span className="text-sm font-medium">{ar ? 'اضغط للتقاط أو رفع صورة' : 'Tap to capture or upload'}</span>
-                      <span className="text-xs text-purple-400/70">{ar ? 'يدعم الكاميرا والاستيراد' : 'Camera & gallery supported'}</span>
-                    </button>
-                  )}
-                  <input ref={docPhotoInputRef} type="file" accept="image/*" capture="environment"
-                         className="hidden" onChange={handleDocPhotoChange} />
-                  <button onClick={() => { if (docPhoto) setDocSubmitted(true); else docPhotoInputRef.current?.click(); }}
-                          disabled={!docPhoto}
-                          className={`w-full h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition
-                            ${docPhoto ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md hover:opacity-90' : 'bg-muted/50 text-muted-foreground cursor-not-allowed'}`}>
-                    <Send className="w-4 h-4" />
-                    {ar ? 'إرسال الصورة' : 'Submit Photo'}
-                  </button>
-                </>
+                    ))}
+                  </div>
+                </div>
               )}
+
+              {/* add photo button — always visible */}
+              <button
+                onClick={() => docPhotoInputRef.current?.click()}
+                className="w-full h-28 rounded-xl border-2 border-dashed transition flex flex-col items-center justify-center gap-2
+                           border-purple-300/40 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-400/60 text-purple-400"
+              >
+                <div className="w-9 h-9 rounded-full bg-purple-500/15 flex items-center justify-center">
+                  <ImagePlus className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium">
+                  {docPhotos.length > 0
+                    ? (ar ? 'إضافة المزيد من الصور' : 'Add more photos')
+                    : (ar ? 'اضغط للتقاط أو رفع صورة' : 'Tap to capture or upload')}
+                </span>
+                <span className="text-xs text-purple-400/60">
+                  {ar ? 'يمكنك اختيار عدة صور دفعة واحدة' : 'You can pick multiple at once'}
+                </span>
+              </button>
             </div>
           </div>
         </div>
