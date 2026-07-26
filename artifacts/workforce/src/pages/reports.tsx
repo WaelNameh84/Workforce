@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
@@ -14,6 +14,7 @@ import {
   FileText, Download, BarChart3, TrendingUp, Clock3, WalletCards,
   Mail, Share2, Printer, Users, CalendarCheck, Inbox,
   CheckCircle2, Send, HardDrive, X, ChevronDown, ChevronRight,
+  User, Search, UserCheck,
 } from 'lucide-react';
 
 const money = (v?: string | number | null) => Number(v || 0);
@@ -171,6 +172,129 @@ function SectionExportModal({
   );
 }
 
+// ─── Employee picker dropdown ─────────────────────────────────────────────────
+function EmployeePicker({
+  employees, selectedId, onSelect, onClear,
+}: {
+  employees: any[];
+  selectedId: number | null;
+  onSelect: (id: number, name: string) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen]   = useState(false);
+  const [q, setQ]         = useState('');
+  const ref               = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = employees.filter(e =>
+    !q || (e.fullName || '').toLowerCase().includes(q.toLowerCase()) ||
+    (e.position || '').toLowerCase().includes(q.toLowerCase())
+  );
+
+  const selected = employees.find(e => e.id === selectedId);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition ${
+          selectedId
+            ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-300'
+            : 'border-border hover:border-indigo-500/30 hover:bg-indigo-500/5'
+        }`}
+      >
+        {selectedId ? (
+          <>
+            <UserCheck className="w-4 h-4 shrink-0" />
+            <span className="max-w-[120px] truncate">{selected?.fullName || 'موظف'}</span>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={e => { e.stopPropagation(); onClear(); setOpen(false); }}
+              onKeyDown={e => e.key === 'Enter' && (e.stopPropagation(), onClear(), setOpen(false))}
+              className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500/30 hover:bg-red-500/40 hover:text-red-300 transition"
+            >
+              <X className="w-2.5 h-2.5" />
+            </span>
+          </>
+        ) : (
+          <>
+            <User className="w-4 h-4" />
+            اختيار موظف
+            <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+          </>
+        )}
+      </button>
+
+      {open && (
+        <div
+          dir="rtl"
+          className="absolute left-0 top-full mt-2 z-30 w-64 rounded-2xl border border-border shadow-2xl overflow-hidden"
+          style={{ background: 'var(--card)' }}
+        >
+          {/* search */}
+          <div className="p-2 border-b border-border">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-white/5 text-sm">
+              <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <input
+                autoFocus
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="بحث عن موظف..."
+                className="bg-transparent outline-none w-full text-sm"
+              />
+              {q && (
+                <button onClick={() => setQ('')} className="text-muted-foreground hover:text-white">
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* all employees option */}
+          <button
+            onClick={() => { onClear(); setOpen(false); setQ(''); }}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition hover:bg-white/5 border-b border-border ${!selectedId ? 'text-indigo-400' : ''}`}
+          >
+            <Users className="w-4 h-4 shrink-0 text-indigo-400" />
+            كل الموظفين
+            {!selectedId && <CheckCircle2 className="w-3.5 h-3.5 mr-auto text-indigo-400" />}
+          </button>
+
+          {/* list */}
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-4 text-sm text-muted-foreground text-center">لا نتائج</p>
+            ) : filtered.map((emp: any) => (
+              <button
+                key={emp.id}
+                onClick={() => { onSelect(emp.id, emp.fullName); setOpen(false); setQ(''); }}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition hover:bg-white/5 ${selectedId === emp.id ? 'text-indigo-300 bg-indigo-500/5' : ''}`}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold">
+                  {(emp.fullName || '?').charAt(0)}
+                </span>
+                <div className="text-right min-w-0">
+                  <p className="font-bold truncate">{emp.fullName}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{emp.position || emp.department || '—'}</p>
+                </div>
+                {selectedId === emp.id && <CheckCircle2 className="w-3.5 h-3.5 mr-auto text-indigo-400 shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Reports() {
   const { user } = useAuth();
@@ -178,6 +302,8 @@ export default function Reports() {
   const { toast } = useToast();
   const [showCombined, setShowCombined]       = useState(false);
   const [sectionExport, setSectionExport]     = useState<{ title: string; lines: string[] } | null>(null);
+  const [selectedEmpId, setSelectedEmpId]     = useState<number | null>(null);
+  const [selectedEmpName, setSelectedEmpName] = useState<string>('');
 
   const cid = user?.companyId || 0;
 
@@ -187,11 +313,17 @@ export default function Reports() {
   const { data: leaveData    } = useGetLeaves(     { companyId: cid },         { query: { enabled: !!cid, queryKey: getGetLeavesQueryKey({ companyId: cid }) } });
   const { data: requestsData } = useGetRequests(   { companyId: cid },         { query: { enabled: !!cid, queryKey: getGetRequestsQueryKey({ companyId: cid }) } });
 
-  const payrollRows  = payrollData?.payroll   || [];
-  const employees    = empData?.employees     || [];
-  const attRows: any[]     = (attData as any)?.attendance  || [];
-  const leaveRows: any[]   = leaveData?.leaves || [];
-  const requestRows: any[] = (requestsData as any)?.requests || [];
+  const allPayrollRows  = payrollData?.payroll   || [];
+  const employees       = empData?.employees     || [];
+  const allAttRows: any[]     = (attData as any)?.attendance  || [];
+  const allLeaveRows: any[]   = leaveData?.leaves || [];
+  const allRequestRows: any[] = (requestsData as any)?.requests || [];
+
+  // ── Filter by selected employee ──
+  const payrollRows  = selectedEmpId ? allPayrollRows.filter(r => r.employeeId === selectedEmpId) : allPayrollRows;
+  const attRows      = selectedEmpId ? allAttRows.filter((r: any) => r.employeeId === selectedEmpId) : allAttRows;
+  const leaveRows    = selectedEmpId ? allLeaveRows.filter((r: any) => r.employeeId === selectedEmpId) : allLeaveRows;
+  const requestRows  = selectedEmpId ? allRequestRows.filter((r: any) => r.employeeId === selectedEmpId) : allRequestRows;
 
   // ── Aggregate stats ──
   const totalNet      = payrollRows.reduce((s, r) => s + money(r.netSalary), 0);
@@ -379,9 +511,22 @@ export default function Reports() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">التقارير</h1>
-          <p className="text-sm text-muted-foreground mt-1">تقارير مباشرة مربوطة بجميع أقسام النظام</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            تقارير مباشرة مربوطة بجميع أقسام النظام
+            {selectedEmpId && (
+              <span className="inline-flex items-center gap-1 mr-2 px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold">
+                <UserCheck className="w-3 h-3" /> {selectedEmpName}
+              </span>
+            )}
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <EmployeePicker
+            employees={employees}
+            selectedId={selectedEmpId}
+            onSelect={(id, name) => { setSelectedEmpId(id); setSelectedEmpName(name); }}
+            onClear={() => { setSelectedEmpId(null); setSelectedEmpName(''); }}
+          />
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-white/5 transition"
