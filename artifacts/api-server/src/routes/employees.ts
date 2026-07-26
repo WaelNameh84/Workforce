@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { employees, departments } from "@workspace/db";
+import { employees, departments, users } from "@workspace/db";
 import { eq, and, ilike, sql } from "drizzle-orm";
 import { authMiddleware } from "../middlewares/auth";
 
@@ -63,10 +63,25 @@ router.get("/employees", authMiddleware, async (req, res) => {
 // POST /api/employees
 router.post("/employees", authMiddleware, async (req, res) => {
   try {
-    const { companyId, ...rest } = req.body;
+    // Prefer the authenticated token, but recover the company for tokens issued
+    // before companyId was included in the registration response.
+    let companyId = req.user?.companyId ?? undefined;
+    if (!companyId && req.user?.userId) {
+      const [account] = await db
+        .select({ companyId: users.companyId })
+        .from(users)
+        .where(eq(users.id, req.user.userId))
+        .limit(1);
+      companyId = account?.companyId ?? undefined;
+    }
+    if (!companyId) {
+      res.status(400).json({ error: "companyId is required" });
+      return;
+    }
+    const { companyId: _ignored, ...rest } = req.body;
     const [emp] = await db
       .insert(employees)
-      .values({ companyId: companyId || req.body.companyId, ...rest })
+      .values({ companyId, ...rest })
       .returning();
     res.status(201).json(emp);
   } catch (err) {

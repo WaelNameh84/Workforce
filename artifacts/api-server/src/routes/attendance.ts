@@ -142,7 +142,7 @@ router.post("/attendance/clock-out", authMiddleware, async (req, res) => {
 // PATCH /api/attendance/:id  (update justification / notes)
 router.patch("/attendance/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const { notes, status } = req.body;
 
     const [updated] = await db

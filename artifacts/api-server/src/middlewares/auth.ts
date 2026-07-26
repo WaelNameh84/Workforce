@@ -1,14 +1,24 @@
 import type { Request, Response, NextFunction } from "express";
 import { jwtVerify } from "jose";
 
+export interface AuthUser {
+  userId: number;
+  email: string;
+  role: string;
+  employeeId?: number | null;
+  companyId?: number | null;
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthUser;
+    }
+  }
+}
+
 export interface AuthRequest extends Request {
-  user?: {
-    userId: number;
-    email: string;
-    role: string;
-    employeeId?: number | null;
-    companyId?: number | null;
-  };
+  user?: AuthUser;
 }
 
 export async function authMiddleware(

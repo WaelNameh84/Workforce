@@ -129,6 +129,7 @@ router.post("/auth/register", async (req, res) => {
       userId: user.id,
       email: user.email,
       role: user.role,
+      companyId: company.id,
     });
 
     res.status(201).json({

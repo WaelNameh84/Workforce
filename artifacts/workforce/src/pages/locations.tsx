@@ -71,7 +71,7 @@ export default function Locations() {
   };
 
   const locations = (data?.locations || []).filter(l =>
-    !search || l.name.toLowerCase().includes(search.toLowerCase()) ||
+    !search || (l.name || '').toLowerCase().includes(search.toLowerCase()) ||
     (l.city || '').toLowerCase().includes(search.toLowerCase())
   );
 

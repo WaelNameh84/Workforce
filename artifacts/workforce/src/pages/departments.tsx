@@ -70,7 +70,7 @@ export default function Departments() {
   };
 
   const departments = (data?.departments || []).filter(d =>
-    !search || d.name.toLowerCase().includes(search.toLowerCase())
+    !search || (d.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
