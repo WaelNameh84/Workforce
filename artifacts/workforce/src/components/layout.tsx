@@ -321,8 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       id: 'system',
       title: 'System',
       items: [
-        { href: '/dashboard/integrations', label: t('integrations'), icon: Link2 },
-        { href: '/dashboard/settings',     label: t('settings'),     icon: Settings },
+        { href: '/dashboard/settings', label: t('settings'), icon: Settings },
       ],
     },
   ];
