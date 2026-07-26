@@ -400,6 +400,35 @@ export const ClockOutResponse = zod.object({
 
 
 /**
+ * @summary Update attendance record (justification / notes)
+ */
+export const UpdateAttendanceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateAttendanceBody = zod.object({
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['present', 'absent', 'late', 'half-day']).nullish()
+})
+
+export const UpdateAttendanceResponse = zod.object({
+  "id": zod.number().optional(),
+  "employeeId": zod.number().optional(),
+  "employeeName": zod.string().nullish(),
+  "date": zod.string().optional(),
+  "clockIn": zod.string().nullish(),
+  "clockOut": zod.string().nullish(),
+  "totalHours": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "method": zod.string().nullish(),
+  "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
+  "isLate": zod.boolean().optional(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
  * @summary Get today attendance for an employee
  */
 export const GetTodayAttendanceQueryParams = zod.object({

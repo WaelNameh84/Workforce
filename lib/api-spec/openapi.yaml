@@ -290,6 +290,17 @@ components:
         employeeId:
           type: integer
 
+    AttendanceUpdateInput:
+      type: object
+      properties:
+        notes:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [present, absent, late, half-day]
+          nullable: true
+
     # Leave
     Leave:
       type: object
@@ -951,6 +962,30 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ClockOutInput'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attendance'
+
+  /attendance/{id}:
+    patch:
+      operationId: updateAttendance
+      summary: Update attendance record (justification / notes)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceUpdateInput'
       responses:
         '200':
           description: OK

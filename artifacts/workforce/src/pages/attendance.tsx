@@ -1,245 +1,721 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
-  useGetAttendance, useGetTodayAttendance, useClockIn, useClockOut,
+  useGetAttendance, useGetTodayAttendance, useClockIn, useClockOut, useUpdateAttendance,
   getGetAttendanceQueryKey, getGetTodayAttendanceQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import {
+  Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, AlertCircle, Camera,
+  Navigation, Upload, X, ChevronDown, AlertTriangle, Timer, TrendingUp,
+  CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass
+} from 'lucide-react';
+import { format, differenceInMinutes } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
+/* ─── helpers ─────────────────────────────────────────────── */
+const WORK_END_HOUR = 17;   // 17:00 = end of work day
+const OVERTIME_THRESHOLD = 18; // 18:00+ counts as late clock-out
+
+type LateOutReason = 'overtime' | 'forgot' | 'other';
+
+function statusColors(s?: string | null) {
+  if (s === 'present') return { row: 'border-l-emerald-500 bg-emerald-500/5', badge: 'bg-emerald-500/15 text-emerald-500', dot: 'bg-emerald-500' };
+  if (s === 'late')    return { row: 'border-l-amber-500  bg-amber-500/5',   badge: 'bg-amber-500/15  text-amber-500',  dot: 'bg-amber-500'  };
+  if (s === 'absent')  return { row: 'border-l-red-500    bg-red-500/5',     badge: 'bg-red-500/15    text-red-500',    dot: 'bg-red-500'    };
+  if (s === 'half-day')return { row: 'border-l-blue-500   bg-blue-500/5',    badge: 'bg-blue-500/15   text-blue-500',   dot: 'bg-blue-500'   };
+  return { row: 'border-l-gray-500 bg-gray-500/5', badge: 'bg-gray-500/15 text-gray-500', dot: 'bg-gray-500' };
+}
+
+function hoursLabel(h?: string | null, locale?: string) {
+  const v = parseFloat(h || '0');
+  return `${v.toFixed(1)}${locale === 'ar' ? 'س' : 'h'}`;
+}
+
+/* ─── component ───────────────────────────────────────────── */
 export default function Attendance() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const queryClient = useQueryClient();
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [checkMethod, setCheckMethod] = useState<'gps' | 'wifi' | 'bluetooth'>('gps');
+  const ar = locale === 'ar';
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const docPhotoInputRef = useRef<HTMLInputElement>(null);
 
+  /* ── time ── */
+  const [now, setNow] = useState(new Date());
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  /* ── location & GPS ── */
+  const [locationKey, setLocationKey] = useState<string>('office');
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const locationLabels: Record<string, { en: string; ar: string }> = {
+    office:  { en: 'Office',      ar: 'المكتب'        },
+    home:    { en: 'Home',        ar: 'المنزل'         },
+    remote:  { en: 'Remote',      ar: 'عمل عن بُعد'    },
+    field:   { en: 'Field Site',  ar: 'موقع الميدان'   },
+    gps:     { en: 'GPS Location',ar: 'موقع GPS'       },
+  };
+  const locationName = (k: string) => ar ? locationLabels[k]?.ar : locationLabels[k]?.en;
+
+  const detectGPS = () => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => { setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGpsLoading(false); },
+      ()  => { setGpsLoading(false); },
+      { timeout: 8000 },
+    );
+  };
+
+  useEffect(() => {
+    if (locationKey === 'gps') detectGPS();
+    else setGpsCoords(null);
+  }, [locationKey]);
+
+  /* ── photo for clock-in card ── */
+  const [clockPhoto, setClockPhoto] = useState<string | null>(null);
+  const handleClockPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setClockPhoto(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  /* ── photo documentation card ── */
+  const [docPhoto, setDocPhoto] = useState<string | null>(null);
+  const [docSubmitted, setDocSubmitted] = useState(false);
+  const handleDocPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { setDocPhoto(ev.target?.result as string); setDocSubmitted(false); };
+    reader.readAsDataURL(file);
+  };
+
+  /* ── API hooks ── */
   const { data: attendanceData, isLoading } = useGetAttendance(
     { companyId: user?.companyId || 0 },
-    { query: { enabled: !!user?.companyId, queryKey: getGetAttendanceQueryKey({ companyId: user?.companyId || 0 }) } }
+    { query: { enabled: !!user?.companyId, queryKey: getGetAttendanceQueryKey({ companyId: user?.companyId || 0 }) } },
   );
-
   const { data: todayStatus, isLoading: todayLoading } = useGetTodayAttendance(
     { employeeId: user?.id || 0 },
-    { query: { enabled: !!user?.id, queryKey: getGetTodayAttendanceQueryKey({ employeeId: user?.id || 0 }) } }
+    { query: { enabled: !!user?.id, queryKey: getGetTodayAttendanceQueryKey({ employeeId: user?.id || 0 }) } },
   );
+  const clockInMutation   = useClockIn();
+  const clockOutMutation  = useClockOut();
+  const updateMutation    = useUpdateAttendance();
 
-  const clockInMutation = useClockIn();
-  const clockOutMutation = useClockOut();
+  const todayRecord  = Array.isArray(todayStatus) ? todayStatus[0] : todayStatus;
+  const isClockedIn  = !!(todayRecord?.clockIn && !todayRecord?.clockOut);
 
-  const todayRecord = Array.isArray(todayStatus) ? todayStatus[0] : todayStatus;
-  const isClockedIn = todayRecord?.clockIn && !todayRecord?.clockOut;
+  /* ── justification dialogs ── */
+  const [showLateIn,    setShowLateIn]    = useState(false);
+  const [showEarlyOut,  setShowEarlyOut]  = useState(false);
+  const [showLateOut,   setShowLateOut]   = useState(false);
+  const [justText,      setJustText]      = useState('');
+  const [lateOutReason, setLateOutReason] = useState<LateOutReason>('overtime');
+  const [lateMinutes,   setLateMinutes]   = useState(0);
+  const [pendingRecId,  setPendingRecId]  = useState<number | null>(null);
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetTodayAttendanceQueryKey({ employeeId: user?.id || 0 }) });
+  };
 
   const handleClockIn = async () => {
     try {
-      await clockInMutation.mutateAsync({ data: { employeeId: user?.id || 0, location: 'Office', method: checkMethod } });
-      queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey() });
-      queryClient.invalidateQueries({ queryKey: getGetTodayAttendanceQueryKey({ employeeId: user?.id || 0 }) });
+      const locStr = locationKey === 'gps' && gpsCoords
+        ? `GPS: ${gpsCoords.lat.toFixed(5)}, ${gpsCoords.lng.toFixed(5)}`
+        : locationName(locationKey) || 'Office';
+      const rec = await clockInMutation.mutateAsync({
+        data: { employeeId: user?.id || 0, location: locStr, method: locationKey },
+      });
+      invalidate();
+      if (rec?.isLate) {
+        const work9 = new Date(); work9.setHours(9, 0, 0, 0);
+        setLateMinutes(differenceInMinutes(new Date(rec.clockIn!), work9));
+        setPendingRecId(rec.id ?? null);
+        setJustText('');
+        setShowLateIn(true);
+      }
     } catch {}
   };
 
   const handleClockOut = async () => {
     try {
-      await clockOutMutation.mutateAsync({ data: { employeeId: user?.id || 0 } });
-      queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey() });
-      queryClient.invalidateQueries({ queryKey: getGetTodayAttendanceQueryKey({ employeeId: user?.id || 0 }) });
+      const rec = await clockOutMutation.mutateAsync({ data: { employeeId: user?.id || 0 } });
+      invalidate();
+      const outHour = new Date(rec.clockOut!).getHours();
+      setPendingRecId(rec.id ?? null);
+      setJustText('');
+      if (outHour >= OVERTIME_THRESHOLD) {
+        setLateOutReason('overtime');
+        setShowLateOut(true);
+      } else if (outHour < WORK_END_HOUR) {
+        setShowEarlyOut(true);
+      }
     } catch {}
   };
 
-  const statusColor = (s?: string) => {
-    if (s === 'present') return 'border-l-green-500 bg-green-500/5 text-green-600 dark:text-green-400';
-    if (s === 'late') return 'border-l-amber-500 bg-amber-500/5 text-amber-600 dark:text-amber-400';
-    if (s === 'absent') return 'border-l-red-500 bg-red-500/5 text-red-600 dark:text-red-400';
-    return 'border-l-gray-500 bg-gray-500/5 text-gray-500';
+  const submitJustification = async (notes: string) => {
+    if (!pendingRecId) return;
+    try { await updateMutation.mutateAsync({ id: pendingRecId, data: { notes } }); invalidate(); } catch {}
   };
 
-  const badgeColor = (s?: string) => {
-    if (s === 'present') return 'bg-green-500/10 text-green-500';
-    if (s === 'late') return 'bg-amber-500/10 text-amber-500';
-    if (s === 'absent') return 'bg-red-500/10 text-red-500';
-    return 'bg-gray-500/10 text-gray-500';
-  }
+  const handleLateInSubmit = async () => {
+    await submitJustification(justText || ar ? 'تأخير — بدون سبب' : 'Late — no reason given');
+    setShowLateIn(false); setJustText('');
+  };
+  const handleEarlyOutSubmit = async () => {
+    await submitJustification(justText || ar ? 'خروج مبكر — بدون سبب' : 'Early out — no reason given');
+    setShowEarlyOut(false); setJustText('');
+  };
+  const handleLateOutSubmit = async () => {
+    let notes = '';
+    if (lateOutReason === 'overtime')  notes = ar ? 'عمل إضافي' : 'Overtime work';
+    if (lateOutReason === 'forgot')    notes = ar ? 'نسيت تسجيل الخروج — لا يُحتسب إضافي' : 'Forgot to clock out — not overtime';
+    if (lateOutReason === 'other')     notes = justText || (ar ? 'خروج متأخر — بدون سبب' : 'Late out — no reason given');
+    await submitJustification(notes);
+    setShowLateOut(false); setJustText(''); setLateOutReason('overtime');
+  };
 
-  const methods = [
-    { id: 'gps' as const, icon: MapPin, label: 'GPS' },
-    { id: 'wifi' as const, icon: Wifi, label: 'WiFi' },
-    { id: 'bluetooth' as const, icon: Bluetooth, label: 'BT' },
-  ];
+  /* ── stats ── */
+  const rows      = attendanceData?.attendance || [];
+  const totalH    = rows.reduce((s, r) => s + Number(r.totalHours || 0), 0);
+  const lateCount = rows.filter(r => r.isLate || r.status === 'late').length;
+  const openCount = rows.filter(r => r.clockIn && !r.clockOut).length;
 
-  const attendanceRows = attendanceData?.attendance || [];
-  const totalHours = attendanceRows.reduce((sum, record) => sum + Number(record.totalHours || 0), 0);
-  const lateArrivals = attendanceRows.filter((record) => record.isLate || record.status === 'late').length;
-  const completedRecords = attendanceRows.filter((record) => record.clockOut).length;
-  const openRecords = attendanceRows.filter((record) => !record.clockOut).length;
-  const weekStats = [
-    { label: t('totalHours'), value: `${totalHours.toFixed(1)}h`, color: 'from-blue-500 to-cyan-500' },
-    { label: t('totalRecords'), value: String(attendanceRows.length), color: 'from-indigo-500 to-purple-500' },
-    { label: t('lateArrivals'), value: String(lateArrivals), color: 'from-amber-500 to-orange-500' },
-    { label: t('activeRecords'), value: String(openRecords || completedRecords), color: 'from-green-500 to-emerald-500' },
+  const stats = [
+    { label: ar ? 'إجمالي الساعات'  : 'Total Hours',   value: `${totalH.toFixed(1)}h`, gradient: 'from-blue-500 to-cyan-500',      icon: Timer        },
+    { label: ar ? 'إجمالي السجلات'  : 'Total Records', value: String(rows.length),      gradient: 'from-indigo-500 to-purple-500',  icon: CalendarDays },
+    { label: ar ? 'تأخيرات'          : 'Late Arrivals', value: String(lateCount),        gradient: 'from-amber-500 to-orange-500',   icon: AlertTriangle},
+    { label: ar ? 'قيد الدوام'       : 'Active Now',    value: String(openCount),        gradient: 'from-emerald-500 to-teal-500',   icon: TrendingUp   },
   ];
 
   return (
     <div className="space-y-6 animate-fadeIn">
+      {/* ── Header ── */}
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">{t('attendance')}</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{t('trackAttendanceDesc')}</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Clock Widget */}
-        <div className="lg:col-span-1 rounded-3xl p-8 text-center bg-gradient-to-br from-[#101010] to-[#1e1e1e] border border-white/10 text-white relative overflow-hidden shadow-2xl card-3d">
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, #6366f1 0%, transparent 70%)' }} />
-          
-          <div className="relative space-y-6 z-10 flex flex-col items-center">
+      {/* ── Stats Row ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s, i) => (
+          <div key={i} className="p-5 rounded-2xl card-3d flex flex-col justify-between gap-3">
+            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-md`}>
+              <s.icon className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold font-data">{s.value}</div>
+              <div className="text-xs mt-0.5 font-medium tracking-wide uppercase" style={{ color: 'var(--muted)' }}>{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Main Grid ── */}
+      <div className="grid lg:grid-cols-5 gap-6">
+
+        {/* ════════════════ CARD 1 — CLOCK STATION ════════════════ */}
+        <div className="lg:col-span-2 rounded-3xl text-center bg-gradient-to-br from-[#0d0d0d] to-[#1a1a2e] border border-white/10 text-white relative overflow-hidden shadow-2xl card-3d">
+          {/* glow */}
+          <div className="absolute inset-0 opacity-30 pointer-events-none"
+               style={{ backgroundImage: `radial-gradient(circle at 50% -10%, ${isClockedIn ? '#22c55e' : '#6366f1'} 0%, transparent 65%)` }} />
+
+          <div className="relative z-10 p-7 flex flex-col items-center gap-5">
+            {/* Live / Off Duty badge */}
             {isClockedIn ? (
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold tracking-widest uppercase border border-red-500/30">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse-ring" />
-                LIVE
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold tracking-widest uppercase border border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> LIVE
               </div>
             ) : (
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 text-white/50 text-xs font-bold tracking-widest uppercase border border-white/10">
-                OFF DUTY
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 text-white/40 text-xs font-bold tracking-widest uppercase border border-white/10">
+                <span className="w-2 h-2 rounded-full bg-white/30" /> OFF DUTY
               </div>
             )}
 
-            <div>
-              <h2 className="text-6xl font-bold font-mono tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">{format(currentTime, 'HH:mm:ss')}</h2>
-              <p className="text-white/50 text-sm mt-2 font-medium">{format(currentTime, 'EEEE, MMMM d, yyyy')}</p>
+            {/* Clock */}
+            <div className="text-center">
+              <h2 className="text-5xl font-bold font-mono tracking-tighter"
+                  style={{ textShadow: '0 0 30px rgba(255,255,255,0.2)' }}>
+                {format(now, 'HH:mm:ss')}
+              </h2>
+              <p className="text-white/45 text-sm mt-2 font-medium">{format(now, 'EEEE, MMMM d, yyyy')}</p>
             </div>
 
+            {/* Clocked-in info */}
             {isClockedIn && todayRecord?.clockIn && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-data">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                IN: {format(new Date(todayRecord.clockIn), 'HH:mm')}
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-data w-full justify-center">
+                <LogIn className="w-4 h-4 text-emerald-400" />
+                <span className="text-white/70">{ar ? 'دخل الساعة' : 'Clocked in at'}</span>
+                <span className="text-emerald-400 font-semibold">{format(new Date(todayRecord.clockIn), 'HH:mm')}</span>
+                {todayRecord.isLate && (
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold">{ar ? 'متأخر' : 'LATE'}</span>
+                )}
               </div>
             )}
 
-            <div className="flex gap-2 justify-center w-full max-w-[240px]">
-              {methods.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => setCheckMethod(m.id)}
-                  className={`flex-1 flex flex-col items-center gap-1.5 py-2 rounded-xl text-[10px] font-medium transition ${
-                    checkMethod === m.id ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-white/5 text-white/50 hover:bg-white/10'
-                  }`}
-                >
-                  <m.icon className="w-4 h-4" />
-                  {m.label}
-                </button>
-              ))}
+            {/* Location selector */}
+            <div className="w-full">
+              <label className="text-white/40 text-xs font-medium mb-1.5 block text-left">
+                {ar ? 'اختر الموقع' : 'Select Location'}
+              </label>
+              <Select value={locationKey} onValueChange={setLocationKey}>
+                <SelectTrigger className="bg-white/5 border-white/15 text-white rounded-xl h-10 text-sm">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(locationLabels).map(k => (
+                    <SelectItem key={k} value={k}>
+                      {ar ? locationLabels[k].ar : locationLabels[k].en}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* GPS status */}
+              {locationKey === 'gps' && (
+                <div className="mt-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs flex items-center gap-2">
+                  {gpsLoading ? (
+                    <><Loader2 className="w-3 h-3 animate-spin text-indigo-400" /><span className="text-white/50">{ar ? 'جارٍ تحديد الموقع…' : 'Detecting location…'}</span></>
+                  ) : gpsCoords ? (
+                    <><Navigation className="w-3 h-3 text-emerald-400" /><span className="text-emerald-300 font-data">{gpsCoords.lat.toFixed(4)}, {gpsCoords.lng.toFixed(4)}</span></>
+                  ) : (
+                    <><AlertCircle className="w-3 h-3 text-amber-400" /><span className="text-amber-300">{ar ? 'تعذّر تحديد الموقع' : 'Could not detect location'}</span></>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="w-full pt-4">
+            {/* Photo capture */}
+            <div className="w-full">
+              <label className="text-white/40 text-xs font-medium mb-1.5 block text-left">
+                {ar ? 'صورة توثيق (اختياري)' : 'Proof Photo (optional)'}
+              </label>
+              {clockPhoto ? (
+                <div className="relative rounded-xl overflow-hidden border border-white/15">
+                  <img src={clockPhoto} alt="proof" className="w-full h-24 object-cover" />
+                  <button onClick={() => setClockPhoto(null)}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white/80 hover:text-white">
+                    <X className="w-3 h-3" />
+                  </button>
+                  <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-black/50 to-transparent flex items-end justify-center pb-1">
+                    <span className="text-[10px] text-white/70">{ar ? 'صورة مُرفقة ✓' : 'Photo attached ✓'}</span>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => photoInputRef.current?.click()}
+                        className="w-full h-16 rounded-xl border border-dashed border-white/20 bg-white/3 hover:bg-white/7 flex items-center justify-center gap-2 text-white/40 hover:text-white/70 transition text-xs">
+                  <Camera className="w-4 h-4" />
+                  {ar ? 'التقط أو ارفع صورة' : 'Capture or upload photo'}
+                </button>
+              )}
+              <input ref={photoInputRef} type="file" accept="image/*" capture="environment"
+                     className="hidden" onChange={handleClockPhotoChange} />
+            </div>
+
+            {/* Clock-In / Clock-Out button */}
+            <div className="w-full pt-1">
               {todayLoading ? (
-                <div className="flex justify-center h-[60px] items-center"><Loader2 className="w-6 h-6 animate-spin text-white/50" /></div>
+                <div className="flex justify-center h-14 items-center"><Loader2 className="w-6 h-6 animate-spin text-white/40" /></div>
               ) : isClockedIn ? (
-                <button
-                  onClick={handleClockOut}
-                  disabled={clockOutMutation.isPending}
-                  className="w-full h-[60px] rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white font-bold text-lg transition flex items-center justify-center gap-3 shadow-lg shadow-red-500/25 pressable"
-                >
-                  {clockOutMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Clock className="w-5 h-5" />}
-                  {t('clockOut')}
+                <button onClick={handleClockOut}
+                        disabled={clockOutMutation.isPending}
+                        className="w-full h-14 rounded-2xl font-bold text-lg transition flex items-center justify-center gap-3 pressable
+                                   bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500
+                                   shadow-[0_0_30px_rgba(239,68,68,0.4)] text-white">
+                  {clockOutMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+                  {ar ? 'تسجيل الخروج' : 'Clock Out'}
                 </button>
               ) : (
-                <button
-                  onClick={handleClockIn}
-                  disabled={clockInMutation.isPending}
-                  className="w-full h-[60px] rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-teal-950 font-bold text-lg transition flex items-center justify-center gap-3 shadow-lg shadow-teal-500/25 pressable"
-                >
-                  {clockInMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Clock className="w-5 h-5" />}
-                  {t('clockIn')}
+                <button onClick={handleClockIn}
+                        disabled={clockInMutation.isPending}
+                        className="w-full h-14 rounded-2xl font-bold text-lg transition flex items-center justify-center gap-3 pressable
+                                   bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400
+                                   shadow-[0_0_30px_rgba(16,185,129,0.4)] text-teal-950">
+                  {clockInMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+                  {ar ? 'تسجيل الدخول' : 'Clock In'}
                 </button>
               )}
             </div>
 
-            <p className="text-xs text-white/40 flex items-center justify-center gap-1.5">
-              <MapPin className="w-3 h-3" /> {t('officeDetected')}
+            <p className="text-xs text-white/30 flex items-center gap-1.5">
+              <MapPin className="w-3 h-3" /> {locationName(locationKey) || 'Office'}
             </p>
           </div>
         </div>
 
-        {/* Week Stats */}
-        <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4 content-start">
-          {weekStats.map((s, i) => (
-            <div key={i} className="p-5 rounded-2xl card-3d flex flex-col justify-between">
-              <div className={`w-8 h-1 rounded-full mb-4 bg-gradient-to-r ${s.color}`} />
-              <div>
-                <div className="text-2xl font-bold font-data">{s.value}</div>
-                <div className="text-xs mt-1 font-medium tracking-wide uppercase" style={{ color: 'var(--muted)' }}>{s.label}</div>
+        {/* ════════════════ RIGHT COLUMN ════════════════ */}
+        <div className="lg:col-span-3 flex flex-col gap-6">
+
+          {/* Today status mini-card */}
+          <div className="card-3d rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg flex-shrink-0">
+              {user?.fullName?.charAt(0) || 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-lg truncate">{user?.fullName}</div>
+              <div className="text-sm mt-1">
+                {isClockedIn ? (
+                  <span className="inline-flex items-center gap-1.5 text-emerald-500 font-medium bg-emerald-500/10 px-2 py-1 rounded-lg">
+                    <CheckCircle2 className="w-4 h-4" />{ar ? 'مسجّل الدخول' : 'Currently clocked in'}
+                  </span>
+                ) : todayRecord?.clockOut ? (
+                  <span className="inline-flex items-center gap-1.5 text-blue-500 font-medium bg-blue-500/10 px-2 py-1 rounded-lg">
+                    <CheckCircle2 className="w-4 h-4" />{ar ? 'مسجّل الخروج' : 'Clocked out'}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 font-medium bg-gray-500/10 px-2 py-1 rounded-lg" style={{ color: 'var(--muted)' }}>
+                    <AlertCircle className="w-4 h-4" />{ar ? 'لم يُسجَّل الدخول بعد' : 'Not clocked in yet'}
+                  </span>
+                )}
               </div>
             </div>
-          ))}
+            {todayRecord && (
+              <div className="text-right flex-shrink-0">
+                {todayRecord.clockIn && (
+                  <div className="text-xs text-muted-foreground">{ar ? 'دخول' : 'In'}: <span className="font-data font-bold text-foreground">{format(new Date(todayRecord.clockIn), 'HH:mm')}</span></div>
+                )}
+                {todayRecord.clockOut && (
+                  <div className="text-xs text-muted-foreground mt-0.5">{ar ? 'خروج' : 'Out'}: <span className="font-data font-bold text-foreground">{format(new Date(todayRecord.clockOut), 'HH:mm')}</span></div>
+                )}
+                {todayRecord.totalHours && (
+                  <div className="text-xs text-muted-foreground mt-0.5">{ar ? 'المجموع' : 'Total'}: <span className="font-data font-bold text-indigo-500">{hoursLabel(todayRecord.totalHours, locale)}</span></div>
+                )}
+              </div>
+            )}
+          </div>
 
-          <div className="col-span-2 sm:col-span-4 p-6 rounded-2xl card-3d mt-2">
-            <h3 className="font-display text-lg font-bold mb-4">{t('todayStatus')}</h3>
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                {user?.fullName?.charAt(0) || 'U'}
+          {/* ════ CARD 2 — PHOTO DOCUMENTATION ════ */}
+          <div className="card-3d rounded-2xl overflow-hidden">
+            {/* gradient header */}
+            <div className="h-20 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 relative flex items-center px-5 gap-3">
+              <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, #a78bfa, transparent 60%)' }} />
+              <div className="relative z-10 w-10 h-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center">
+                <FileImage className="w-5 h-5 text-white" />
               </div>
-              <div className="flex-1">
-                <div className="font-bold text-lg">{user?.fullName}</div>
-                <div className="text-sm flex items-center gap-2 mt-1">
-                  {isClockedIn ? (
-                    <span className="flex items-center gap-1.5 text-green-500 font-medium bg-green-500/10 px-2 py-1 rounded-md"><CheckCircle2 className="w-4 h-4" /> {t('currentlyClockedIn')}</span>
-                  ) : todayRecord?.clockOut ? (
-                    <span className="flex items-center gap-1.5 text-blue-500 font-medium bg-blue-500/10 px-2 py-1 rounded-md"><CheckCircle2 className="w-4 h-4" /> {t('clockedOutStatus')}</span>
-                  ) : (
-                    <span className="flex items-center gap-1.5 font-medium bg-gray-500/10 px-2 py-1 rounded-md" style={{ color: 'var(--muted)' }}><AlertCircle className="w-4 h-4" /> {t('notClockedInYet')}</span>
-                  )}
+              <div className="relative z-10">
+                <h3 className="font-display font-bold text-white">{ar ? 'توثيق العمل بالصورة' : 'Work Photo Documentation'}</h3>
+                <p className="text-white/60 text-xs">{ar ? 'التقط أو ارفع صورة توثيق دوامك' : 'Capture or upload a photo as proof of attendance'}</p>
+              </div>
+            </div>
+
+            <div className="p-5 flex flex-col gap-4">
+              {docSubmitted ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-6">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                  </div>
+                  <p className="font-semibold text-emerald-600 dark:text-emerald-400">{ar ? 'تم إرسال الصورة بنجاح ✓' : 'Photo submitted successfully ✓'}</p>
+                  <button onClick={() => { setDocPhoto(null); setDocSubmitted(false); }}
+                          className="text-xs text-muted-foreground underline underline-offset-2">
+                    {ar ? 'إرسال صورة أخرى' : 'Submit another photo'}
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {docPhoto ? (
+                    <div className="relative rounded-xl overflow-hidden border border-border">
+                      <img src={docPhoto} alt="work doc" className="w-full h-36 object-cover" />
+                      <button onClick={() => setDocPhoto(null)}
+                              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => docPhotoInputRef.current?.click()}
+                            className="w-full h-32 rounded-xl border-2 border-dashed transition flex flex-col items-center justify-center gap-2.5
+                                       border-purple-300/40 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-400/60 text-purple-400">
+                      <div className="w-10 h-10 rounded-full bg-purple-500/15 flex items-center justify-center">
+                        <ImagePlus className="w-5 h-5" />
+                      </div>
+                      <span className="text-sm font-medium">{ar ? 'اضغط للتقاط أو رفع صورة' : 'Tap to capture or upload'}</span>
+                      <span className="text-xs text-purple-400/70">{ar ? 'يدعم الكاميرا والاستيراد' : 'Camera & gallery supported'}</span>
+                    </button>
+                  )}
+                  <input ref={docPhotoInputRef} type="file" accept="image/*" capture="environment"
+                         className="hidden" onChange={handleDocPhotoChange} />
+                  <button onClick={() => { if (docPhoto) setDocSubmitted(true); else docPhotoInputRef.current?.click(); }}
+                          disabled={!docPhoto}
+                          className={`w-full h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition
+                            ${docPhoto ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md hover:opacity-90' : 'bg-muted/50 text-muted-foreground cursor-not-allowed'}`}>
+                    <Send className="w-4 h-4" />
+                    {ar ? 'إرسال الصورة' : 'Submit Photo'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Recent Records */}
-      <div className="card-3d p-4 sm:p-6 rounded-2xl" data-testid="section-recent-attendance">
-        <h3 className="font-display text-lg font-bold mb-6">{t('recentRecords')}</h3>
-        
-        {/* Horizontal scroll container for mobile */}
-        <div className="overflow-x-auto pb-4 custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex sm:flex-col gap-4 min-w-max sm:min-w-0">
-            {isLoading ? <div className="h-24 rounded-xl animate-pulse w-full min-w-[280px]" style={{ background: 'var(--muted-bg)' }} /> : !attendanceData?.attendance?.length ? (
-              <div className="py-10 w-full text-center text-muted-foreground">{t('noRecordsFound')}</div>
-            ) : attendanceRows.map((rec, index) => (
-              <div 
-                key={rec.id} 
-                data-testid={`card-attendance-${rec.id}`} 
-                className={`w-[280px] sm:w-auto rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 animate-fadeIn stagger-${(index % 4) + 1} card-3d border-l-4 ${statusColor(rec.status)}`} 
-              >
-                <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center text-foreground font-bold shadow-sm flex-shrink-0">
-                    {rec.employeeName?.charAt(0) || 'U'}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold truncate text-foreground">{rec.employeeName || '—'}</div>
-                    <div className="text-xs text-muted-foreground">{rec.date ? format(new Date(rec.date), 'EEEE, MMM d, yyyy') : '—'}</div>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center sm:w-auto sm:gap-6 pt-3 border-t border-border sm:border-0 sm:pt-0">
-                  <div className="text-left sm:text-right">
-                    <div className="font-data font-bold text-sm bg-muted/50 px-2 py-1 rounded-md text-foreground">
-                      {rec.clockIn ? format(new Date(rec.clockIn), 'HH:mm') : '--:--'} <span className="text-muted-foreground font-normal mx-1">→</span> {rec.clockOut ? format(new Date(rec.clockOut), 'HH:mm') : '--:--'}
-                    </div>
-                    <div className="text-muted-foreground mt-1.5 text-xs font-medium">{rec.totalHours || '0'} {t('total')}</div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${badgeColor(rec.status)}`}>{rec.status}</span>
-                </div>
+      {/* ════════════════ CARD 3 — ATTENDANCE LOG ════════════════ */}
+      <div className="card-3d rounded-2xl overflow-hidden" data-testid="section-recent-attendance">
+        {/* Header */}
+        <div className="h-20 bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 relative flex items-center px-5 gap-3">
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #6366f1, transparent 60%)' }} />
+          <div className="relative z-10 w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
+            <CalendarDays className="w-5 h-5 text-white" />
+          </div>
+          <div className="relative z-10 flex-1">
+            <h3 className="font-display font-bold text-white">{ar ? 'سجل الحضور' : 'Attendance Log'}</h3>
+            <p className="text-white/50 text-xs">{rows.length} {ar ? 'سجل' : 'records'}</p>
+          </div>
+          {/* Legend */}
+          <div className="relative z-10 hidden sm:flex items-center gap-3 text-[10px]">
+            {[
+              { label: ar ? 'حاضر' : 'Present', color: 'bg-emerald-500' },
+              { label: ar ? 'متأخر'  : 'Late',    color: 'bg-amber-500'  },
+              { label: ar ? 'غائب'   : 'Absent',  color: 'bg-red-500'    },
+              { label: ar ? 'نصف يوم': 'Half',    color: 'bg-blue-500'   },
+            ].map(l => (
+              <div key={l.label} className="flex items-center gap-1 text-white/60">
+                <span className={`w-2 h-2 rounded-full ${l.color}`} />
+                {l.label}
               </div>
             ))}
           </div>
         </div>
+
+        <div className="p-5">
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: 'var(--muted-bg)' }} />
+              ))}
+            </div>
+          ) : !rows.length ? (
+            <div className="py-14 text-center">
+              <Hourglass className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-muted-foreground text-sm">{ar ? 'لا توجد سجلات حضور حتى الآن' : 'No attendance records yet'}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {rows.slice().reverse().map((rec, idx) => {
+                const col = statusColors(rec.status);
+                const isLate = rec.isLate;
+                const hasNotes = rec.notes;
+                const outHour = rec.clockOut ? new Date(rec.clockOut).getHours() : null;
+                const isEarlyOut = outHour !== null && outHour < WORK_END_HOUR;
+                const isOT = outHour !== null && outHour >= OVERTIME_THRESHOLD;
+                return (
+                  <div key={rec.id}
+                       data-testid={`card-attendance-${rec.id}`}
+                       className={`rounded-xl border-l-4 p-4 flex flex-col sm:flex-row sm:items-center gap-3 animate-fadeIn stagger-${(idx % 4) + 1} ${col.row}`}>
+
+                    {/* Avatar + name + date */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl ${col.dot} bg-opacity-20 flex items-center justify-center flex-shrink-0 border border-current/20`}>
+                        <span className="font-bold text-base leading-none" style={{ color: 'inherit' }}>
+                          {rec.employeeName?.charAt(0) || 'U'}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold truncate text-foreground">{rec.employeeName || '—'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {rec.date ? format(new Date(rec.date), 'EEEE, MMM d, yyyy') : '—'}
+                        </div>
+                        {/* Notes / justification */}
+                        {hasNotes && (
+                          <div className="text-[11px] mt-0.5 text-muted-foreground italic truncate max-w-[220px]">
+                            💬 {rec.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Times + badges */}
+                    <div className="flex items-center gap-3 sm:flex-shrink-0 justify-between sm:justify-end">
+                      {/* Times */}
+                      <div className="text-center">
+                        <div className="font-data font-bold text-sm bg-muted/50 px-2.5 py-1.5 rounded-lg text-foreground whitespace-nowrap">
+                          {rec.clockIn ? format(new Date(rec.clockIn), 'HH:mm') : '--:--'}
+                          <span className="text-muted-foreground mx-1.5">→</span>
+                          {rec.clockOut ? format(new Date(rec.clockOut), 'HH:mm') : '--:--'}
+                        </div>
+                        {rec.totalHours && (
+                          <div className="text-[11px] text-muted-foreground mt-1 font-medium">{hoursLabel(rec.totalHours, locale)}</div>
+                        )}
+                      </div>
+
+                      {/* Location */}
+                      {rec.location && (
+                        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3" />
+                          <span className="max-w-[80px] truncate">{rec.location}</span>
+                        </div>
+                      )}
+
+                      {/* Badges */}
+                      <div className="flex flex-col gap-1 items-end">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${col.badge}`}>
+                          {rec.status}
+                        </span>
+                        {isLate && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            {ar ? '⏰ متأخر' : '⏰ Late'}
+                          </span>
+                        )}
+                        {isEarlyOut && !isOT && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase bg-orange-500/15 text-orange-500">
+                            {ar ? '↩ مبكر' : '↩ Early out'}
+                          </span>
+                        )}
+                        {isOT && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase bg-purple-500/15 text-purple-500">
+                            {ar ? '➕ إضافي' : '➕ Overtime'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ════════════════ DIALOG — Late Arrival Justification ════════════════ */}
+      <Dialog open={showLateIn} onOpenChange={setShowLateIn}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-full bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+            </div>
+            <DialogHeader className="space-y-0.5">
+              <DialogTitle>{ar ? 'تبرير الدخول المتأخر' : 'Late Arrival Justification'}</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                {ar ? `تأخرت ${lateMinutes} دقيقة عن موعد الدوام` : `You are ${lateMinutes} minute(s) late`}
+              </p>
+            </DialogHeader>
+          </div>
+          <Textarea
+            value={justText}
+            onChange={e => setJustText(e.target.value)}
+            placeholder={ar ? 'اكتب سبب التأخير…' : 'Enter your reason for being late…'}
+            className="resize-none min-h-[100px]"
+          />
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowLateIn(false); setJustText(''); }}>
+              {ar ? 'تخطي' : 'Skip'}
+            </Button>
+            <Button onClick={handleLateInSubmit} disabled={updateMutation.isPending}
+                    className="bg-amber-500 hover:bg-amber-600 text-white">
+              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {ar ? 'إرسال التبرير' : 'Submit Justification'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ════════════════ DIALOG — Early Departure ════════════════ */}
+      <Dialog open={showEarlyOut} onOpenChange={setShowEarlyOut}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-full bg-orange-500/15 flex items-center justify-center flex-shrink-0">
+              <LogOut className="w-5 h-5 text-orange-500" />
+            </div>
+            <DialogHeader className="space-y-0.5">
+              <DialogTitle>{ar ? 'مبرر الخروج المبكر' : 'Early Departure Justification'}</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                {ar ? 'خرجت قبل انتهاء وقت الدوام الرسمي' : `You clocked out before the end of the workday (${WORK_END_HOUR}:00)`}
+              </p>
+            </DialogHeader>
+          </div>
+          <Textarea
+            value={justText}
+            onChange={e => setJustText(e.target.value)}
+            placeholder={ar ? 'اكتب سبب الخروج المبكر…' : 'Enter your reason for leaving early…'}
+            className="resize-none min-h-[100px]"
+          />
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowEarlyOut(false); setJustText(''); }}>
+              {ar ? 'تخطي' : 'Skip'}
+            </Button>
+            <Button onClick={handleEarlyOutSubmit} disabled={updateMutation.isPending}
+                    className="bg-orange-500 hover:bg-orange-600 text-white">
+              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {ar ? 'إرسال المبرر' : 'Submit Reason'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ════════════════ DIALOG — Late Clock-out ════════════════ */}
+      <Dialog open={showLateOut} onOpenChange={setShowLateOut}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-full bg-purple-500/15 flex items-center justify-center flex-shrink-0">
+              <Hourglass className="w-5 h-5 text-purple-500" />
+            </div>
+            <DialogHeader className="space-y-0.5">
+              <DialogTitle>{ar ? 'سبب الخروج المتأخر' : 'Late Clock-out Reason'}</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                {ar ? 'سجّلت الخروج بعد الوقت الرسمي' : `You clocked out after ${OVERTIME_THRESHOLD}:00`}
+              </p>
+            </DialogHeader>
+          </div>
+
+          <div className="space-y-3">
+            {/* Reason selector */}
+            {([
+              { value: 'overtime', labelEn: 'Overtime work (counts as overtime)', labelAr: 'عمل إضافي (يُحتسب)' },
+              { value: 'forgot',   labelEn: 'Forgot to clock out (not overtime)',  labelAr: 'نسيت تسجيل الخروج (لا يُحتسب إضافياً)' },
+              { value: 'other',    labelEn: 'Other reason…',                       labelAr: 'سبب آخر…' },
+            ] as Array<{ value: LateOutReason; labelEn: string; labelAr: string }>).map(opt => (
+              <button key={opt.value}
+                      onClick={() => setLateOutReason(opt.value)}
+                      className={`w-full text-left px-4 py-3 rounded-xl border transition text-sm font-medium flex items-center gap-3
+                        ${lateOutReason === opt.value
+                          ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                          : 'border-border bg-muted/30 text-foreground hover:bg-muted/60'}`}>
+                <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center
+                  ${lateOutReason === opt.value ? 'border-purple-500' : 'border-muted-foreground/40'}`}>
+                  {lateOutReason === opt.value && <span className="w-2 h-2 rounded-full bg-purple-500" />}
+                </span>
+                {ar ? opt.labelAr : opt.labelEn}
+              </button>
+            ))}
+
+            {/* Other textarea */}
+            {lateOutReason === 'other' && (
+              <Textarea
+                value={justText}
+                onChange={e => setJustText(e.target.value)}
+                placeholder={ar ? 'اكتب سبب الخروج المتأخر…' : 'Describe your reason…'}
+                className="resize-none min-h-[80px]"
+              />
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowLateOut(false); setJustText(''); setLateOutReason('overtime'); }}>
+              {ar ? 'تخطي' : 'Skip'}
+            </Button>
+            <Button onClick={handleLateOutSubmit} disabled={updateMutation.isPending}
+                    className="bg-purple-600 hover:bg-purple-700 text-white">
+              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {ar ? 'تأكيد' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

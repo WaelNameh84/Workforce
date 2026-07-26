@@ -16,6 +16,8 @@ export * from './assetUpdateStatus';
 export * from './attendance';
 export * from './attendanceList';
 export * from './attendanceStatus';
+export * from './attendanceUpdateInput';
+export * from './attendanceUpdateInputStatus';
 export * from './authResponse';
 export * from './authUser';
 export * from './clockInInput';

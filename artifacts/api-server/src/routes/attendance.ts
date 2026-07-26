@@ -139,6 +139,33 @@ router.post("/attendance/clock-out", authMiddleware, async (req, res) => {
   }
 });
 
+// PATCH /api/attendance/:id  (update justification / notes)
+router.patch("/attendance/:id", authMiddleware, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { notes, status } = req.body;
+
+    const [updated] = await db
+      .update(attendance)
+      .set({
+        ...(notes !== undefined ? { notes } : {}),
+        ...(status !== undefined ? { status } : {}),
+      })
+      .where(eq(attendance.id, id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "Attendance record not found" });
+      return;
+    }
+
+    res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Patch attendance error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/attendance/today
 router.get("/attendance/today", authMiddleware, async (req, res) => {
   try {

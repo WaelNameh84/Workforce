@@ -189,6 +189,26 @@ export interface ClockOutInput {
   employeeId: number;
 }
 
+/**
+ * @nullable
+ */
+export type AttendanceUpdateInputStatus = typeof AttendanceUpdateInputStatus[keyof typeof AttendanceUpdateInputStatus] | null;
+
+
+export const AttendanceUpdateInputStatus = {
+  present: 'present',
+  absent: 'absent',
+  late: 'late',
+  'half-day': 'half-day',
+} as const;
+
+export interface AttendanceUpdateInput {
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  status?: AttendanceUpdateInputStatus;
+}
+
 export type LeaveType = typeof LeaveType[keyof typeof LeaveType];
 
 

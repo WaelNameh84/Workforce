@@ -26,6 +26,7 @@ import type {
   AssetUpdate,
   Attendance,
   AttendanceList,
+  AttendanceUpdateInput,
   AuthResponse,
   AuthUser,
   ClockInInput,
@@ -1228,6 +1229,78 @@ export const useClockOut = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getClockOutMutationOptions(options));
+    }
+
+export const getUpdateAttendanceUrl = (id: number,) => {
+
+
+
+
+  return `/api/attendance/${id}`
+}
+
+/**
+ * @summary Update attendance record (justification / notes)
+ */
+export const updateAttendance = async (id: number,
+    attendanceUpdateInput: AttendanceUpdateInput, options?: RequestInit): Promise<Attendance> => {
+
+  return customFetch<Attendance>(getUpdateAttendanceUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(attendanceUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAttendanceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAttendance>>, TError,{id: number;data: BodyType<AttendanceUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAttendance>>, TError,{id: number;data: BodyType<AttendanceUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateAttendance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAttendance>>, {id: number;data: BodyType<AttendanceUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAttendance(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAttendanceMutationResult = NonNullable<Awaited<ReturnType<typeof updateAttendance>>>
+    export type UpdateAttendanceMutationBody = BodyType<AttendanceUpdateInput>
+    export type UpdateAttendanceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update attendance record (justification / notes)
+ */
+export const useUpdateAttendance = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAttendance>>, TError,{id: number;data: BodyType<AttendanceUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAttendance>>,
+        TError,
+        {id: number;data: BodyType<AttendanceUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAttendanceMutationOptions(options));
     }
 
 export const getGetTodayAttendanceUrl = (params: GetTodayAttendanceParams,) => {
