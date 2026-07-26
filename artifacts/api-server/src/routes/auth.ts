@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 import { db } from "@workspace/db";
 import { users, companies, employees } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 
 const router = Router();
@@ -26,6 +26,71 @@ const signToken = async (payload: {
     .sign(getSecret());
 };
 
+async function resolveEmployeeProfile(user: typeof users.$inferSelect) {
+  if (!user.companyId) return null;
+
+  if (user.employeeId) {
+    const [linked] = await db
+      .select({ id: employees.id })
+      .from(employees)
+      .where(
+        and(
+          eq(employees.id, user.employeeId),
+          eq(employees.companyId, user.companyId),
+        ),
+      )
+      .limit(1);
+    if (linked) return linked.id;
+  }
+
+  const [byUserId] = await db
+    .select({ id: employees.id })
+    .from(employees)
+    .where(
+      and(
+        eq(employees.companyId, user.companyId),
+        eq(employees.userId, user.id),
+      ),
+    )
+    .limit(1);
+  if (byUserId) return byUserId.id;
+
+  const [byEmail] = await db
+    .select({ id: employees.id })
+    .from(employees)
+    .where(
+      and(
+        eq(employees.companyId, user.companyId),
+        eq(employees.email, user.email),
+      ),
+    )
+    .limit(1);
+  if (byEmail) return byEmail.id;
+
+  const [profile] = await db
+    .insert(employees)
+    .values({
+      companyId: user.companyId,
+      employeeCode: `${user.role === "admin" ? "ADMIN" : "EMP"}-${user.id}`,
+      fullName: user.fullName,
+      email: user.email,
+      position: user.role === "admin" ? "Administrator" : "Employee",
+      status: "active",
+      userId: user.id,
+    })
+    .returning({ id: employees.id });
+
+  return profile?.id ?? null;
+}
+
+async function syncEmployeeProfile(user: typeof users.$inferSelect) {
+  const employeeId = await resolveEmployeeProfile(user);
+  if (employeeId && user.employeeId !== employeeId) {
+    await db.update(users).set({ employeeId }).where(eq(users.id, user.id));
+  }
+  return employeeId;
+}
+
 // POST /api/auth/login
 router.post("/auth/login", async (req, res) => {
   try {
@@ -46,22 +111,18 @@ router.post("/auth/login", async (req, res) => {
       return;
     }
 
+    if (!user.isActive) {
+      res.status(403).json({ error: "This account is inactive" });
+      return;
+    }
+
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
     }
 
-    // Find linked employee record
-    let employeeId: number | null = user.employeeId || null;
-    if (!employeeId && user.companyId) {
-      const [emp] = await db
-        .select({ id: employees.id })
-        .from(employees)
-        .where(eq(employees.email, user.email))
-        .limit(1);
-      if (emp) employeeId = emp.id;
-    }
+    const employeeId = await syncEmployeeProfile(user);
 
     const token = await signToken({
       userId: user.id,
@@ -125,11 +186,32 @@ router.post("/auth/register", async (req, res) => {
       })
       .returning();
 
+    const [employeeProfile] = await db
+      .insert(employees)
+      .values({
+        companyId: company.id,
+        employeeCode: `ADMIN-${user.id}`,
+        fullName,
+        email,
+        position: "Administrator",
+        status: "active",
+        userId: user.id,
+      })
+      .returning({ id: employees.id });
+
+    if (employeeProfile?.id) {
+      await db
+        .update(users)
+        .set({ employeeId: employeeProfile.id })
+        .where(eq(users.id, user.id));
+    }
+
     const token = await signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
       companyId: company.id,
+      employeeId: employeeProfile?.id ?? null,
     });
 
     res.status(201).json({
@@ -140,6 +222,7 @@ router.post("/auth/register", async (req, res) => {
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,
+        employeeId: employeeProfile?.id ?? null,
       },
     });
   } catch (err) {
@@ -161,6 +244,12 @@ router.get("/auth/me", authMiddleware, async (req: AuthRequest, res) => {
       res.status(404).json({ error: "User not found" });
       return;
     }
+    if (!user.isActive) {
+      res.status(403).json({ error: "This account is inactive" });
+      return;
+    }
+
+    const employeeId = await syncEmployeeProfile(user);
 
     res.json({
       id: user.id,
@@ -168,6 +257,7 @@ router.get("/auth/me", authMiddleware, async (req: AuthRequest, res) => {
       fullName: user.fullName,
       role: user.role,
       companyId: user.companyId,
+      employeeId,
     });
   } catch (err) {
     req.log.error({ err }, "Get me error");

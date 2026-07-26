@@ -9,8 +9,10 @@ const router = Router();
 // GET /api/assets
 router.get("/assets", authMiddleware, async (req, res) => {
   try {
-    const companyId = parseInt(req.query.companyId as string);
-    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+    const requestedCompanyId = parseInt(req.query.companyId as string);
+    const companyId = req.user?.companyId;
+    if (!companyId || !requestedCompanyId) { res.status(400).json({ error: "companyId required" }); return; }
+    if (requestedCompanyId !== companyId) { res.status(403).json({ error: "You can only access your company assets" }); return; }
 
     const status = req.query.status as string | undefined;
 
@@ -47,7 +49,14 @@ router.get("/assets", authMiddleware, async (req, res) => {
 // POST /api/assets
 router.post("/assets", authMiddleware, async (req, res) => {
   try {
-    const [asset] = await db.insert(assets).values(req.body).returning();
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    const { companyId: _ignoredCompanyId, ...input } = req.body ?? {};
+    const [asset] = await db.insert(assets).values({ ...input, companyId }).returning();
     res.status(201).json(asset);
   } catch (err) {
     req.log.error({ err }, "Create asset error");
@@ -58,11 +67,18 @@ router.post("/assets", authMiddleware, async (req, res) => {
 // PUT /api/assets/:id
 router.put("/assets/:id", authMiddleware, async (req, res) => {
   try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
     const id = parseInt(String(req.params.id), 10);
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    const { companyId: _ignoredCompanyId, ...updates } = req.body ?? {};
     const [asset] = await db
       .update(assets)
-      .set(req.body)
-      .where(eq(assets.id, id))
+      .set(updates)
+      .where(and(eq(assets.id, id), eq(assets.companyId, companyId)))
       .returning();
     res.json(asset);
   } catch (err) {
@@ -74,8 +90,14 @@ router.put("/assets/:id", authMiddleware, async (req, res) => {
 // DELETE /api/assets/:id
 router.delete("/assets/:id", authMiddleware, async (req, res) => {
   try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
     const id = parseInt(String(req.params.id), 10);
-    await db.delete(assets).where(eq(assets.id, id));
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    await db.delete(assets).where(and(eq(assets.id, id), eq(assets.companyId, companyId)));
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Delete asset error");

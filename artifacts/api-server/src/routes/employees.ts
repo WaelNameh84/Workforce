@@ -9,8 +9,15 @@ const router = Router();
 // GET /api/employees
 router.get("/employees", authMiddleware, async (req, res) => {
   try {
-    const companyId = parseInt(req.query.companyId as string);
-    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+    const requestedCompanyId = parseInt(req.query.companyId as string);
+    const [account] = await db
+      .select({ companyId: users.companyId })
+      .from(users)
+      .where(eq(users.id, req.user!.userId))
+      .limit(1);
+    const companyId = account?.companyId;
+    if (!companyId || !requestedCompanyId) { res.status(400).json({ error: "companyId required" }); return; }
+    if (requestedCompanyId !== companyId) { res.status(403).json({ error: "You can only access your company employees" }); return; }
 
     const search = req.query.search as string | undefined;
     const status = req.query.status as string | undefined;
@@ -63,6 +70,10 @@ router.get("/employees", authMiddleware, async (req, res) => {
 // POST /api/employees
 router.post("/employees", authMiddleware, async (req, res) => {
   try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
     // Prefer the authenticated token, but recover the company for tokens issued
     // before companyId was included in the registration response.
     let companyId = req.user?.companyId ?? undefined;
@@ -98,6 +109,11 @@ router.post("/employees", authMiddleware, async (req, res) => {
 router.get("/employees/:id", authMiddleware, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id), 10);
+    const [account] = await db
+      .select({ companyId: users.companyId })
+      .from(users)
+      .where(eq(users.id, req.user!.userId))
+      .limit(1);
     const [emp] = await db
       .select({
         id: employees.id,
@@ -125,7 +141,7 @@ router.get("/employees/:id", authMiddleware, async (req, res) => {
       })
       .from(employees)
       .leftJoin(departments, eq(employees.departmentId, departments.id))
-      .where(eq(employees.id, id));
+      .where(and(eq(employees.id, id), account?.companyId ? eq(employees.companyId, account.companyId) : undefined));
 
     if (!emp) { res.status(404).json({ error: "Employee not found" }); return; }
     res.json(emp);
@@ -138,11 +154,22 @@ router.get("/employees/:id", authMiddleware, async (req, res) => {
 // PUT /api/employees/:id
 router.put("/employees/:id", authMiddleware, async (req, res) => {
   try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
     const id = parseInt(String(req.params.id), 10);
+    const [account] = await db
+      .select({ companyId: users.companyId })
+      .from(users)
+      .where(eq(users.id, req.user!.userId))
+      .limit(1);
+    if (!account?.companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    const { companyId: _ignored, userId: _ignoredUserId, ...updates } = req.body ?? {};
     const [emp] = await db
       .update(employees)
-      .set(req.body)
-      .where(eq(employees.id, id))
+      .set(updates)
+      .where(and(eq(employees.id, id), eq(employees.companyId, account.companyId)))
       .returning();
     res.json(emp);
   } catch (err) {
@@ -154,8 +181,18 @@ router.put("/employees/:id", authMiddleware, async (req, res) => {
 // DELETE /api/employees/:id
 router.delete("/employees/:id", authMiddleware, async (req, res) => {
   try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
     const id = parseInt(String(req.params.id), 10);
-    await db.delete(employees).where(eq(employees.id, id));
+    const [account] = await db
+      .select({ companyId: users.companyId })
+      .from(users)
+      .where(eq(users.id, req.user!.userId))
+      .limit(1);
+    if (!account?.companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    await db.delete(employees).where(and(eq(employees.id, id), eq(employees.companyId, account.companyId)));
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Delete employee error");

@@ -6,6 +6,7 @@ import { Route, Switch, Router as WouterRouter, Redirect } from 'wouter';
 import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/i18n/LanguageProvider';
 import { AuthContext, useAuthState, useAuth } from '@/hooks/use-auth';
+import { setAuthTokenGetter } from '@workspace/api-client-react';
 
 import Login from '@/pages/login';
 import Register from '@/pages/register';
@@ -35,6 +36,10 @@ import {
 } from '@/pages';
 
 const queryClient = new QueryClient();
+
+// The generated API client reads the current token before every request. Keeping
+// this getter live avoids stale auth headers after login/logout or a page reload.
+setAuthTokenGetter(() => localStorage.getItem('token'));
 
 function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { component: React.ComponentType; adminOnly?: boolean; path?: string }) {
   const { user, isLoading } = useAuth();

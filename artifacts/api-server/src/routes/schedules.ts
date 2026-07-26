@@ -9,8 +9,10 @@ const router = Router();
 // GET /api/schedules
 router.get("/schedules", authMiddleware, async (req, res) => {
   try {
-    const companyId = parseInt(req.query.companyId as string);
-    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+    const requestedCompanyId = parseInt(req.query.companyId as string);
+    const companyId = req.user?.companyId;
+    if (!companyId || !requestedCompanyId) { res.status(400).json({ error: "companyId required" }); return; }
+    if (requestedCompanyId !== companyId) { res.status(403).json({ error: "You can only access your company schedules" }); return; }
 
     // Employees can only see their own schedule
     let employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
@@ -55,7 +57,21 @@ router.get("/schedules", authMiddleware, async (req, res) => {
 // POST /api/schedules
 router.post("/schedules", authMiddleware, async (req, res) => {
   try {
-    const [schedule] = await db.insert(schedules).values(req.body).returning();
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const companyId = req.user?.companyId;
+    const employeeId = Number(req.body?.employeeId);
+    if (!companyId || !Number.isInteger(employeeId)) { res.status(400).json({ error: "A valid employee is required" }); return; }
+    const [employee] = await db
+      .select({ id: employees.id })
+      .from(employees)
+      .where(and(eq(employees.id, employeeId), eq(employees.companyId, companyId)))
+      .limit(1);
+    if (!employee) { res.status(404).json({ error: "Employee not found" }); return; }
+    const { employeeId: _ignoredEmployeeId, ...input } = req.body ?? {};
+    const [schedule] = await db.insert(schedules).values({ ...input, employeeId }).returning();
     res.status(201).json(schedule);
   } catch (err) {
     req.log.error({ err }, "Create schedule error");

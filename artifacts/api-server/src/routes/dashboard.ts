@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { employees, attendance, leaves, requests, payroll } from "@workspace/db";
+import { employees, attendance, leaves, requests, payroll, users } from "@workspace/db";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { authMiddleware } from "../middlewares/auth";
 
@@ -12,6 +12,19 @@ router.get("/dashboard/stats", authMiddleware, async (req, res) => {
     const companyId = parseInt(req.query.companyId as string);
     if (!companyId) {
       res.status(400).json({ error: "Company ID required" });
+      return;
+    }
+    const [account] = await db
+      .select({ companyId: users.companyId })
+      .from(users)
+      .where(eq(users.id, req.user!.userId))
+      .limit(1);
+    if (!account?.companyId) {
+      res.status(400).json({ error: "A company is required" });
+      return;
+    }
+    if (companyId !== account.companyId) {
+      res.status(403).json({ error: "You can only access your company dashboard" });
       return;
     }
 

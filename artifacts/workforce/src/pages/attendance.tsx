@@ -3,9 +3,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
   useGetAttendance, useGetTodayAttendance, useClockIn, useClockOut, useUpdateAttendance,
-  getGetAttendanceQueryKey, getGetTodayAttendanceQueryKey,
+  useGetLocations, getGetAttendanceQueryKey, getGetTodayAttendanceQueryKey, getGetLocationsQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, AlertCircle, Camera,
   Navigation, X, AlertTriangle, Timer, TrendingUp, QrCode,
@@ -41,6 +42,7 @@ function hoursLabel(h?: string | null, locale?: string) {
 export default function Attendance() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const ar = locale === 'ar';
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -63,18 +65,9 @@ export default function Attendance() {
   }, []);
 
   /* ── location & GPS ── */
-  const [locationKey, setLocationKey] = useState<string>('office');
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
-
-  const locationLabels: Record<string, { en: string; ar: string }> = {
-    office:  { en: 'Office',      ar: 'المكتب'        },
-    home:    { en: 'Home',        ar: 'المنزل'         },
-    remote:  { en: 'Remote',      ar: 'عمل عن بُعد'    },
-    field:   { en: 'Field Site',  ar: 'موقع الميدان'   },
-    gps:     { en: 'GPS Location',ar: 'موقع GPS'       },
-  };
-  const locationName = (k: string) => ar ? locationLabels[k]?.ar : locationLabels[k]?.en;
 
   const detectGPS = () => {
     if (!navigator.geolocation) return;
@@ -85,11 +78,6 @@ export default function Attendance() {
       { timeout: 8000 },
     );
   };
-
-  useEffect(() => {
-    if (locationKey === 'gps') detectGPS();
-    else setGpsCoords(null);
-  }, [locationKey]);
 
   /* ── photo for clock-in card ── */
   const [clockPhoto, setClockPhoto] = useState<string | null>(null);
@@ -118,8 +106,12 @@ export default function Attendance() {
     { query: { enabled: !!user?.companyId, queryKey: getGetAttendanceQueryKey({ companyId: user?.companyId || 0 }) } },
   );
   const { data: todayStatus, isLoading: todayLoading } = useGetTodayAttendance(
-    { employeeId: user?.id || 0 },
-    { query: { enabled: !!user?.id, queryKey: getGetTodayAttendanceQueryKey({ employeeId: user?.id || 0 }) } },
+    { employeeId: user?.employeeId || 0 },
+    { query: { enabled: !!user?.employeeId, queryKey: getGetTodayAttendanceQueryKey({ employeeId: user?.employeeId || 0 }) } },
+  );
+  const { data: locationsData, isLoading: locationsLoading } = useGetLocations(
+    { companyId: user?.companyId || 0 },
+    { query: { enabled: !!user?.companyId, queryKey: getGetLocationsQueryKey({ companyId: user?.companyId || 0 }) } },
   );
   const clockInMutation   = useClockIn();
   const clockOutMutation  = useClockOut();
@@ -127,6 +119,24 @@ export default function Attendance() {
 
   const todayRecord  = Array.isArray(todayStatus) ? todayStatus[0] : todayStatus;
   const isClockedIn  = !!(todayRecord?.clockIn && !todayRecord?.clockOut);
+  const locations = locationsData?.locations || [];
+  const selectedLocation = locations.find(location => String(location.id) === selectedLocationId);
+  const attendanceEmployeeId = user?.employeeId || 0;
+
+  useEffect(() => {
+    if (!locations.length) {
+      setSelectedLocationId('');
+      return;
+    }
+    if (!selectedLocationId || !locations.some(location => String(location.id) === selectedLocationId)) {
+      setSelectedLocationId(String(locations[0].id));
+    }
+  }, [locations, selectedLocationId]);
+
+  useEffect(() => {
+    if (checkMethod === 'gps') detectGPS();
+    else setGpsCoords(null);
+  }, [checkMethod]);
 
   /* ── justification dialogs ── */
   const [showLateIn,    setShowLateIn]    = useState(false);
@@ -139,18 +149,36 @@ export default function Attendance() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey() });
-    queryClient.invalidateQueries({ queryKey: getGetTodayAttendanceQueryKey({ employeeId: user?.id || 0 }) });
+    queryClient.invalidateQueries({ queryKey: getGetTodayAttendanceQueryKey({ employeeId: attendanceEmployeeId }) });
   };
 
   const handleClockIn = async () => {
-    try {
-      const locStr = locationKey === 'gps' && gpsCoords
-        ? `GPS: ${gpsCoords.lat.toFixed(5)}, ${gpsCoords.lng.toFixed(5)}`
-        : locationName(locationKey) || 'Office';
-      const rec = await clockInMutation.mutateAsync({
-        data: { employeeId: user?.id || 0, location: locStr, method: checkMethod },
+    if (!attendanceEmployeeId) {
+      toast({
+        variant: 'destructive',
+        title: ar ? 'لا يوجد ملف موظف مرتبط' : 'No employee profile linked',
+        description: ar ? 'سجّل الخروج ثم الدخول مجدداً لتحديث بيانات الحساب.' : 'Sign out and sign in again to refresh your account profile.',
       });
+      return;
+    }
+    if (!selectedLocation) {
+      toast({
+        variant: 'destructive',
+        title: ar ? 'اختر موقعاً أولاً' : 'Select a location first',
+        description: ar ? 'أضف موقعاً من قسم مواقع العمل ثم اختره هنا.' : 'Add a work location, then select it here.',
+      });
+      return;
+    }
+    try {
+      const rec = await clockInMutation.mutateAsync({
+        data: { employeeId: attendanceEmployeeId, location: selectedLocation.name, method: checkMethod },
+      });
+      queryClient.setQueryData(getGetTodayAttendanceQueryKey({ employeeId: attendanceEmployeeId }), rec);
       invalidate();
+      toast({
+        title: ar ? 'تم تسجيل الدخول بنجاح ✓' : 'Clock-in successful ✓',
+        description: ar ? `الموقع: ${selectedLocation.name}` : `Location: ${selectedLocation.name}`,
+      });
       if (rec?.isLate) {
         const work9 = new Date(); work9.setHours(9, 0, 0, 0);
         setLateMinutes(differenceInMinutes(new Date(rec.clockIn!), work9));
@@ -158,13 +186,29 @@ export default function Attendance() {
         setJustText('');
         setShowLateIn(true);
       }
-    } catch {}
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: ar ? 'تعذر تسجيل الدخول' : 'Clock-in failed',
+        description: error?.error || error?.message || (ar ? 'حاول مرة أخرى.' : 'Please try again.'),
+      });
+    }
   };
 
   const handleClockOut = async () => {
+    if (!attendanceEmployeeId) {
+      toast({
+        variant: 'destructive',
+        title: ar ? 'لا يوجد ملف موظف مرتبط' : 'No employee profile linked',
+        description: ar ? 'سجّل الخروج ثم الدخول مجدداً لتحديث بيانات الحساب.' : 'Sign out and sign in again to refresh your account profile.',
+      });
+      return;
+    }
     try {
-      const rec = await clockOutMutation.mutateAsync({ data: { employeeId: user?.id || 0 } });
+      const rec = await clockOutMutation.mutateAsync({ data: { employeeId: attendanceEmployeeId } });
+      queryClient.setQueryData(getGetTodayAttendanceQueryKey({ employeeId: attendanceEmployeeId }), rec);
       invalidate();
+      toast({ title: ar ? 'تم تسجيل الخروج بنجاح ✓' : 'Clock-out successful ✓' });
       const outHour = new Date(rec.clockOut!).getHours();
       setPendingRecId(rec.id ?? null);
       setJustText('');
@@ -174,7 +218,13 @@ export default function Attendance() {
       } else if (outHour < WORK_END_HOUR) {
         setShowEarlyOut(true);
       }
-    } catch {}
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: ar ? 'تعذر تسجيل الخروج' : 'Clock-out failed',
+        description: error?.error || error?.message || (ar ? 'حاول مرة أخرى.' : 'Please try again.'),
+      });
+    }
   };
 
   const submitJustification = async (notes: string, justificationType: 'late' | 'early' | 'overtime' | 'other') => {
@@ -273,7 +323,7 @@ export default function Attendance() {
               <label className="text-white/40 text-xs font-medium mb-1.5 block text-left">
                 {ar ? 'اختر الموقع' : 'Select Location'}
               </label>
-              <Select value={locationKey} onValueChange={setLocationKey}>
+              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
                 <SelectTrigger className="bg-white/5 border-white/15 text-white rounded-xl h-10 text-sm">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
@@ -281,15 +331,21 @@ export default function Attendance() {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.keys(locationLabels).map(k => (
-                    <SelectItem key={k} value={k}>
-                      {ar ? locationLabels[k].ar : locationLabels[k].en}
+                  {locations.map(location => (
+                    <SelectItem key={location.id} value={String(location.id)}>
+                      {location.name}
+                      {location.city ? ` — ${location.city}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!locationsLoading && locations.length === 0 && (
+                <p className="mt-2 text-xs text-amber-300">
+                  {ar ? 'لا توجد مواقع مضافة. اطلب من المدير إضافة موقع من قسم مواقع العمل.' : 'No work locations are configured yet. Ask an administrator to add one.'}
+                </p>
+              )}
               {/* GPS status */}
-              {locationKey === 'gps' && (
+              {checkMethod === 'gps' && (
                 <div className="mt-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs flex items-center gap-2">
                   {gpsLoading ? (
                     <><Loader2 className="w-3 h-3 animate-spin text-indigo-400" /><span className="text-white/50">{ar ? 'جارٍ تحديد الموقع…' : 'Detecting location…'}</span></>
@@ -377,7 +433,7 @@ export default function Attendance() {
             </div>
 
             <p className="text-xs text-white/30 flex items-center gap-1.5">
-              <MapPin className="w-3 h-3" /> {locationName(locationKey) || 'Office'}
+              <MapPin className="w-3 h-3" /> {selectedLocation?.name || (ar ? 'لم يتم اختيار موقع' : 'No location selected')}
             </p>
           </div>
         </div>

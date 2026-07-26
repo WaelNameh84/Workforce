@@ -9,8 +9,10 @@ const router = Router();
 // GET /api/leaves
 router.get("/leaves", authMiddleware, async (req, res) => {
   try {
-    const companyId = parseInt(req.query.companyId as string);
-    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+    const requestedCompanyId = parseInt(req.query.companyId as string);
+    const companyId = req.user?.companyId;
+    if (!companyId || !requestedCompanyId) { res.status(400).json({ error: "companyId required" }); return; }
+    if (requestedCompanyId !== companyId) { res.status(403).json({ error: "You can only access your company leaves" }); return; }
 
     // Employees can only see their own leaves
     let employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
@@ -56,7 +58,25 @@ router.get("/leaves", authMiddleware, async (req, res) => {
 // POST /api/leaves
 router.post("/leaves", authMiddleware, async (req, res) => {
   try {
-    const [leave] = await db.insert(leaves).values(req.body).returning();
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    const requestedEmployeeId = Number(req.body?.employeeId);
+    if (!Number.isInteger(requestedEmployeeId) || requestedEmployeeId <= 0) {
+      res.status(400).json({ error: "A valid employee is required" });
+      return;
+    }
+    if (req.user?.role === "employee" && requestedEmployeeId !== req.user.employeeId) {
+      res.status(403).json({ error: "Employees can only create leave for themselves" });
+      return;
+    }
+    const [employee] = await db
+      .select({ id: employees.id })
+      .from(employees)
+      .where(and(eq(employees.id, requestedEmployeeId), eq(employees.companyId, companyId)))
+      .limit(1);
+    if (!employee) { res.status(404).json({ error: "Employee not found" }); return; }
+    const { employeeId: _ignoredEmployeeId, ...input } = req.body ?? {};
+    const [leave] = await db.insert(leaves).values({ ...input, employeeId: requestedEmployeeId }).returning();
     res.status(201).json(leave);
   } catch (err) {
     req.log.error({ err }, "Create leave error");
@@ -67,8 +87,14 @@ router.post("/leaves", authMiddleware, async (req, res) => {
 // PUT /api/leaves/:id
 router.put("/leaves/:id", authMiddleware, async (req, res) => {
   try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
     const id = parseInt(String(req.params.id), 10);
-    const updates: Record<string, unknown> = { ...req.body };
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    const { employeeId: _ignoredEmployeeId, approvedBy: _ignoredApprovedBy, ...updates } = req.body ?? {};
     if (req.body.status === "approved" || req.body.status === "rejected") {
       updates.approvedAt = new Date();
       updates.approvedBy = req.user?.userId ?? req.body.approvedBy;
@@ -76,11 +102,19 @@ router.put("/leaves/:id", authMiddleware, async (req, res) => {
         ? (req.body.paymentStatus === "unpaid" ? "unpaid" : "paid")
         : "pending";
     }
+    const [ownedLeave] = await db
+      .select({ id: leaves.id })
+      .from(leaves)
+      .innerJoin(employees, eq(leaves.employeeId, employees.id))
+      .where(and(eq(leaves.id, id), eq(employees.companyId, companyId)))
+      .limit(1);
+    if (!ownedLeave) { res.status(404).json({ error: "Leave not found" }); return; }
     const [leave] = await db
       .update(leaves)
       .set(updates)
       .where(eq(leaves.id, id))
       .returning();
+    if (!leave) { res.status(404).json({ error: "Leave not found" }); return; }
     res.json(leave);
   } catch (err) {
     req.log.error({ err }, "Update leave error");
@@ -91,7 +125,20 @@ router.put("/leaves/:id", authMiddleware, async (req, res) => {
 // DELETE /api/leaves/:id
 router.delete("/leaves/:id", authMiddleware, async (req, res) => {
   try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
     const id = parseInt(String(req.params.id), 10);
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    const owned = await db
+      .select({ id: leaves.id })
+      .from(leaves)
+      .innerJoin(employees, eq(leaves.employeeId, employees.id))
+      .where(and(eq(leaves.id, id), eq(employees.companyId, companyId)))
+      .limit(1);
+    if (!owned[0]) { res.status(404).json({ error: "Leave not found" }); return; }
     await db.delete(leaves).where(eq(leaves.id, id));
     res.status(204).send();
   } catch (err) {

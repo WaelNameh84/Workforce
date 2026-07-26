@@ -1,7 +1,7 @@
 import { db } from '@workspace/db';
 import {
   users, companies, departments, employees,
-  attendance, leaves, schedules, payroll, requests, assets
+  attendance, leaves, schedules, payroll, requests, assets, locations
 } from '@workspace/db';
 import bcrypt from 'bcryptjs';
 
@@ -21,6 +21,16 @@ async function seedDatabase() {
   }).returning();
 
   console.log('✅ Company created:', company.name);
+
+  await db.insert(locations).values([
+    {
+      companyId: company.id,
+      name: 'المكتب الرئيسي',
+      city: 'الرياض',
+      address: 'المقر الرئيسي',
+      country: 'Saudi Arabia',
+    },
+  ]);
 
   // Create departments
   const depts = await db.insert(departments).values([

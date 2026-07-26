@@ -9,8 +9,10 @@ const router = Router();
 // GET /api/payroll
 router.get("/payroll", authMiddleware, async (req, res) => {
   try {
-    const companyId = parseInt(req.query.companyId as string);
-    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+    const requestedCompanyId = parseInt(req.query.companyId as string);
+    const companyId = req.user?.companyId;
+    if (!companyId || !requestedCompanyId) { res.status(400).json({ error: "companyId required" }); return; }
+    if (requestedCompanyId !== companyId) { res.status(403).json({ error: "You can only access your company payroll" }); return; }
 
     const period = req.query.period as string | undefined;
     // Employees can only see their own payroll
@@ -56,16 +58,30 @@ router.get("/payroll", authMiddleware, async (req, res) => {
 // PUT /api/payroll/:id
 router.put("/payroll/:id", authMiddleware, async (req, res) => {
   try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
     const id = parseInt(String(req.params.id), 10);
-    const updates: Record<string, unknown> = { ...req.body };
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "A company is required" }); return; }
+    const { employeeId: _ignoredEmployeeId, ...updates } = req.body ?? {};
     if (req.body.status === "paid") {
       updates.paidAt = new Date();
     }
+    const [ownedPayroll] = await db
+      .select({ id: payroll.id })
+      .from(payroll)
+      .innerJoin(employees, eq(payroll.employeeId, employees.id))
+      .where(and(eq(payroll.id, id), eq(employees.companyId, companyId)))
+      .limit(1);
+    if (!ownedPayroll) { res.status(404).json({ error: "Payroll record not found" }); return; }
     const [record] = await db
       .update(payroll)
       .set(updates)
       .where(eq(payroll.id, id))
       .returning();
+    if (!record) { res.status(404).json({ error: "Payroll record not found" }); return; }
     res.json(record);
   } catch (err) {
     req.log.error({ err }, "Update payroll error");
