@@ -321,10 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       id: 'system',
       title: 'System',
       items: [
-        { href: '/dashboard/automation',   label: t('automation'),   icon: Workflow },
         { href: '/dashboard/integrations', label: t('integrations'), icon: Link2 },
-        { href: '/dashboard/security',     label: t('security'),     icon: Shield },
-        { href: '/dashboard/developers',   label: t('developers'),   icon: Code },
         { href: '/dashboard/settings',     label: t('settings'),     icon: Settings },
       ],
     },
