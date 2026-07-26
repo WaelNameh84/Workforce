@@ -5,6 +5,7 @@ import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/i18n/LanguageProvider';
+import { AuthContext, useAuthState } from '@/hooks/use-auth';
 
 import Login from '@/pages/login';
 import Register from '@/pages/register';
@@ -73,6 +74,11 @@ function Router() {
   );
 }
 
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  const auth = useAuthState();
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -80,7 +86,9 @@ function App() {
         <LanguageProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, '') || ''}>
-              <Router />
+              <AuthProvider>
+                <Router />
+              </AuthProvider>
             </WouterRouter>
             <Toaster />
           </TooltipProvider>

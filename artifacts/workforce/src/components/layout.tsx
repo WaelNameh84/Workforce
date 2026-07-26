@@ -19,6 +19,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    main: true,
+    'hr-management': true,
+    advanced: false,
+    system: false,
+  });
 
   useEffect(() => {
     if (!isLoading && !user) setLocation('/login');
@@ -43,10 +49,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navGroups = [
     {
+      id: 'main',
       title: 'Main',
       items: [{ href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
     },
     {
+      id: 'hr-management',
       title: 'HR Management',
       items: [
         { href: '/dashboard/employees',  label: t('employees'),  icon: Users },
@@ -58,6 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ],
     },
     {
+      id: 'advanced',
       title: 'Advanced',
       items: [
         { href: '/dashboard/reports',       label: t('reports'),       icon: FileText },
@@ -68,6 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ],
     },
     {
+      id: 'system',
       title: 'System',
       items: [
         { href: '/dashboard/automation',   label: t('automation'),   icon: Workflow },
@@ -81,6 +91,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isActive = (href: string) =>
     href === '/dashboard' ? location === '/dashboard' : location.startsWith(href);
+
+  useEffect(() => {
+    const activeGroup = navGroups.find((group) => group.items.some((item) => isActive(item.href)));
+    if (activeGroup) {
+      setOpenGroups((groups) => ({ ...groups, [activeGroup.id]: true }));
+    }
+  }, [location]);
 
   const sidebarContent = (
     <>
@@ -99,12 +116,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar">
-        {navGroups.map((group, gi) => (
-          <div key={gi}>
-            <div className="px-3 mb-1.5 text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: 'var(--sidebar-fg)' }}>
-              {group.title}
-            </div>
-            <div className="space-y-0.5">
+        {navGroups.map((group) => (
+          <div key={group.id}>
+            <button
+              type="button"
+              onClick={() => setOpenGroups((groups) => ({ ...groups, [group.id]: !groups[group.id] }))}
+              className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-start text-xs font-semibold uppercase tracking-wider opacity-60 transition hover:bg-white/10"
+              style={{ color: 'var(--sidebar-fg)' }}
+              aria-expanded={!!openGroups[group.id]}
+            >
+              <span>{group.title}</span>
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${openGroups[group.id] ? '' : '-rotate-90'}`} />
+            </button>
+            {openGroups[group.id] && <div className="space-y-0.5">
               {group.items.map((item, i) => {
                 const active = isActive(item.href);
                 return (
@@ -124,7 +148,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 );
               })}
-            </div>
+            </div>}
           </div>
         ))}
       </nav>
@@ -185,9 +209,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Main */}
-      <div
-        className="flex-1 flex flex-col min-h-[100dvh] min-w-0 lg:ms-64"
-      >
+      <div className="flex-1 flex flex-col min-h-[100dvh] min-w-0 lg:ms-64">
         {/* Topbar */}
         <header
           className="sticky top-0 z-20 h-[4.5rem] flex items-center justify-between px-3 sm:px-4 lg:px-6 backdrop-blur-xl border-b"
@@ -247,7 +269,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {locale}
             </button>
 
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <button
                 onClick={() => setNotificationsOpen((open) => !open)}
                 aria-label={t('notifications')}
@@ -337,10 +359,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page content */}
-        <main className="flex-1 page-shell p-4 lg:p-8 max-w-[1600px] w-full mx-auto">
+        <main className="flex-1 page-shell p-4 lg:p-8 max-w-[1600px] w-full mx-auto pb-24 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Bottom Nav — mobile */}
+      <nav className="bottom-nav lg:hidden" style={{ flexDirection: 'row' }}>
+        {[
+          { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+          { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
+          { href: '/dashboard/employees', label: t('employees'), icon: Users },
+          { href: '/dashboard/leaves', label: t('leaves'), icon: CalendarCheck },
+          { href: '/dashboard/settings', label: t('settings'), icon: Settings },
+        ].map((item) => {
+          const active = isActive(item.href);
+          return (
+            <Link key={item.href} href={item.href} className={`flex flex-col items-center justify-center w-full h-full relative transition-colors ${active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+              {active && <div className="absolute top-0 w-12 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-500 rounded-b-full shadow-[0_2px_8px_rgba(15,118,110,0.5)]" />}
+              <item.icon className="w-5 h-5 mb-1" />
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

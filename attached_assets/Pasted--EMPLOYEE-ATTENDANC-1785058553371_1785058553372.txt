@@ -1,0 +1,187 @@
+══════════════════════════════════════════════════════════════════════
+           EMPLOYEE ATTENDANCE MANAGEMENT SYSTEM
+                  (Single Company Edition)
+══════════════════════════════════════════════════════════════════════
+
+SYSTEM
+│
+├── Authentication
+│   ├── Login
+│   ├── Face ID
+│   ├── Fingerprint
+│   ├── Forgot Password
+│   └── User Permissions
+│
+├── Dashboard
+│   ├── Live Clock
+│   ├── Today's Attendance
+│   ├── Present Employees
+│   ├── Absent Employees
+│   ├── Late Employees
+│   ├── Overtime Hours
+│   ├── Payroll Summary
+│   ├── AI Assistant
+│   └── Notifications
+│
+├── Employees
+│   ├── Add Employee
+│   ├── Edit Employee
+│   ├── Delete Employee
+│   ├── Employee Profile
+│   ├── Contracts
+│   ├── Documents
+│   └── Employee History
+│
+├── Attendance
+│   ├── Check In
+│   ├── Check Out
+│   ├── Break Start
+│   ├── Break End
+│   ├── GPS Verification
+│   ├── Face Recognition
+│   ├── Attendance History
+│   └── Attendance Calendar
+│
+├── Work Schedule
+│   ├── Working Hours
+│   ├── Weekly Schedule
+│   ├── Holidays
+│   ├── Break Time
+│   └── Overtime Rules
+│
+├── Leave Management
+│   ├── Annual Leave
+│   ├── Sick Leave
+│   ├── Emergency Leave
+│   ├── Approvals
+│   └── Leave Balance
+│
+├── Payroll
+│   ├── Basic Salary
+│   ├── Daily Salary
+│   ├── Hourly Salary
+│   ├── Minute Calculation
+│   ├── Overtime
+│   ├── Bonuses
+│   ├── Deductions
+│   ├── Final Salary
+│   ├── Salary Details
+│   └── Salary Slip PDF
+│
+├── Reports
+│   ├── Daily Report
+│   ├── Weekly Report
+│   ├── Monthly Report
+│   ├── Attendance Report
+│   ├── Payroll Report
+│   ├── Leave Report
+│   ├── Employee Report
+│   ├── Export PDF
+│   ├── Export Excel
+│   └── Print
+│
+├── Notifications
+│   ├── Push Notifications
+│   ├── Email Notifications
+│   ├── WhatsApp Notifications
+│   ├── Attendance Reminder
+│   ├── Salary Reminder
+│   ├── Leave Reminder
+│   └── Meeting Reminder
+│
+├── Smart AI Assistant
+│   ├── Ask Questions
+│   ├── Attendance Analysis
+│   ├── Payroll Analysis
+│   ├── Employee Search
+│   ├── Report Generator
+│   └── Smart Suggestions
+│
+├── Settings
+│   │
+│   ├── General
+│   │   ├── App Name
+│   │   ├── Company Name
+│   │   ├── Logo
+│   │   ├── App Icon
+│   │   ├── Splash Screen
+│   │   ├── Welcome Message
+│   │   ├── Language
+│   │   └── Date & Time
+│   │
+│   ├── Appearance
+│   │   ├── Light / Dark Mode
+│   │   ├── Theme Colors
+│   │   ├── Card Colors
+│   │   ├── Button Colors
+│   │   ├── Background
+│   │   ├── Fonts
+│   │   ├── Font Size
+│   │   ├── Font Style
+│   │   ├── Icons Style
+│   │   └── Animations
+│   │
+│   ├── Live Clock
+│   │   ├── Clock Style
+│   │   ├── Clock Color
+│   │   ├── Clock Size
+│   │   ├── Clock Position
+│   │   └── Show Date
+│   │
+│   ├── Smart Assistant
+│   │   ├── Enable / Disable
+│   │   ├── Assistant Name
+│   │   ├── Assistant Image
+│   │   ├── Welcome Message
+│   │   ├── AI Prompt
+│   │   ├── Voice
+│   │   └── AI Model
+│   │
+│   ├── API Keys
+│   │   ├── OpenAI
+│   │   ├── Gemini
+│   │   ├── Claude
+│   │   ├── Firebase
+│   │   ├── Google Maps
+│   │   ├── SMTP Email
+│   │   ├── WhatsApp API
+│   │   └── Other Keys
+│   │
+│   ├── Notifications
+│   │   ├── Push
+│   │   ├── Email
+│   │   ├── WhatsApp
+│   │   ├── Sounds
+│   │   ├── Attendance Alarm
+│   │   ├── Salary Alarm
+│   │   └── Leave Alarm
+│   │
+│   ├── Security
+│   │   ├── Change Email
+│   │   ├── Change Password
+│   │   ├── Face ID
+│   │   ├── Fingerprint
+│   │   ├── Backup
+│   │   └── Restore
+│   │
+│   └── Attendance Rules
+│       ├── Working Hours
+│       ├── Break Time
+│       ├── Overtime Rules
+│       ├── Late Rules
+│       ├── Leave Rules
+│       ├── Payroll Rules
+│       └── Save Settings
+│
+└── Database
+    ├── Users
+    ├── Employees
+    ├── Attendance
+    ├── Payroll
+    ├── Leaves
+    ├── Reports
+    ├── Notifications
+    ├── Settings
+    └── AI Data
+
+══════════════════════════════════════════════════════════════════════

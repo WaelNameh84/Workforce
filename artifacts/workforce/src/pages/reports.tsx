@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { FileText, Download, BarChart3, TrendingUp, PieChart } from 'lucide-react';
+import { FileText, Download, BarChart3, TrendingUp, PieChart, Clock3, WalletCards, Star } from 'lucide-react';
 import DetailDialog from '@/components/detail-dialog';
 import { downloadTextFile } from '@/lib/download';
 import { useToast } from '@/components/ui/use-toast';
@@ -24,12 +24,12 @@ export default function Reports() {
   };
 
   const reports = [
-    { titleKey: 'attendanceReport', icon: '📊', format: 'PDF, Excel', size: '2.4 MB', date: 'Jan 20, 2026', description: 'Attendance and punctuality overview.' },
-    { titleKey: 'payrollReport', icon: '💰', format: 'PDF, Excel', size: '3.1 MB', date: 'Jan 15, 2026', description: 'Payroll totals, deductions, and payment status.' },
-    { titleKey: 'productivity', icon: '⭐', format: 'PDF', size: '1.8 MB', date: 'Jan 10, 2026', description: 'Productivity and performance summary.' },
-    { titleKey: 'leaveBalance', icon: '🏖️', format: 'PDF, Excel', size: '1.2 MB', date: 'Jan 05, 2026', description: 'Leave balances and approved requests.' },
-    { titleKey: 'overtime', icon: '⏱️', format: 'PDF', size: '980 KB', date: 'Jan 01, 2026', description: 'Overtime hours and approvals.' },
-    { titleKey: 'monthlyPayroll', icon: '💵', format: 'PDF, Excel', size: '4.2 MB', date: 'Dec 28, 2025', description: 'Monthly payroll report.' },
+    { titleKey: 'attendanceReport', icon: BarChart3, format: 'PDF, Excel', size: '2.4 MB', date: 'Jan 20, 2026', description: 'Attendance and punctuality overview.' },
+    { titleKey: 'payrollReport', icon: WalletCards, format: 'PDF, Excel', size: '3.1 MB', date: 'Jan 15, 2026', description: 'Payroll totals, deductions, and payment status.' },
+    { titleKey: 'productivity', icon: Star, format: 'PDF', size: '1.8 MB', date: 'Jan 10, 2026', description: 'Productivity and performance summary.' },
+    { titleKey: 'leaveBalance', icon: FileText, format: 'PDF, Excel', size: '1.2 MB', date: 'Jan 05, 2026', description: 'Leave balances and approved requests.' },
+    { titleKey: 'overtime', icon: Clock3, format: 'PDF', size: '980 KB', date: 'Jan 01, 2026', description: 'Overtime hours and approvals.' },
+    { titleKey: 'monthlyPayroll', icon: WalletCards, format: 'PDF, Excel', size: '4.2 MB', date: 'Dec 28, 2025', description: 'Monthly payroll report.' },
   ];
 
   const stats = [
@@ -57,7 +57,7 @@ export default function Reports() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {reports.map((report) => (
           <div key={report.titleKey} onClick={() => setSelected(report)} className="p-6 rounded-2xl cursor-pointer transition hover:shadow-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div className="text-4xl mb-4">{report.icon}</div>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><report.icon className="h-6 w-6" /></div>
             <h3 className="font-bold mb-2">{t(report.titleKey as any)}</h3>
             <div className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{t('format')}: {report.format} • {t('size')}: {report.size}</div>
             <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: 'var(--border)' }}>

@@ -1,8 +1,28 @@
-import { useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { AuthUser } from '@workspace/api-client-react';
 
-export function useAuth() {
+interface AuthContextType {
+  user: AuthUser | null;
+  token: string | null;
+  isLoading: boolean;
+  login: (user: AuthUser, token: string) => void;
+  logout: () => void;
+}
+
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  token: null,
+  isLoading: true,
+  login: () => {},
+  logout: () => {},
+});
+
+export function useAuth(): AuthContextType {
+  return useContext(AuthContext);
+}
+
+export function useAuthState(): AuthContextType {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -25,20 +45,20 @@ export function useAuth() {
     setIsLoading(false);
   }, []);
 
-  const login = (newUser: AuthUser, newToken: string) => {
-    setUser(newUser);
-    setToken(newToken);
+  const login = useCallback((newUser: AuthUser, newToken: string) => {
     localStorage.setItem('user', JSON.stringify(newUser));
     localStorage.setItem('token', newToken);
-  };
+    setUser(newUser);
+    setToken(newToken);
+  }, []);
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
+  const logout = useCallback(() => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    setUser(null);
+    setToken(null);
     setLocation('/login');
-  };
+  }, [setLocation]);
 
   return { user, token, isLoading, login, logout };
 }

@@ -162,14 +162,135 @@
 .stagger-2 { animation-delay: 100ms; }
 .stagger-3 { animation-delay: 150ms; }
 .stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
 .status-live { box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 14%, transparent); }
 .safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+
 @media (max-width: 767px) {
   .page-shell { padding: 1rem; }
   .surface { box-shadow: 0 8px 22px rgba(22, 70, 56, .07); }
 }
 
 /* ─── Scrollbar ───────────────────────────────────────────────── */
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ─── Redesign: 3D Cards & Mobile Nav ─────────────────────────── */
+.card-3d {
+  background: var(--card);
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 20px 40px rgba(15,118,110,.12), 0 4px 16px rgba(15,118,110,.08);
+  transform-style: preserve-3d;
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.card-3d:hover {
+  transform: translateY(-4px) rotateX(1.5deg) rotateY(0.5deg);
+  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 32px 60px rgba(15,118,110,.18), 0 8px 24px rgba(15,118,110,.12);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+
+.dark .card-3d {
+  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 20px 40px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+}
+.dark .card-3d:hover {
+  box-shadow: 0 1px 0 rgba(255,255,255,.1) inset, 0 32px 60px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+.glass {
+  background: color-mix(in srgb, var(--card) 60%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  z-index: 40;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.05);
+}
+
+.stat-card {
+  position: relative;
+  background: var(--card);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 1.1rem;
+  background: linear-gradient(135deg, var(--primary), transparent 60%);
+  z-index: -1;
+  opacity: 0.5;
+}
+
+.mobile-safe-area {
+  padding-bottom: max(80px, env(safe-area-inset-bottom, 80px));
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes float-mockup {
+  0% { transform: translateY(0) rotateX(5deg) rotateY(-5deg); }
+  50% { transform: translateY(-15px) rotateX(8deg) rotateY(-2deg); }
+  100% { transform: translateY(0) rotateX(5deg) rotateY(-5deg); }
+}
+.animate-float {
+  animation: float-mockup 6s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+.animate-float-delayed {
+  animation: float-mockup 6s ease-in-out infinite;
+  animation-delay: 3s;
+  transform-style: preserve-3d;
+}
+
+@keyframes floating-particles {
+  0% { transform: translateY(0px) scale(1); opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+  animation: floating-particles 4s infinite linear;
+}
+
+.bg-animated-gradient {
+  background: linear-gradient(-45deg, #0f766e, #173b36, #14544b, #0f766e);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+}
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
