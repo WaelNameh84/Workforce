@@ -9,7 +9,6 @@ import { AuthContext, useAuthState, useAuth } from '@/hooks/use-auth';
 
 import Login from '@/pages/login';
 import Register from '@/pages/register';
-import Landing from '@/pages/landing';
 import DashboardLayout from '@/components/layout';
 
 import {
@@ -56,7 +55,7 @@ function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Landing} />
+      <Route path="/"><Redirect to="/dashboard" /></Route>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
 
