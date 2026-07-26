@@ -10,23 +10,18 @@ import {
 import type { Payroll } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
+import { useAppSettings } from '@/contexts/settings-context';
 import {
   DollarSign, TrendingUp, Download, FileText, Clock, Users, ChevronDown,
   Share2, Mail, Printer, AlertCircle, CheckCircle2, XCircle, Timer,
   CalendarRange, UserCheck, Banknote, TrendingDown, CreditCard, ShieldCheck,
-  Building, ArrowUpRight, ArrowDownRight, Minus, X, ChevronRight,
+  Building, ArrowUpRight, ArrowDownRight, Minus, X, ChevronRight, Settings2,
 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const money = (v?: string | number | null) => Number(v || 0);
 const fmt = (n: number, currency = 'SAR') =>
   new Intl.NumberFormat('ar-SA', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
-
-// Work schedule constants (configurable per employee later)
-const WORK_START = '07:00';
-const WORK_END   = '16:00';
-const BREAK_HOURS = 1;
-const DAILY_HOURS = 8; // net hours after break
 
 function parseTime(hhmm: string, baseDate: Date) {
   const [h, m] = hhmm.split(':').map(Number);
@@ -35,9 +30,24 @@ function parseTime(hhmm: string, baseDate: Date) {
   return d;
 }
 
-function calcAttendanceDay(clockIn: Date | null, clockOut: Date | null, emp: { workStart?: string; workEnd?: string }) {
-  const start = emp.workStart || WORK_START;
-  const end   = emp.workEnd   || WORK_END;
+// Schedule config passed from settings
+interface ScheduleConfig {
+  workStart: string;    // 'HH:mm'
+  workEnd: string;      // 'HH:mm'
+  breakMin: number;     // minutes
+  lateGraceMin: number; // minutes tolerated before counting as late
+  otThresholdMin: number; // minutes after end before counting overtime
+  deductRate: string;   // 'hour' | 'half' | 'full'
+}
+
+function calcAttendanceDay(
+  clockIn: Date | null,
+  clockOut: Date | null,
+  empOverride: { workStart?: string; workEnd?: string },
+  cfg: ScheduleConfig,
+) {
+  const start = empOverride.workStart || cfg.workStart;
+  const end   = empOverride.workEnd   || cfg.workEnd;
 
   if (!clockIn || !clockOut) return { workedHours: 0, overtime: 0, late: 0, early: 0 };
 
@@ -47,15 +57,21 @@ function calcAttendanceDay(clockIn: Date | null, clockOut: Date | null, emp: { w
   // Effective clock-in: if arrived early, count from scheduled start
   const effectiveIn = clockIn < scheduledStart ? scheduledStart : clockIn;
 
-  // Late arrival in minutes
-  const lateMin = clockIn > scheduledStart ? (clockIn.getTime() - scheduledStart.getTime()) / 60000 : 0;
+  // Late arrival in minutes — only counts if beyond grace period
+  const rawLateMin = clockIn > scheduledStart
+    ? (clockIn.getTime() - scheduledStart.getTime()) / 60000
+    : 0;
+  const lateMin = rawLateMin > cfg.lateGraceMin ? rawLateMin : 0;
 
-  // Overtime: any minute after scheduledEnd counts
-  const otMin = clockOut > scheduledEnd ? (clockOut.getTime() - scheduledEnd.getTime()) / 60000 : 0;
+  // Overtime: only after threshold past scheduled end
+  const rawOtMin = clockOut > scheduledEnd
+    ? (clockOut.getTime() - scheduledEnd.getTime()) / 60000
+    : 0;
+  const otMin = rawOtMin >= cfg.otThresholdMin ? rawOtMin : 0;
 
   // Raw worked minutes (excluding break)
   const rawMin = (clockOut.getTime() - effectiveIn.getTime()) / 60000;
-  const netMin = Math.max(0, rawMin - BREAK_HOURS * 60);
+  const netMin = Math.max(0, rawMin - cfg.breakMin);
 
   return {
     workedHours: netMin / 60,
@@ -173,7 +189,7 @@ function ClockOutPopup({ onClose }: { onClose: () => void }) {
 }
 
 // ─── Payroll Card ─────────────────────────────────────────────────────────────
-function PayrollCard({ emp, onView, onMarkPaid, currency }: { emp: EmployeePaySummary; onView: () => void; onMarkPaid: () => void; currency: string }) {
+function PayrollCard({ emp, onView, onMarkPaid, currency, dailyHours }: { emp: EmployeePaySummary; onView: () => void; onMarkPaid: () => void; currency: string; dailyHours: number }) {
   const netPositive = emp.netSalary > 0;
   return (
     <div
@@ -224,12 +240,12 @@ function PayrollCard({ emp, onView, onMarkPaid, currency }: { emp: EmployeePaySu
       <div className="mb-4">
         <div className="flex items-center justify-between text-xs mb-1.5">
           <span className="text-muted-foreground">ساعات العمل</span>
-          <span className="font-data font-bold">{emp.workedHours.toFixed(1)}h / {emp.workedDays * DAILY_HOURS}h</span>
+          <span className="font-data font-bold">{emp.workedHours.toFixed(1)}h / {emp.workedDays * dailyHours}h</span>
         </div>
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--muted-bg)' }}>
           <div
             className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
-            style={{ width: `${Math.min(100, (emp.workedHours / (emp.workedDays * DAILY_HOURS || 1)) * 100)}%` }}
+            style={{ width: `${Math.min(100, (emp.workedHours / (emp.workedDays * dailyHours || 1)) * 100)}%` }}
           />
         </div>
       </div>
@@ -266,12 +282,22 @@ function PayrollCard({ emp, onView, onMarkPaid, currency }: { emp: EmployeePaySu
 }
 
 // ─── Detailed Payslip Modal ───────────────────────────────────────────────────
-function PayslipModal({ emp, onClose, currency }: { emp: EmployeePaySummary; onClose: () => void; currency: string }) {
+function PayslipModal({ emp, onClose, currency, cfg }: { emp: EmployeePaySummary; onClose: () => void; currency: string; cfg: ScheduleConfig }) {
   const handlePrint = () => window.print();
   const handleShare = async () => {
     const text = `كشف راتب - ${emp.employeeName}\nالراتب الأساسي: ${fmt(emp.basicSalary, currency)}\nالصافي: ${fmt(emp.netSalary, currency)}`;
     if (navigator.share) await navigator.share({ title: 'كشف راتب', text });
     else navigator.clipboard?.writeText(text);
+  };
+
+  const dailyHours = (cfg.breakMin > 0)
+    ? (parseFloat(cfg.workEnd.split(':')[0]) - parseFloat(cfg.workStart.split(':')[0])) - cfg.breakMin / 60
+    : (parseFloat(cfg.workEnd.split(':')[0]) - parseFloat(cfg.workStart.split(':')[0]));
+
+  const deductRateLabel: Record<string, string> = {
+    hour: 'خصم ساعة بساعة',
+    half: 'خصم نصف يوم',
+    full: 'خصم يوم كامل',
   };
 
   const Row = ({ label, value, color = '', sign = '' }: { label: string; value: number; color?: string; sign?: string }) => (
@@ -315,18 +341,23 @@ function PayslipModal({ emp, onClose, currency }: { emp: EmployeePaySummary; onC
             </div>
           </div>
 
-          {/* Work time info */}
-          <div className="rounded-xl p-4 border border-border space-y-1">
-            <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-indigo-400" /> تفاصيل الدوام</h4>
+          {/* Work time info — from attendance settings */}
+          <div className="rounded-xl p-4 border border-indigo-500/20 bg-indigo-500/5">
+            <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
+              <Settings2 className="w-4 h-4 text-indigo-400" /> قواعد الدوام المطبّقة
+            </h4>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { l: 'دوام الدخول', v: '07:00' },
-                { l: 'دوام الخروج', v: '16:00' },
-                { l: 'ساعات العمل اليومية', v: '8 ساعات' },
-                { l: 'ساعة استراحة', v: '1 ساعة (غير محسوبة)' },
-                { l: 'أيام العمل', v: `${emp.workedDays} يوم` },
-                { l: 'ساعات إضافية', v: `${emp.overtimeHours.toFixed(2)} ساعة` },
-                { l: 'دقائق تأخير', v: `${(emp.lateHours * 60).toFixed(0)} دقيقة` },
+                { l: 'دوام الدخول',         v: cfg.workStart },
+                { l: 'دوام الخروج',          v: cfg.workEnd },
+                { l: 'ساعات العمل الصافية',  v: `${dailyHours.toFixed(1)} ساعة` },
+                { l: 'مدة الاستراحة',        v: `${cfg.breakMin} دقيقة (غير محسوبة)` },
+                { l: 'فترة السماح للتأخير',   v: `${cfg.lateGraceMin} دقيقة` },
+                { l: 'حد احتساب الإضافي',    v: `بعد ${cfg.otThresholdMin} د من نهاية الدوام` },
+                { l: 'طريقة خصم الغياب',     v: deductRateLabel[cfg.deductRate] || cfg.deductRate },
+                { l: 'أيام العمل المسجّلة',   v: `${emp.workedDays} يوم` },
+                { l: 'ساعات إضافية',         v: `${emp.overtimeHours.toFixed(2)} ساعة` },
+                { l: 'دقائق تأخير محتسبة',   v: `${(emp.lateHours * 60).toFixed(0)} دقيقة` },
               ].map(({ l, v }) => (
                 <div key={l} className="flex flex-col">
                   <span className="text-xs text-muted-foreground">{l}</span>
@@ -340,7 +371,7 @@ function PayslipModal({ emp, onClose, currency }: { emp: EmployeePaySummary; onC
           <div className="rounded-xl p-4 border border-border">
             <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><ArrowUpRight className="w-4 h-4 text-green-400" /> الإيرادات</h4>
             <Row label="الراتب الأساسي" value={emp.basicSalary} color="text-green-400" />
-            <Row label="بدل العمل الإضافي" value={emp.overtimePay} color="text-amber-400" sign="+" />
+            <Row label="بدل العمل الإضافي (×1.5)" value={emp.overtimePay} color="text-amber-400" sign="+" />
             <Row label="المكافآت والحوافز" value={emp.bonus} color="text-amber-400" sign="+" />
             <Row label="إضافات أخرى" value={emp.additions} color="text-amber-400" sign="+" />
             <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-border">
@@ -407,6 +438,33 @@ export default function PayrollPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const appSettings = useAppSettings();
+
+  // ── Build schedule config from attendance settings ──────────────────────────
+  const cfg: ScheduleConfig = useMemo(() => {
+    const breakMin = parseInt(appSettings.breakMin) || 60;
+    const [sh, sm] = appSettings.workStart.split(':').map(Number);
+    const [eh, em] = appSettings.workEnd.split(':').map(Number);
+    const totalWorkMin = (eh * 60 + em) - (sh * 60 + sm);
+    const netMin = Math.max(totalWorkMin - breakMin, 0);
+    return {
+      workStart:     appSettings.workStart,
+      workEnd:       appSettings.workEnd,
+      breakMin,
+      lateGraceMin:  parseInt(appSettings.lateGrace) || 0,
+      otThresholdMin: parseInt(appSettings.otThreshold) || 0,
+      deductRate:    appSettings.deductRate,
+      _dailyHours:   netMin / 60,
+    } as ScheduleConfig & { _dailyHours: number };
+  }, [appSettings.workStart, appSettings.workEnd, appSettings.breakMin, appSettings.lateGrace, appSettings.otThreshold, appSettings.deductRate]);
+
+  const dailyHours = (() => {
+    const breakMin = parseInt(appSettings.breakMin) || 60;
+    const [sh, sm] = appSettings.workStart.split(':').map(Number);
+    const [eh, em] = appSettings.workEnd.split(':').map(Number);
+    return Math.max(((eh * 60 + em) - (sh * 60 + sm) - breakMin) / 60, 1);
+  })();
+
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending'>('all');
   const [selectedEmpId, setSelectedEmpId] = useState<number | 'all'>('all');
   const [dateFrom, setDateFrom] = useState(() => {
@@ -448,7 +506,7 @@ export default function PayrollPage() {
   const attendanceRows: any[] = (attData as any)?.attendance || [];
   const leaveRows: any[] = leaveData?.leaves || [];
 
-  // Build per-employee summaries
+  // Build per-employee summaries — all rules come from attendance settings
   const summaries: EmployeePaySummary[] = useMemo(() => {
     return employees
       .filter(e => selectedEmpId === 'all' || e.id === selectedEmpId)
@@ -459,46 +517,55 @@ export default function PayrollPage() {
 
         const basicSalary = money(emp.salary) || money(pr?.basicSalary);
         const dailyRate   = basicSalary / 30;
-        const hourlyRate  = dailyRate / DAILY_HOURS;
+        const hourlyRate  = Math.max(dailyRate / dailyHours, 0.01);
 
-        // Attendance calculations
-        let workedDays   = 0;
-        let workedHours  = 0;
+        // Attendance calculations using settings
+        let workedDays    = 0;
+        let workedHours   = 0;
         let overtimeHours = 0;
-        let lateHours    = 0;
+        let lateHours     = 0;
 
         for (const a of empAtt) {
           const ci = a.clockIn  ? new Date(a.clockIn)  : null;
           const co = a.clockOut ? new Date(a.clockOut) : null;
-          const calc = calcAttendanceDay(ci, co, { workStart: emp.workStart || WORK_START, workEnd: emp.workEnd || WORK_END });
+          const calc = calcAttendanceDay(ci, co, { workStart: (emp as any).workStart, workEnd: (emp as any).workEnd }, cfg);
           if (calc.workedHours > 0) workedDays++;
-          workedHours  += calc.workedHours;
+          workedHours   += calc.workedHours;
           overtimeHours += calc.overtime;
-          lateHours    += calc.late;
+          lateHours     += calc.late;
         }
 
-        // If no attendance records, use payroll data
+        // If no attendance records, fall back to payroll data
         if (workedDays === 0) {
           const daysInPeriod = new Date(new Date(dateFrom).getFullYear(), new Date(dateFrom).getMonth() + 1, 0).getDate();
           workedDays = daysInPeriod;
-          workedHours = workedDays * DAILY_HOURS;
+          workedHours = workedDays * dailyHours;
           overtimeHours = money(pr?.overtime) / Math.max(hourlyRate, 1);
         }
 
         // Leave calculations
         const lvCalc = calcLeaves(empLeaves, dateFrom, dateTo);
 
-        // Financials
-        const overtimePay  = overtimeHours * hourlyRate * 1.5; // 1.5x multiplier
+        // ── Financials ──────────────────────────────────────────────────────
+        const overtimePay  = overtimeHours * hourlyRate * 1.5; // 1.5x legal multiplier
         const bonus        = money(pr?.bonus);
-        const additions    = 0; // can be extended
+        const additions    = 0;
         const grossSalary  = basicSalary + overtimePay + bonus + additions;
 
-        const lateDeduction        = lateHours * hourlyRate;
-        const unpaidLeaveDeduction = lvCalc.unpaidDays   * dailyRate;
-        const sickUnpaidDeduction  = lvCalc.sickUnpaidDays * dailyRate;
-        const advances             = 0; // future: from requests
-        const purchases            = 0; // future: from purchases
+        // Late deduction — always by hour (late minutes are already exact)
+        const lateDeduction = lateHours * hourlyRate;
+
+        // Absence/unpaid-leave deduction — method from settings
+        const unpaidDeductPerDay = cfg.deductRate === 'full'
+          ? dailyRate
+          : cfg.deductRate === 'half'
+          ? dailyRate / 2
+          : hourlyRate * dailyHours; // 'hour' → full day's worth but still by hour
+
+        const unpaidLeaveDeduction = lvCalc.unpaidDays     * unpaidDeductPerDay;
+        const sickUnpaidDeduction  = lvCalc.sickUnpaidDays * unpaidDeductPerDay;
+        const advances             = 0;
+        const purchases            = 0;
         const otherDeductions      = money(pr?.deductions);
         const totalDeductions      = lateDeduction + unpaidLeaveDeduction + sickUnpaidDeduction + advances + purchases + otherDeductions;
 
@@ -536,7 +603,7 @@ export default function PayrollPage() {
           payrollId: pr?.id,
         };
       });
-  }, [employees, payrollRows, attendanceRows, leaveRows, dateFrom, dateTo, selectedEmpId]);
+  }, [employees, payrollRows, attendanceRows, leaveRows, dateFrom, dateTo, selectedEmpId, cfg, dailyHours]);
 
   const visibleSummaries = filter === 'all' ? summaries : summaries.filter(s => s.status === filter);
 
@@ -705,17 +772,21 @@ export default function PayrollPage() {
         )}
       </div>
 
-      {/* ── Work Schedule Info Card ──────────────────────────────── */}
+      {/* ── Work Schedule Info Card — from attendance settings ───── */}
       <div className="rounded-2xl border border-indigo-500/20 p-4 bg-indigo-500/5">
         <h3 className="font-bold text-sm mb-3 flex items-center gap-2 text-indigo-400">
-          <Clock className="w-4 h-4" /> قواعد حساب الدوام
+          <Settings2 className="w-4 h-4" /> قواعد حساب الدوام (من إعدادات الحضور)
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           {[
-            { l: 'بداية الدوام', v: '07:00 صباحاً' },
-            { l: 'نهاية الدوام', v: '04:00 عصراً' },
-            { l: 'ساعة الاستراحة', v: 'غير محسوبة بالراتب' },
-            { l: 'الحضور قبل 7:00', v: 'يُحسب من 07:00 فقط' },
+            { l: 'بداية الدوام',         v: cfg.workStart },
+            { l: 'نهاية الدوام',          v: cfg.workEnd },
+            { l: 'مدة الاستراحة',         v: `${cfg.breakMin} دقيقة (غير محسوبة)` },
+            { l: 'ساعات العمل الصافية',   v: `${dailyHours.toFixed(1)} ساعة/يوم` },
+            { l: 'فترة السماح للتأخير',   v: `${cfg.lateGraceMin} دقيقة` },
+            { l: 'حد احتساب الإضافي',    v: `بعد ${cfg.otThresholdMin} دقيقة` },
+            { l: 'طريقة خصم الغياب',     v: cfg.deductRate === 'full' ? 'يوم كامل' : cfg.deductRate === 'half' ? 'نصف يوم' : 'ساعة بساعة' },
+            { l: 'مضاعف الإضافي',        v: '1.5×' },
           ].map(({ l, v }) => (
             <div key={l} className="p-2.5 rounded-lg border border-indigo-500/10 bg-indigo-500/5">
               <p className="text-muted-foreground">{l}</p>
@@ -724,8 +795,8 @@ export default function PayrollPage() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-3">
-          <span className="text-amber-400 font-bold">ملاحظة: </span>
-          إذا سجل الموظف الخروج بعد الساعة 04:00 تظهر نافذة لتحديد: إضافي / نسيت تسجيل / أخرى
+          <span className="text-amber-400 font-bold">تلميح: </span>
+          يمكنك تعديل هذه القواعد من صفحة <span className="text-indigo-400 font-bold">الإعدادات ← إعدادات الحضور</span>، وتنعكس فوراً على الحسابات.
         </p>
       </div>
 
@@ -749,6 +820,7 @@ export default function PayrollPage() {
               key={emp.employeeId}
               emp={emp}
               currency="SAR"
+              dailyHours={dailyHours}
               onView={() => setViewPayslip(emp)}
               onMarkPaid={() => markPaid(emp)}
             />
@@ -777,7 +849,7 @@ export default function PayrollPage() {
 
       {/* ── Modals ────────────────────────────────────────────────── */}
       {viewPayslip && (
-        <PayslipModal emp={viewPayslip} onClose={() => setViewPayslip(null)} currency="SAR" />
+        <PayslipModal emp={viewPayslip} onClose={() => setViewPayslip(null)} currency="SAR" cfg={cfg} />
       )}
       {showClockOutPopup && (
         <ClockOutPopup onClose={() => setShowClockOutPopup(false)} />
