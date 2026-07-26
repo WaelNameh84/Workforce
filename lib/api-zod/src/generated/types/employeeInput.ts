@@ -15,7 +15,14 @@ export interface EmployeeInput {
   position?: string;
   salary?: string;
   joinDate?: string;
+  gender?: string;
+  contractType?: string;
+  managerName?: string;
+  workStart?: string;
+  workEnd?: string;
+  workDays?: string;
   departmentId?: number;
   status?: EmployeeInputStatus;
   address?: string;
+  notes?: string;
 }

@@ -1,26 +1,105 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import DetailDialog from '@/components/detail-dialog';
-import { useGetEmployees, useGetDepartments, useCreateEmployee, useUpdateEmployee, useDeleteEmployee, getGetEmployeesQueryKey, getGetDepartmentsQueryKey, EmployeeInput, Employee } from '@workspace/api-client-react';
+import {
+  useGetEmployees, useGetDepartments, useCreateEmployee, useUpdateEmployee, useDeleteEmployee,
+  getGetEmployeesQueryKey, getGetDepartmentsQueryKey, EmployeeInput, Employee
+} from '@workspace/api-client-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Mail, Phone, MapPin } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Search, Plus, MoreHorizontal, Edit, Trash2, Eye,
+  Mail, Phone, MapPin, Calendar, Clock, Building2,
+  User, Briefcase, DollarSign, FileText, Users, Shield,
+  ClipboardList, UserCheck, CalendarDays
+} from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 
-const deptColors = ['from-indigo-400 to-blue-500', 'from-emerald-400 to-teal-500', 'from-amber-400 to-orange-500', 'from-fuchsia-400 to-purple-500', 'from-rose-400 to-red-500'];
+const deptGradients = [
+  { from: 'from-violet-500', to: 'to-purple-600', light: 'bg-violet-50 dark:bg-violet-950/30', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-200 dark:border-violet-800' },
+  { from: 'from-emerald-500', to: 'to-teal-600', light: 'bg-emerald-50 dark:bg-emerald-950/30', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-800' },
+  { from: 'from-amber-500', to: 'to-orange-600', light: 'bg-amber-50 dark:bg-amber-950/30', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800' },
+  { from: 'from-blue-500', to: 'to-indigo-600', light: 'bg-blue-50 dark:bg-blue-950/30', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800' },
+  { from: 'from-rose-500', to: 'to-red-600', light: 'bg-rose-50 dark:bg-rose-950/30', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-200 dark:border-rose-800' },
+  { from: 'from-cyan-500', to: 'to-sky-600', light: 'bg-cyan-50 dark:bg-cyan-950/30', text: 'text-cyan-600 dark:text-cyan-400', border: 'border-cyan-200 dark:border-cyan-800' },
+];
+
+const WORK_DAYS_OPTIONS = [
+  { en: 'Sun', ar: 'أحد', sv: 'Sön' },
+  { en: 'Mon', ar: 'إثنين', sv: 'Mån' },
+  { en: 'Tue', ar: 'ثلاثاء', sv: 'Tis' },
+  { en: 'Wed', ar: 'أربعاء', sv: 'Ons' },
+  { en: 'Thu', ar: 'خميس', sv: 'Tor' },
+  { en: 'Fri', ar: 'جمعة', sv: 'Fre' },
+  { en: 'Sat', ar: 'سبت', sv: 'Lör' },
+];
+
+function WorkDaysPicker({ value, onChange, locale }: { value: string; onChange: (v: string) => void; locale: string }) {
+  const selected = value ? value.split(',').map(s => s.trim()) : [];
+  const toggle = (day: string) => {
+    const idx = selected.indexOf(day);
+    const next = idx >= 0 ? selected.filter(d => d !== day) : [...selected, day];
+    onChange(next.join(', '));
+  };
+  return (
+    <div className="flex flex-wrap gap-2">
+      {WORK_DAYS_OPTIONS.map(d => {
+        const label = locale === 'ar' ? d.ar : locale === 'sv' ? d.sv : d.en;
+        const isSelected = selected.includes(d.en) || selected.includes(d.ar);
+        return (
+          <button
+            key={d.en}
+            type="button"
+            onClick={() => toggle(d.en)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isSelected
+              ? 'bg-primary text-primary-foreground border-primary shadow-md scale-105'
+              : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted hover:scale-105'}`}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AvatarCircle({ name, color, size = 'md' }: { name: string; color: typeof deptGradients[0]; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
+  const sizes = { sm: 'w-10 h-10 text-sm', md: 'w-14 h-14 text-lg', lg: 'w-20 h-20 text-2xl', xl: 'w-28 h-28 text-4xl' };
+  const initials = name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'EMP';
+  return (
+    <div className={`${sizes[size]} rounded-2xl bg-gradient-to-br ${color.from} ${color.to} flex items-center justify-center font-bold font-display text-white shadow-lg select-none flex-shrink-0`}>
+      {initials}
+    </div>
+  );
+}
+
+function StatBadge({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: string; color: string }) {
+  return (
+    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl ${color} border`}>
+      <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+      <div className="min-w-0">
+        <div className="text-[10px] font-medium opacity-60 leading-none">{label}</div>
+        <div className="text-xs font-bold truncate mt-0.5">{value || '—'}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function Employees() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -28,29 +107,29 @@ export default function Employees() {
   const [departmentId, setDepartmentId] = useState<string>('all');
   const [status, setStatus] = useState<string>('all');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [profileEmployee, setProfileEmployee] = useState<Employee | null>(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [workDaysAdd, setWorkDaysAdd] = useState('Sun, Mon, Tue, Wed, Thu');
+  const [workDaysEdit, setWorkDaysEdit] = useState('Sun, Mon, Tue, Wed, Thu');
+
+  const cid = user?.companyId || 0;
 
   const { data: employeesData, isLoading } = useGetEmployees(
-    {
-      companyId: user?.companyId || 0,
-      ...(search && { search }),
-      ...(departmentId !== 'all' && { departmentId: parseInt(departmentId) }),
-      ...(status !== 'all' && { status })
-    },
-    { query: { enabled: !!user?.companyId, queryKey: getGetEmployeesQueryKey({ companyId: user?.companyId || 0, search, departmentId: departmentId !== 'all' ? parseInt(departmentId) : undefined, status: status !== 'all' ? status : undefined }) } }
+    { companyId: cid, ...(search && { search }), ...(departmentId !== 'all' && { departmentId: parseInt(departmentId) }), ...(status !== 'all' && { status }) },
+    { query: { enabled: !!cid, queryKey: getGetEmployeesQueryKey({ companyId: cid, search, departmentId: departmentId !== 'all' ? parseInt(departmentId) : undefined, status: status !== 'all' ? status : undefined }) } }
   );
 
   const { data: deptsData } = useGetDepartments(
-    { companyId: user?.companyId || 0 },
-    { query: { enabled: !!user?.companyId, queryKey: getGetDepartmentsQueryKey({ companyId: user?.companyId || 0 }) } }
+    { companyId: cid },
+    { query: { enabled: !!cid, queryKey: getGetDepartmentsQueryKey({ companyId: cid }) } }
   );
 
   const createMutation = useCreateEmployee();
   const updateMutation = useUpdateEmployee();
   const deleteMutation = useDeleteEmployee();
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
 
   const handleAddSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,16 +138,27 @@ export default function Employees() {
       fullName: fd.get('fullName') as string,
       email: fd.get('email') as string,
       employeeCode: fd.get('employeeCode') as string,
-      departmentId: Number(fd.get('departmentId')),
-      position: fd.get('position') as string,
-      salary: fd.get('salary') as string,
+      departmentId: Number(fd.get('departmentId')) || undefined,
+      position: fd.get('position') as string || undefined,
+      phone: fd.get('phone') as string || undefined,
+      gender: fd.get('gender') as string || undefined,
+      address: fd.get('address') as string || undefined,
+      managerName: fd.get('managerName') as string || undefined,
+      joinDate: fd.get('joinDate') as string || undefined,
+      contractType: fd.get('contractType') as string || undefined,
+      salary: fd.get('salary') as string || undefined,
+      workStart: fd.get('workStart') as string || '09:00',
+      workEnd: fd.get('workEnd') as string || '17:00',
+      workDays: workDaysAdd || undefined,
+      notes: fd.get('notes') as string || undefined,
       status: 'active',
     };
     try {
       await createMutation.mutateAsync({ data: payload });
       toast({ title: t('savedSuccessfully') });
       setIsAddOpen(false);
-      queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
+      setWorkDaysAdd('Sun, Mon, Tue, Wed, Thu');
+      invalidate();
     } catch {
       toast({ variant: 'destructive', title: t('actions'), description: t('failedCreateEmployee') });
     }
@@ -76,23 +166,32 @@ export default function Employees() {
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedEmployee?.id) return;
+    if (!editEmployee?.id) return;
     const fd = new FormData(e.currentTarget);
     const payload: EmployeeInput = {
       fullName: fd.get('fullName') as string,
       email: fd.get('email') as string,
-      employeeCode: fd.get('employeeCode') as string || selectedEmployee.employeeCode || '',
-      departmentId: Number(fd.get('departmentId')),
-      position: fd.get('position') as string,
-      salary: fd.get('salary') as string,
-      status: fd.get('status') as EmployeeInput['status'] || selectedEmployee.status || 'active',
+      employeeCode: (fd.get('employeeCode') as string) || editEmployee.employeeCode || '',
+      departmentId: Number(fd.get('departmentId')) || undefined,
+      position: fd.get('position') as string || undefined,
+      phone: fd.get('phone') as string || undefined,
+      gender: fd.get('gender') as string || undefined,
+      address: fd.get('address') as string || undefined,
+      managerName: fd.get('managerName') as string || undefined,
+      joinDate: fd.get('joinDate') as string || undefined,
+      contractType: fd.get('contractType') as string || undefined,
+      salary: fd.get('salary') as string || undefined,
+      workStart: fd.get('workStart') as string || '09:00',
+      workEnd: fd.get('workEnd') as string || '17:00',
+      workDays: workDaysEdit || undefined,
+      notes: fd.get('notes') as string || undefined,
+      status: fd.get('status') as EmployeeInput['status'] || 'active',
     };
     try {
-      await updateMutation.mutateAsync({ id: selectedEmployee.id, data: payload });
+      await updateMutation.mutateAsync({ id: editEmployee.id, data: payload });
       toast({ title: t('savedSuccessfully') });
-      setIsEditOpen(false);
-      setSelectedEmployee(null);
-      queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
+      setEditEmployee(null);
+      invalidate();
     } catch {
       toast({ variant: 'destructive', title: t('actions'), description: t('failedUpdateEmployee') });
     }
@@ -104,108 +203,188 @@ export default function Employees() {
       await deleteMutation.mutateAsync({ id: deleteId });
       toast({ title: t('employeeDeleted') });
       setDeleteId(null);
-      queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
+      invalidate();
     } catch {
       toast({ variant: 'destructive', title: t('actions'), description: t('failedDeleteEmployee') });
     }
   };
 
-  const employeeForm = (defaultValues?: Employee) => (
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label>{t('fullName')}</Label>
-        <Input name="fullName" defaultValue={defaultValues?.fullName} required className="rounded-xl" />
-      </div>
-      <div className="space-y-2">
-        <Label>{t('employeeCode')}</Label>
-        <Input name="employeeCode" defaultValue={defaultValues?.employeeCode || ''} required={!defaultValues} className="rounded-xl" />
-      </div>
-      <div className="space-y-2">
-        <Label>{t('email')}</Label>
-        <Input type="email" name="email" defaultValue={defaultValues?.email} required className="rounded-xl" />
-      </div>
-      <div className="space-y-2">
-        <Label>{t('position')}</Label>
-        <Input name="position" defaultValue={defaultValues?.position || ''} className="rounded-xl" />
-      </div>
-      <div className="space-y-2">
-        <Label>{t('department')}</Label>
-        <Select name="departmentId" defaultValue={defaultValues?.departmentId ? String(defaultValues.departmentId) : undefined}>
-          <SelectTrigger className="rounded-xl"><SelectValue placeholder={t('selectDept')} /></SelectTrigger>
-          <SelectContent>
-            {deptsData?.departments?.map(d => (
-              <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>{t('salary')}</Label>
-        <Input type="number" name="salary" defaultValue={defaultValues?.salary || ''} className="rounded-xl font-data" />
-      </div>
-      {defaultValues && (
-        <div className="space-y-2">
-          <Label>{t('status')}</Label>
-          <Select name="status" defaultValue={defaultValues.status}>
-            <SelectTrigger className="rounded-xl"><SelectValue placeholder={t('selectStatus')} /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">{t('active')}</SelectItem>
-              <SelectItem value="on-leave">{t('onLeaveStatus')}</SelectItem>
-              <SelectItem value="inactive">{t('inactive')}</SelectItem>
-            </SelectContent>
-          </Select>
+  const openEdit = (emp: Employee) => {
+    setEditEmployee(emp);
+    setWorkDaysEdit(emp.workDays || 'Sun, Mon, Tue, Wed, Thu');
+  };
+
+  const employees = employeesData?.employees || [];
+  const total = employeesData?.total || 0;
+  const activeCount = employees.filter(e => e.status === 'active').length;
+  const onLeaveCount = employees.filter(e => e.status === 'on-leave').length;
+  const inactiveCount = employees.filter(e => e.status === 'inactive').length;
+
+  // Employee Form Fields
+  const employeeFormFields = (defaultValues?: Employee, isEdit = false) => (
+    <Tabs defaultValue="personal" className="w-full">
+      <TabsList className="grid w-full grid-cols-3 rounded-xl mb-4 h-10">
+        <TabsTrigger value="personal" className="rounded-lg text-xs font-bold">{locale === 'ar' ? 'البيانات الشخصية' : locale === 'sv' ? 'Personuppgifter' : 'Personal'}</TabsTrigger>
+        <TabsTrigger value="work" className="rounded-lg text-xs font-bold">{locale === 'ar' ? 'بيانات العمل' : locale === 'sv' ? 'Arbetsdata' : 'Work Data'}</TabsTrigger>
+        <TabsTrigger value="schedule" className="rounded-lg text-xs font-bold">{locale === 'ar' ? 'الجدول' : locale === 'sv' ? 'Schema' : 'Schedule'}</TabsTrigger>
+      </TabsList>
+
+      {/* Personal Data Tab */}
+      <TabsContent value="personal" className="space-y-4 mt-0">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5 col-span-2">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fullName')}</Label>
+            <Input name="fullName" defaultValue={defaultValues?.fullName} required className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('employeeCode')}</Label>
+            <Input name="employeeCode" defaultValue={defaultValues?.employeeCode || ''} required={!isEdit} className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'الجنس' : locale === 'sv' ? 'Kön' : 'Gender'}</Label>
+            <Select name="gender" defaultValue={defaultValues?.gender || ''}>
+              <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={locale === 'ar' ? 'اختر الجنس' : locale === 'sv' ? 'Välj kön' : 'Select gender'} /></SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="male">{locale === 'ar' ? 'ذكر' : locale === 'sv' ? 'Man' : 'Male'}</SelectItem>
+                <SelectItem value="female">{locale === 'ar' ? 'أنثى' : locale === 'sv' ? 'Kvinna' : 'Female'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('email')}</Label>
+            <Input type="email" name="email" defaultValue={defaultValues?.email} required className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('phone')}</Label>
+            <Input name="phone" defaultValue={defaultValues?.phone || ''} className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('address')}</Label>
+            <Input name="address" defaultValue={defaultValues?.address || ''} className="rounded-xl h-10" />
+          </div>
         </div>
-      )}
-    </div>
+      </TabsContent>
+
+      {/* Work Data Tab */}
+      <TabsContent value="work" className="space-y-4 mt-0">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('department')}</Label>
+            <Select name="departmentId" defaultValue={defaultValues?.departmentId ? String(defaultValues.departmentId) : undefined}>
+              <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={t('selectDept')} /></SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {deptsData?.departments?.map(d => (
+                  <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('position')}</Label>
+            <Input name="position" defaultValue={defaultValues?.position || ''} className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'المدير المباشر' : locale === 'sv' ? 'Chef' : 'Manager'}</Label>
+            <Input name="managerName" defaultValue={defaultValues?.managerName || ''} className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('joinDate')}</Label>
+            <Input type="date" name="joinDate" defaultValue={defaultValues?.joinDate || ''} className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'نوع العقد' : locale === 'sv' ? 'Kontraktstyp' : 'Contract Type'}</Label>
+            <Select name="contractType" defaultValue={defaultValues?.contractType || ''}>
+              <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={locale === 'ar' ? 'نوع العقد' : locale === 'sv' ? 'Välj typ' : 'Select type'} /></SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="full-time">{locale === 'ar' ? 'دوام كامل' : locale === 'sv' ? 'Heltid' : 'Full-time'}</SelectItem>
+                <SelectItem value="part-time">{locale === 'ar' ? 'دوام جزئي' : locale === 'sv' ? 'Deltid' : 'Part-time'}</SelectItem>
+                <SelectItem value="contract">{locale === 'ar' ? 'عقد مؤقت' : locale === 'sv' ? 'Konsultavtal' : 'Contract'}</SelectItem>
+                <SelectItem value="intern">{locale === 'ar' ? 'متدرب' : locale === 'sv' ? 'Praktikant' : 'Intern'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('salary')}</Label>
+            <Input type="number" name="salary" defaultValue={defaultValues?.salary || ''} className="rounded-xl h-10 font-data" />
+          </div>
+          {isEdit && (
+            <div className="space-y-1.5 col-span-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('status')}</Label>
+              <Select name="status" defaultValue={defaultValues?.status || 'active'}>
+                <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={t('selectStatus')} /></SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="active">{t('active')}</SelectItem>
+                  <SelectItem value="on-leave">{t('onLeaveStatus')}</SelectItem>
+                  <SelectItem value="inactive">{t('inactive')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      </TabsContent>
+
+      {/* Schedule Tab */}
+      <TabsContent value="schedule" className="space-y-4 mt-0">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'بداية الدوام' : locale === 'sv' ? 'Arbetstid start' : 'Work Start'}</Label>
+            <Input type="time" name="workStart" defaultValue={defaultValues?.workStart || '09:00'} className="rounded-xl h-10 font-data" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'نهاية الدوام' : locale === 'sv' ? 'Arbetstid slut' : 'Work End'}</Label>
+            <Input type="time" name="workEnd" defaultValue={defaultValues?.workEnd || '17:00'} className="rounded-xl h-10 font-data" />
+          </div>
+          <div className="space-y-2 col-span-2">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'أيام العمل' : locale === 'sv' ? 'Arbetsdagar' : 'Work Days'}</Label>
+            <WorkDaysPicker
+              value={isEdit ? workDaysEdit : workDaysAdd}
+              onChange={isEdit ? setWorkDaysEdit : setWorkDaysAdd}
+              locale={locale}
+            />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'ملاحظات' : locale === 'sv' ? 'Anteckningar' : 'Notes'}</Label>
+            <Textarea name="notes" defaultValue={defaultValues?.notes || ''} className="rounded-xl resize-none" rows={3} />
+          </div>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 
   return (
     <div className="space-y-6 animate-fadeIn">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">{t('employees')}</h1>
-          <p className="text-sm mt-1 text-muted-foreground">{employeesData?.total || 0} total employees</p>
+          <p className="text-sm mt-1 text-muted-foreground">{total} {locale === 'ar' ? 'موظف إجمالاً' : locale === 'sv' ? 'anställda totalt' : 'employees total'}</p>
         </div>
+        <Button
+          onClick={() => setIsAddOpen(true)}
+          className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white border-0"
+        >
+          <Plus className="h-4 w-4" /> {t('addEmployee')}
+        </Button>
+      </div>
 
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0"><Plus className="h-4 w-4" /> {t('addEmployee')}</Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-3xl border-0 card-3d">
-            <DialogHeader><DialogTitle className="font-display text-xl">{t('addEmployee')}</DialogTitle></DialogHeader>
-            <form onSubmit={handleAddSubmit} className="space-y-6 mt-2">
-              {employeeForm()}
-              <Button type="submit" className="w-full rounded-xl h-12 text-md" disabled={createMutation.isPending}>{t('save')}</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setSelectedEmployee(null); }}>
-          <DialogContent className="rounded-3xl border-0 card-3d">
-            <DialogHeader><DialogTitle className="font-display text-xl">{t('editEmployee')}</DialogTitle></DialogHeader>
-            {selectedEmployee && (
-              <form onSubmit={handleEditSubmit} className="space-y-6 mt-2">
-                {employeeForm(selectedEmployee)}
-                <Button type="submit" className="w-full rounded-xl h-12 text-md" disabled={updateMutation.isPending}>{t('save')}</Button>
-              </form>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
-          <AlertDialogContent className="rounded-3xl border-0 card-3d">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="font-display">{t('confirmDelete')}</AlertDialogTitle>
-              <AlertDialogDescription>{t('confirmDeleteDesc')}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="mt-4">
-              <AlertDialogCancel className="rounded-xl h-11">{t('cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="rounded-xl h-11 bg-red-500 hover:bg-red-600 text-white border-0">
-                {t('delete')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: locale === 'ar' ? 'الكل' : locale === 'sv' ? 'Totalt' : 'Total', value: total, color: 'from-violet-500 to-purple-600', bg: 'bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800', icon: Users },
+          { label: t('active'), value: activeCount, color: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800', icon: UserCheck },
+          { label: t('onLeaveStatus'), value: onLeaveCount, color: 'from-amber-500 to-orange-600', bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800', icon: CalendarDays },
+          { label: t('inactive'), value: inactiveCount, color: 'from-slate-500 to-gray-600', bg: 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-700', icon: Shield },
+        ].map(stat => (
+          <div key={stat.label} className={`card-3d p-4 border ${stat.bg} flex items-center gap-3`}>
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center flex-shrink-0`}>
+              <stat.icon className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold font-display">{stat.value}</div>
+              <div className="text-xs text-muted-foreground font-medium">{stat.label}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Filters */}
@@ -221,7 +400,7 @@ export default function Employees() {
             />
           </div>
           <Select value={departmentId} onValueChange={setDepartmentId}>
-            <SelectTrigger className="w-full sm:w-[180px] rounded-xl border-border bg-background h-11">
+            <SelectTrigger className="w-full sm:w-[190px] rounded-xl border-border bg-background h-11">
               <SelectValue placeholder={t('allDepartments')} />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -232,7 +411,7 @@ export default function Employees() {
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-full sm:w-[150px] rounded-xl border-border bg-background h-11">
+            <SelectTrigger className="w-full sm:w-[160px] rounded-xl border-border bg-background h-11">
               <SelectValue placeholder={t('allStatus')} />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -246,90 +425,406 @@ export default function Employees() {
       </div>
 
       {/* Employee Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {isLoading ? (
-          Array.from({ length: 8 }).map((_, i) => <div key={i} className="card-3d h-[240px] animate-pulse bg-muted-bg" />)
-        ) : !employeesData?.employees?.length ? (
-          <div className="col-span-full card-3d p-12 text-center text-muted-foreground flex flex-col items-center justify-center">
-            <div className="w-16 h-16 bg-muted-bg rounded-full flex items-center justify-center mb-4"><Search className="w-8 h-8 opacity-50" /></div>
-            <p className="font-medium text-lg">{t('noEmployeesFound')}</p>
+          Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="card-3d h-[340px] animate-pulse bg-muted-bg rounded-3xl" />
+          ))
+        ) : !employees.length ? (
+          <div className="col-span-full card-3d p-16 text-center flex flex-col items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+              <Users className="w-10 h-10 text-muted-foreground opacity-40" />
+            </div>
+            <p className="font-bold text-lg text-muted-foreground">{t('noEmployeesFound')}</p>
           </div>
-        ) : employeesData.employees.map((emp, index) => {
-          const deptColor = deptColors[(emp.departmentId || 0) % deptColors.length];
+        ) : employees.map((emp, index) => {
+          const color = deptGradients[(emp.departmentId || index) % deptGradients.length];
+          const statusVariant = emp.status === 'active' ? 'success' : emp.status === 'on-leave' ? 'warning' : 'secondary';
+          const statusLabel = emp.status === 'active' ? t('active') : emp.status === 'on-leave' ? t('onLeaveStatus') : t('inactive');
+
           return (
-            <div key={emp.id} data-testid={`card-employee-${emp.id}`} className={`card-3d flex flex-col animate-fadeIn stagger-${(index % 6) + 1}`}>
-              {/* Top Accent Bar */}
-              <div className={`h-2 w-full bg-gradient-to-r ${deptColor}`} />
-              
-              <div className="p-5 flex-1 flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${deptColor} p-0.5 shadow-lg`}>
-                    <div className="w-full h-full bg-card rounded-[14px] flex items-center justify-center text-xl font-bold font-display text-foreground">
-                      {emp.fullName?.charAt(0) || 'U'}
+            <div
+              key={emp.id}
+              data-testid={`card-employee-${emp.id}`}
+              className={`card-3d flex flex-col overflow-hidden animate-fadeIn stagger-${(index % 6) + 1} group`}
+            >
+              {/* Gradient Banner */}
+              <div className={`h-20 w-full bg-gradient-to-br ${color.from} ${color.to} relative overflow-hidden flex-shrink-0`}>
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/20" />
+                  <div className="absolute -left-2 bottom-0 w-16 h-16 rounded-full bg-white/10" />
+                </div>
+                {/* Status Badge */}
+                <Badge
+                  variant={statusVariant}
+                  className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg"
+                >
+                  {statusLabel}
+                </Badge>
+                {/* Actions Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      data-testid={`button-employee-actions-${emp.id}`}
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2.5 left-3 h-7 w-7 rounded-full bg-white/20 hover:bg-white/40 text-white border-0"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="rounded-xl border-border w-44">
+                    <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer" onClick={() => setProfileEmployee(emp)}>
+                      <Eye className="h-4 w-4 text-violet-500" /> {t('viewProfile')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer" onClick={() => openEdit(emp)}>
+                      <Edit className="h-4 w-4 text-amber-500" /> {t('edit')}
+                    </DropdownMenuItem>
+                    <Separator className="my-1" />
+                    <DropdownMenuItem className="gap-2 rounded-lg cursor-pointer text-red-500" onClick={() => setDeleteId(emp.id || null)}>
+                      <Trash2 className="h-4 w-4" /> {t('delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-4 flex-1 flex flex-col -mt-7">
+                {/* Avatar */}
+                <div className="mb-3">
+                  <AvatarCircle name={emp.fullName || ''} color={color} size="md" />
+                </div>
+
+                {/* Name & Position */}
+                <button
+                  data-testid={`button-view-employee-${emp.id}`}
+                  onClick={() => setProfileEmployee(emp)}
+                  className="text-left w-full hover:opacity-80 transition-opacity mb-3"
+                >
+                  <h3 className="font-bold text-base leading-tight truncate">{emp.fullName}</h3>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {emp.position || (locale === 'ar' ? 'موظف' : locale === 'sv' ? 'Anställd' : 'Employee')}
+                  </p>
+                </button>
+
+                {/* Info Pills */}
+                <div className="space-y-1.5 flex-1">
+                  {emp.email && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Mail className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+                      <span className="truncate">{emp.email}</span>
                     </div>
-                  </div>
-                  
-                  <div className="flex flex-col items-end gap-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button data-testid={`button-employee-actions-${emp.id}`} variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted-bg">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl border-border">
-                        <DropdownMenuItem className="gap-2 rounded-lg" onClick={() => setProfileEmployee(emp)}><Eye className="h-4 w-4 text-blue-500" /> {t('viewProfile')}</DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2 rounded-lg" onClick={() => { setSelectedEmployee(emp); setIsEditOpen(true); }}><Edit className="h-4 w-4 text-amber-500" /> {t('edit')}</DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2 rounded-lg text-red-500" onClick={() => setDeleteId(emp.id || null)}><Trash2 className="h-4 w-4" /> {t('delete')}</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Badge variant={emp.status === 'active' ? 'success' : emp.status === 'on-leave' ? 'warning' : 'secondary'} className="capitalize text-[10px] font-bold tracking-wider rounded-md">
-                      {emp.status === 'active' ? t('active') : emp.status === 'on-leave' ? t('onLeaveStatus') : t('inactive')}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <button data-testid={`button-view-employee-${emp.id}`} onClick={() => setProfileEmployee(emp)} className="text-left w-full hover:opacity-80 transition-opacity">
-                    <h3 className="font-bold text-lg leading-tight truncate">{emp.fullName}</h3>
-                    <p className="text-sm text-muted-foreground truncate">{emp.position || 'Employee'}</p>
-                  </button>
-                </div>
-
-                <div className="mt-auto space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Mail className="w-3.5 h-3.5 opacity-70" />
-                    <span className="truncate">{emp.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="w-3.5 h-3.5 opacity-70" />
-                    <span className="truncate font-medium">{emp.departmentName || '—'}</span>
-                  </div>
+                  )}
+                  {emp.phone && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Phone className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+                      <span className="truncate font-data">{emp.phone}</span>
+                    </div>
+                  )}
+                  {emp.departmentName && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <Building2 className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground opacity-60" />
+                      <span className={`font-semibold truncate ${color.text}`}>{emp.departmentName}</span>
+                    </div>
+                  )}
+                  {(emp.workStart || emp.workEnd) && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+                      <span className="font-data font-semibold">{emp.workStart || '09:00'} — {emp.workEnd || '17:00'}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-              
-              <div className="px-5 py-3 border-t border-border bg-muted/30 flex justify-between items-center text-xs">
-                <span className="font-medium opacity-70">Salary</span>
-                <span className="font-data font-bold">{emp.salary ? `$${Number(emp.salary).toLocaleString()}` : '—'}</span>
+
+              {/* Card Footer */}
+              <div className={`px-4 py-2.5 border-t border-border ${color.light} flex justify-between items-center`}>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{t('salary')}</span>
+                <span className="text-sm font-bold font-data">
+                  {emp.salary ? `$${Number(emp.salary).toLocaleString()}` : '—'}
+                </span>
               </div>
             </div>
           );
         })}
       </div>
 
-      <DetailDialog
-        open={!!profileEmployee}
-        onOpenChange={(open) => !open && setProfileEmployee(null)}
-        title={profileEmployee?.fullName || t('viewProfile')}
-        items={profileEmployee ? [
-          { label: t('email'), value: profileEmployee.email },
-          { label: t('position'), value: profileEmployee.position },
-          { label: t('department'), value: profileEmployee.departmentName },
-          { label: t('salary'), value: profileEmployee.salary ? `$${Number(profileEmployee.salary).toLocaleString()}` : '—' },
-          { label: t('status'), value: profileEmployee.status },
-          { label: t('phone'), value: profileEmployee.phone },
-          { label: t('address'), value: profileEmployee.address },
-        ] : []}
-      />
+      {/* ===================== ADD DIALOG ===================== */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="rounded-3xl border-0 card-3d max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                <Plus className="h-4 w-4 text-white" />
+              </div>
+              {t('addEmployee')}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddSubmit} className="space-y-5 mt-2">
+            {employeeFormFields(undefined, false)}
+            <Button
+              type="submit"
+              className="w-full rounded-xl h-11 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white border-0 font-bold"
+              disabled={createMutation.isPending}
+            >
+              {t('save')}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===================== EDIT DIALOG ===================== */}
+      <Dialog open={!!editEmployee} onOpenChange={(open) => { if (!open) setEditEmployee(null); }}>
+        <DialogContent className="rounded-3xl border-0 card-3d max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                <Edit className="h-4 w-4 text-white" />
+              </div>
+              {t('editEmployee')}
+            </DialogTitle>
+          </DialogHeader>
+          {editEmployee && (
+            <form onSubmit={handleEditSubmit} className="space-y-5 mt-2">
+              {employeeFormFields(editEmployee, true)}
+              <Button
+                type="submit"
+                className="w-full rounded-xl h-11 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white border-0 font-bold"
+                disabled={updateMutation.isPending}
+              >
+                {t('save')}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ===================== EMPLOYEE PROFILE SHEET ===================== */}
+      <Sheet open={!!profileEmployee} onOpenChange={(open) => !open && setProfileEmployee(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-0">
+          {profileEmployee && (() => {
+            const color = deptGradients[(profileEmployee.departmentId || 0) % deptGradients.length];
+            const statusVariant = profileEmployee.status === 'active' ? 'success' : profileEmployee.status === 'on-leave' ? 'warning' : 'secondary';
+            const statusLabel = profileEmployee.status === 'active' ? t('active') : profileEmployee.status === 'on-leave' ? t('onLeaveStatus') : t('inactive');
+
+            return (
+              <>
+                {/* Profile Header Banner */}
+                <div className={`h-32 w-full bg-gradient-to-br ${color.from} ${color.to} relative overflow-hidden flex-shrink-0`}>
+                  <div className="absolute inset-0">
+                    <div className="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-white/10" />
+                    <div className="absolute -left-4 bottom-0 w-24 h-24 rounded-full bg-white/5" />
+                  </div>
+                </div>
+
+                <div className="px-6 pb-6">
+                  {/* Avatar + Name */}
+                  <div className="flex items-end gap-4 -mt-10 mb-5">
+                    <div className="ring-4 ring-background rounded-2xl shadow-xl">
+                      <AvatarCircle name={profileEmployee.fullName || ''} color={color} size="lg" />
+                    </div>
+                    <div className="pb-1">
+                      <h2 className="font-display font-bold text-xl leading-tight">{profileEmployee.fullName}</h2>
+                      <p className="text-sm text-muted-foreground">{profileEmployee.position || '—'}</p>
+                      <Badge variant={statusVariant} className="mt-1 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        {statusLabel}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Employee Code */}
+                  {profileEmployee.employeeCode && (
+                    <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg mb-4 ${color.light} ${color.text} border ${color.border}`}>
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      #{profileEmployee.employeeCode}
+                    </div>
+                  )}
+
+                  {/* Tabs */}
+                  <Tabs defaultValue="personal" className="w-full">
+                    <TabsList className="grid w-full grid-cols-4 rounded-xl mb-4 h-9">
+                      <TabsTrigger value="personal" className="rounded-lg text-[10px] font-bold px-1">{locale === 'ar' ? 'شخصي' : locale === 'sv' ? 'Personlig' : 'Personal'}</TabsTrigger>
+                      <TabsTrigger value="work" className="rounded-lg text-[10px] font-bold px-1">{locale === 'ar' ? 'العمل' : locale === 'sv' ? 'Arbete' : 'Work'}</TabsTrigger>
+                      <TabsTrigger value="schedule" className="rounded-lg text-[10px] font-bold px-1">{locale === 'ar' ? 'الجدول' : locale === 'sv' ? 'Schema' : 'Schedule'}</TabsTrigger>
+                      <TabsTrigger value="notes" className="rounded-lg text-[10px] font-bold px-1">{locale === 'ar' ? 'ملاحظات' : locale === 'sv' ? 'Anteckn.' : 'Notes'}</TabsTrigger>
+                    </TabsList>
+
+                    {/* Personal Tab */}
+                    <TabsContent value="personal" className="space-y-3 mt-0">
+                      <h3 className={`text-xs font-bold uppercase tracking-widest ${color.text} mb-2`}>
+                        {locale === 'ar' ? 'البيانات الشخصية' : locale === 'sv' ? 'Personuppgifter' : 'Personal Data'}
+                      </h3>
+                      {[
+                        { icon: Mail, label: t('email'), value: profileEmployee.email },
+                        { icon: Phone, label: t('phone'), value: profileEmployee.phone },
+                        { icon: MapPin, label: t('address'), value: profileEmployee.address },
+                        { icon: User, label: locale === 'ar' ? 'الجنس' : locale === 'sv' ? 'Kön' : 'Gender', value: profileEmployee.gender === 'male' ? (locale === 'ar' ? 'ذكر' : locale === 'sv' ? 'Man' : 'Male') : profileEmployee.gender === 'female' ? (locale === 'ar' ? 'أنثى' : locale === 'sv' ? 'Kvinna' : 'Female') : profileEmployee.gender },
+                      ].filter(item => item.value).map(item => (
+                        <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
+                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${color.from} ${color.to} flex items-center justify-center flex-shrink-0`}>
+                            <item.icon className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{item.label}</div>
+                            <div className="text-sm font-medium mt-0.5">{item.value}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </TabsContent>
+
+                    {/* Work Tab */}
+                    <TabsContent value="work" className="space-y-3 mt-0">
+                      <h3 className={`text-xs font-bold uppercase tracking-widest ${color.text} mb-2`}>
+                        {locale === 'ar' ? 'بيانات العمل' : locale === 'sv' ? 'Arbetsdata' : 'Work Data'}
+                      </h3>
+                      {[
+                        { icon: Building2, label: t('department'), value: profileEmployee.departmentName },
+                        { icon: Briefcase, label: t('position'), value: profileEmployee.position },
+                        { icon: User, label: locale === 'ar' ? 'المدير المباشر' : locale === 'sv' ? 'Chef' : 'Manager', value: profileEmployee.managerName },
+                        { icon: Calendar, label: t('joinDate'), value: profileEmployee.joinDate ? new Date(profileEmployee.joinDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : undefined },
+                        { icon: FileText, label: locale === 'ar' ? 'نوع العقد' : locale === 'sv' ? 'Kontraktstyp' : 'Contract Type', value: profileEmployee.contractType },
+                        { icon: DollarSign, label: t('salary'), value: profileEmployee.salary ? `$${Number(profileEmployee.salary).toLocaleString()}` : undefined },
+                      ].filter(item => item.value).map(item => (
+                        <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
+                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${color.from} ${color.to} flex items-center justify-center flex-shrink-0`}>
+                            <item.icon className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{item.label}</div>
+                            <div className="text-sm font-medium mt-0.5">{item.value}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </TabsContent>
+
+                    {/* Schedule Tab */}
+                    <TabsContent value="schedule" className="space-y-3 mt-0">
+                      <h3 className={`text-xs font-bold uppercase tracking-widest ${color.text} mb-2`}>
+                        {locale === 'ar' ? 'جدول الدوام' : locale === 'sv' ? 'Arbetsschema' : 'Work Schedule'}
+                      </h3>
+
+                      {/* Time Range Card */}
+                      <div className={`p-4 rounded-2xl bg-gradient-to-br ${color.from} ${color.to} text-white`}>
+                        <div className="flex items-center gap-2 mb-2 opacity-80">
+                          <Clock className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase tracking-wide">
+                            {locale === 'ar' ? 'ساعات الدوام' : locale === 'sv' ? 'Arbetstider' : 'Working Hours'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-center">
+                            <div className="text-3xl font-bold font-data">{profileEmployee.workStart || '09:00'}</div>
+                            <div className="text-xs opacity-70 mt-0.5">{locale === 'ar' ? 'بداية' : locale === 'sv' ? 'Start' : 'Start'}</div>
+                          </div>
+                          <div className="flex-1 flex flex-col items-center">
+                            <div className="h-px w-full bg-white/40 relative">
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-white/60" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-3xl font-bold font-data">{profileEmployee.workEnd || '17:00'}</div>
+                            <div className="text-xs opacity-70 mt-0.5">{locale === 'ar' ? 'نهاية' : locale === 'sv' ? 'Slut' : 'End'}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Work Days */}
+                      {profileEmployee.workDays && (
+                        <div className="p-3 rounded-xl bg-muted/40">
+                          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            {locale === 'ar' ? 'أيام العمل' : locale === 'sv' ? 'Arbetsdagar' : 'Work Days'}
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {profileEmployee.workDays.split(',').map(day => (
+                              <span key={day} className={`text-xs font-bold px-2.5 py-1 rounded-lg ${color.light} ${color.text} border ${color.border}`}>
+                                {day.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    {/* Notes Tab */}
+                    <TabsContent value="notes" className="space-y-3 mt-0">
+                      <h3 className={`text-xs font-bold uppercase tracking-widest ${color.text} mb-2`}>
+                        {locale === 'ar' ? 'الملاحظات والمستندات' : locale === 'sv' ? 'Anteckningar & Dokument' : 'Notes & Documents'}
+                      </h3>
+                      {profileEmployee.notes ? (
+                        <div className="p-4 rounded-xl bg-muted/40 text-sm leading-relaxed whitespace-pre-wrap">
+                          {profileEmployee.notes}
+                        </div>
+                      ) : (
+                        <div className="p-8 rounded-xl bg-muted/20 text-center">
+                          <FileText className="h-8 w-8 mx-auto text-muted-foreground opacity-30 mb-2" />
+                          <p className="text-sm text-muted-foreground">{locale === 'ar' ? 'لا توجد ملاحظات' : locale === 'sv' ? 'Inga anteckningar' : 'No notes added'}</p>
+                        </div>
+                      )}
+
+                      {/* Record Info */}
+                      <div className="p-3 rounded-xl bg-muted/30 mt-4">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                          <ClipboardList className="h-3.5 w-3.5" />
+                          {locale === 'ar' ? 'سجل الموظف' : locale === 'sv' ? 'Anställdpost' : 'Employee Record'}
+                        </div>
+                        <div className="space-y-1.5 text-xs text-muted-foreground">
+                          <div className="flex justify-between">
+                            <span>{locale === 'ar' ? 'تاريخ الإضافة' : locale === 'sv' ? 'Tillagd' : 'Added on'}</span>
+                            <span className="font-medium">{profileEmployee.createdAt ? new Date(profileEmployee.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : '—'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t('employeeCode')}</span>
+                            <span className="font-bold font-data">#{profileEmployee.employeeCode}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 mt-6">
+                    <Button
+                      variant="outline"
+                      className="flex-1 rounded-xl h-11 border-2"
+                      onClick={() => { setProfileEmployee(null); openEdit(profileEmployee); }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" /> {t('edit')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="rounded-xl h-11 border-2 border-red-200 text-red-500 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/30"
+                      onClick={() => { setProfileEmployee(null); setDeleteId(profileEmployee.id || null); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
+
+      {/* ===================== DELETE CONFIRM ===================== */}
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+        <AlertDialogContent className="rounded-3xl border-0 card-3d">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">{t('confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('confirmDeleteDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="rounded-xl h-11">{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="rounded-xl h-11 bg-red-500 hover:bg-red-600 text-white border-0"
+            >
+              {t('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

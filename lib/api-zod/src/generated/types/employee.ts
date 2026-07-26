@@ -25,10 +25,24 @@ export interface Employee {
   salary?: string | null;
   /** @nullable */
   joinDate?: string | null;
+  /** @nullable */
+  gender?: string | null;
+  /** @nullable */
+  contractType?: string | null;
+  /** @nullable */
+  managerName?: string | null;
+  /** @nullable */
+  workStart?: string | null;
+  /** @nullable */
+  workEnd?: string | null;
+  /** @nullable */
+  workDays?: string | null;
   status?: EmployeeStatus;
   /** @nullable */
   avatar?: string | null;
   /** @nullable */
   address?: string | null;
+  /** @nullable */
+  notes?: string | null;
   createdAt?: Date;
 }

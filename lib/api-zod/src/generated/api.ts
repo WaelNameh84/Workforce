@@ -31,7 +31,8 @@ export const LoginResponse = zod.object({
   "email": zod.string().optional(),
   "fullName": zod.string().optional(),
   "role": zod.string().optional(),
-  "companyId": zod.number().optional()
+  "companyId": zod.number().optional(),
+  "employeeId": zod.number().nullish()
 }).optional()
 })
 
@@ -53,7 +54,8 @@ export const RegisterResponse = zod.object({
   "email": zod.string().optional(),
   "fullName": zod.string().optional(),
   "role": zod.string().optional(),
-  "companyId": zod.number().optional()
+  "companyId": zod.number().optional(),
+  "employeeId": zod.number().nullish()
 }).optional()
 })
 
@@ -66,7 +68,8 @@ export const GetMeResponse = zod.object({
   "email": zod.string().optional(),
   "fullName": zod.string().optional(),
   "role": zod.string().optional(),
-  "companyId": zod.number().optional()
+  "companyId": zod.number().optional(),
+  "employeeId": zod.number().nullish()
 })
 
 
@@ -118,9 +121,16 @@ export const GetEmployeesResponse = zod.object({
   "position": zod.string().nullish(),
   "salary": zod.string().nullish(),
   "joinDate": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "contractType": zod.string().nullish(),
+  "managerName": zod.string().nullish(),
+  "workStart": zod.string().nullish(),
+  "workEnd": zod.string().nullish(),
+  "workDays": zod.string().nullish(),
   "status": zod.enum(['active', 'inactive', 'on-leave']).optional(),
   "avatar": zod.string().nullish(),
   "address": zod.string().nullish(),
+  "notes": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })).optional(),
   "total": zod.number().optional()
@@ -138,9 +148,16 @@ export const CreateEmployeeBody = zod.object({
   "position": zod.string().optional(),
   "salary": zod.string().optional(),
   "joinDate": zod.string().optional(),
+  "gender": zod.string().optional(),
+  "contractType": zod.string().optional(),
+  "managerName": zod.string().optional(),
+  "workStart": zod.string().optional(),
+  "workEnd": zod.string().optional(),
+  "workDays": zod.string().optional(),
   "departmentId": zod.number().optional(),
   "status": zod.enum(['active', 'inactive', 'on-leave']).optional(),
-  "address": zod.string().optional()
+  "address": zod.string().optional(),
+  "notes": zod.string().optional()
 })
 
 export const CreateEmployeeResponse = zod.object({
@@ -155,9 +172,16 @@ export const CreateEmployeeResponse = zod.object({
   "position": zod.string().nullish(),
   "salary": zod.string().nullish(),
   "joinDate": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "contractType": zod.string().nullish(),
+  "managerName": zod.string().nullish(),
+  "workStart": zod.string().nullish(),
+  "workEnd": zod.string().nullish(),
+  "workDays": zod.string().nullish(),
   "status": zod.enum(['active', 'inactive', 'on-leave']).optional(),
   "avatar": zod.string().nullish(),
   "address": zod.string().nullish(),
+  "notes": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })
 
@@ -181,9 +205,16 @@ export const GetEmployeeResponse = zod.object({
   "position": zod.string().nullish(),
   "salary": zod.string().nullish(),
   "joinDate": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "contractType": zod.string().nullish(),
+  "managerName": zod.string().nullish(),
+  "workStart": zod.string().nullish(),
+  "workEnd": zod.string().nullish(),
+  "workDays": zod.string().nullish(),
   "status": zod.enum(['active', 'inactive', 'on-leave']).optional(),
   "avatar": zod.string().nullish(),
   "address": zod.string().nullish(),
+  "notes": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })
 
@@ -203,9 +234,16 @@ export const UpdateEmployeeBody = zod.object({
   "position": zod.string().optional(),
   "salary": zod.string().optional(),
   "joinDate": zod.string().optional(),
+  "gender": zod.string().optional(),
+  "contractType": zod.string().optional(),
+  "managerName": zod.string().optional(),
+  "workStart": zod.string().optional(),
+  "workEnd": zod.string().optional(),
+  "workDays": zod.string().optional(),
   "departmentId": zod.number().optional(),
   "status": zod.enum(['active', 'inactive', 'on-leave']).optional(),
-  "address": zod.string().optional()
+  "address": zod.string().optional(),
+  "notes": zod.string().optional()
 })
 
 export const UpdateEmployeeResponse = zod.object({
@@ -220,9 +258,16 @@ export const UpdateEmployeeResponse = zod.object({
   "position": zod.string().nullish(),
   "salary": zod.string().nullish(),
   "joinDate": zod.string().nullish(),
+  "gender": zod.string().nullish(),
+  "contractType": zod.string().nullish(),
+  "managerName": zod.string().nullish(),
+  "workStart": zod.string().nullish(),
+  "workEnd": zod.string().nullish(),
+  "workDays": zod.string().nullish(),
   "status": zod.enum(['active', 'inactive', 'on-leave']).optional(),
   "avatar": zod.string().nullish(),
   "address": zod.string().nullish(),
+  "notes": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })
 

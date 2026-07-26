@@ -29,9 +29,16 @@ router.get("/employees", authMiddleware, async (req, res) => {
         position: employees.position,
         salary: employees.salary,
         joinDate: employees.joinDate,
+        gender: employees.gender,
+        contractType: employees.contractType,
+        managerName: employees.managerName,
+        workStart: employees.workStart,
+        workEnd: employees.workEnd,
+        workDays: employees.workDays,
         status: employees.status,
         avatar: employees.avatar,
         address: employees.address,
+        notes: employees.notes,
         createdAt: employees.createdAt,
       })
       .from(employees)
@@ -85,9 +92,16 @@ router.get("/employees/:id", authMiddleware, async (req, res) => {
         position: employees.position,
         salary: employees.salary,
         joinDate: employees.joinDate,
+        gender: employees.gender,
+        contractType: employees.contractType,
+        managerName: employees.managerName,
+        workStart: employees.workStart,
+        workEnd: employees.workEnd,
+        workDays: employees.workDays,
         status: employees.status,
         avatar: employees.avatar,
         address: employees.address,
+        notes: employees.notes,
         createdAt: employees.createdAt,
       })
       .from(employees)

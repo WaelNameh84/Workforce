@@ -130,6 +130,24 @@ components:
         joinDate:
           type: string
           nullable: true
+        gender:
+          type: string
+          nullable: true
+        contractType:
+          type: string
+          nullable: true
+        managerName:
+          type: string
+          nullable: true
+        workStart:
+          type: string
+          nullable: true
+        workEnd:
+          type: string
+          nullable: true
+        workDays:
+          type: string
+          nullable: true
         status:
           type: string
           enum: [active, inactive, on-leave]
@@ -137,6 +155,9 @@ components:
           type: string
           nullable: true
         address:
+          type: string
+          nullable: true
+        notes:
           type: string
           nullable: true
         createdAt:
@@ -161,12 +182,26 @@ components:
           type: string
         joinDate:
           type: string
+        gender:
+          type: string
+        contractType:
+          type: string
+        managerName:
+          type: string
+        workStart:
+          type: string
+        workEnd:
+          type: string
+        workDays:
+          type: string
         departmentId:
           type: integer
         status:
           type: string
           enum: [active, inactive, on-leave]
         address:
+          type: string
+        notes:
           type: string
 
     # Department

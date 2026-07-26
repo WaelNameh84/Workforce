@@ -12,4 +12,6 @@ export interface AuthUser {
   fullName?: string;
   role?: string;
   companyId?: number;
+  /** @nullable */
+  employeeId?: number | null;
 }
