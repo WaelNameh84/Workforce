@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
@@ -15,7 +15,21 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import DetailDialog from '@/components/detail-dialog';
-import { CheckCircle2, XCircle, Clock, FileText, Plus, Trash2, CalendarHeart } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText, Plus, Trash2, CalendarHeart, Upload, Image, X, Paperclip } from 'lucide-react';
+
+const ATTACHMENT_KEY = (id: number) => `leave-attachment-${id}`;
+
+function saveAttachment(leaveId: number, dataUrl: string) {
+  try { localStorage.setItem(ATTACHMENT_KEY(leaveId), dataUrl); } catch { /* storage full */ }
+}
+
+function getAttachment(leaveId: number): string | null {
+  try { return localStorage.getItem(ATTACHMENT_KEY(leaveId)); } catch { return null; }
+}
+
+function removeAttachment(leaveId: number) {
+  try { localStorage.removeItem(ATTACHMENT_KEY(leaveId)); } catch { /* silent */ }
+}
 
 const leaveTypes: Array<{ type: LeaveInputType; color: string; hex: string }> = [
   { type: 'annual', color: 'from-blue-500 to-cyan-500', hex: '#06b6d4' },
@@ -48,6 +62,11 @@ export default function Leaves() {
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Leave | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [viewAttachment, setViewAttachment] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const params = { companyId: user?.companyId || 0 };
   const { data, isLoading } = useGetLeaves(params, {
@@ -76,13 +95,41 @@ export default function Leaves() {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: getGetLeavesQueryKey() });
 
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleFileChange = async (file: File | null) => {
+    if (!file) { setAttachment(null); setAttachmentPreview(null); return; }
+    setAttachment(file);
+    const dataUrl = await readFileAsDataUrl(file);
+    setAttachmentPreview(dataUrl);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileChange(file);
+  };
+
+  const resetForm = () => {
+    setShowForm(false);
+    setAttachment(null);
+    setAttachmentPreview(null);
+  };
+
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const startDate = String(form.get('startDate') || '');
     const endDate = String(form.get('endDate') || '');
     try {
-      await createMutation.mutateAsync({
+      const result = await createMutation.mutateAsync({
         data: {
           employeeId: Number(form.get('employeeId') || user?.id || 0),
           type: String(form.get('type') || 'annual') as LeaveInputType,
@@ -92,8 +139,12 @@ export default function Leaves() {
           reason: String(form.get('reason') || ''),
         },
       });
+      // Save attachment locally if provided
+      if (attachment && attachmentPreview && (result as any)?.id) {
+        saveAttachment((result as any).id, attachmentPreview);
+      }
       toast({ title: t('savedSuccessfully') });
-      setShowForm(false);
+      resetForm();
       refresh();
     } catch {
       toast({ variant: 'destructive', title: t('actions'), description: 'Could not create the leave request.' });
@@ -179,9 +230,19 @@ export default function Leaves() {
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold text-lg truncate">{leave.employeeName || `#${leave.employeeId}`}</div>
-                        <div className="text-xs font-medium mt-1 flex items-center gap-2">
+                        <div className="text-xs font-medium mt-1 flex items-center gap-2 flex-wrap">
                           <span className="bg-muted-bg px-2 py-0.5 rounded-md text-foreground capitalize">{t((leave.type || 'annual') as any)}</span>
                           <span className="text-muted-foreground">{leave.daysCount || 0} {t('days')}</span>
+                          {leave.id && getAttachment(leave.id) && (
+                            <button
+                              type="button"
+                              onClick={e => { e.stopPropagation(); setViewAttachment(getAttachment(leave.id!)); }}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
+                            >
+                              <Paperclip className="w-3 h-3" />
+                              <span>مرفق</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -211,8 +272,8 @@ export default function Leaves() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="rounded-3xl p-8 w-full max-w-md shadow-2xl card-3d" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={resetForm}>
+          <div className="rounded-3xl p-8 w-full max-w-md shadow-2xl card-3d max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
             <h2 className="font-display text-2xl font-bold mb-6">{t('newLeaveRequest')}</h2>
             <form onSubmit={handleCreate} className="space-y-5">
               {employeesData?.employees?.length ? (
@@ -238,8 +299,76 @@ export default function Leaves() {
               <label className="block text-sm font-bold">{t('reason')}
                 <textarea name="reason" rows={3} className="mt-2 w-full rounded-xl px-4 py-3 text-sm resize-none bg-background border border-border" />
               </label>
+
+              {/* ── File Upload ── */}
+              <div className="space-y-2">
+                <span className="block text-sm font-bold">المستند الداعم <span className="text-muted-foreground font-normal text-xs">(اختياري)</span></span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={e => handleFileChange(e.target.files?.[0] || null)}
+                />
+                {!attachmentPreview ? (
+                  <div
+                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-7 cursor-pointer transition-all ${isDragging ? 'border-emerald-400 bg-emerald-500/10' : 'border-border hover:border-emerald-400/60 hover:bg-emerald-500/5'}`}
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                      <Upload className="h-6 w-6 text-emerald-500" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-foreground">اضغط لرفع الملف أو اسحبه هنا</p>
+                      <p className="text-xs text-muted-foreground mt-1">صورة، PDF، أو مستند Word</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-xs font-bold text-muted-foreground">
+                        <Image className="h-3.5 w-3.5" /> صورة
+                      </span>
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-xs font-bold text-muted-foreground">
+                        <FileText className="h-3.5 w-3.5" /> PDF / Doc
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative rounded-2xl border border-emerald-400/40 bg-emerald-500/5 p-3">
+                    <div className="flex items-center gap-3">
+                      {attachment?.type.startsWith('image/') ? (
+                        <img src={attachmentPreview} alt="preview" className="w-16 h-16 rounded-xl object-cover border border-border flex-shrink-0" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                          <FileText className="h-7 w-7 text-emerald-500" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold truncate">{attachment?.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{((attachment?.size || 0) / 1024).toFixed(1)} KB</p>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="mt-1 text-xs text-emerald-500 hover:text-emerald-400 font-bold transition-colors"
+                        >
+                          تغيير الملف
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setAttachment(null); setAttachmentPreview(null); }}
+                        className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-3 rounded-xl font-bold bg-muted hover:bg-muted/80 transition-colors">{t('cancel')}</button>
+                <button type="button" onClick={resetForm} className="flex-1 px-4 py-3 rounded-xl font-bold bg-muted hover:bg-muted/80 transition-colors">{t('cancel')}</button>
                 <button disabled={createMutation.isPending} type="submit" className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold shadow-lg shadow-teal-500/25">{createMutation.isPending ? t('loading') : t('submit')}</button>
               </div>
             </form>
@@ -258,6 +387,77 @@ export default function Leaves() {
               <button onClick={() => setDeleteId(null)} className="flex-1 rounded-xl px-4 py-3 font-bold bg-muted hover:bg-muted/80">{t('cancel')}</button>
               <button disabled={deleteMutation.isPending} onClick={remove} className="flex-1 rounded-xl px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-bold">{t('delete')}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Attachment Viewer ── */}
+      {viewAttachment && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-4"
+          onClick={() => setViewAttachment(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-3xl card-3d overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4 text-emerald-500" />
+                <span className="font-bold text-sm">المستند المرفق</span>
+              </div>
+              <button
+                onClick={() => setViewAttachment(null)}
+                className="p-2 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 flex items-center justify-center min-h-[300px] bg-black/20">
+              {viewAttachment.startsWith('data:image/') ? (
+                <img
+                  src={viewAttachment}
+                  alt="المستند المرفق"
+                  className="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-2xl"
+                />
+              ) : viewAttachment.startsWith('data:application/pdf') ? (
+                <iframe
+                  src={viewAttachment}
+                  className="w-full h-[70vh] rounded-xl border border-border"
+                  title="PDF مرفق"
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="h-16 w-16 mx-auto text-emerald-500 mb-4 opacity-60" />
+                  <p className="font-bold text-lg">مستند مرفق</p>
+                  <p className="text-muted-foreground text-sm mt-1">لا يمكن معاينة هذا النوع من الملفات</p>
+                  <a
+                    href={viewAttachment}
+                    download="attachment"
+                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-400 transition-colors"
+                  >
+                    تحميل الملف
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {viewAttachment.startsWith('data:image/') && (
+              <div className="px-5 py-3 border-t border-border flex justify-end">
+                <a
+                  href={viewAttachment}
+                  download="attachment"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 text-sm font-bold transition-colors"
+                >
+                  <Upload className="h-3.5 w-3.5 rotate-180" />
+                  تحميل
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
