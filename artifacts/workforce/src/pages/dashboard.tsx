@@ -1,217 +1,131 @@
 import { useAuth } from '@/hooks/use-auth';
 import { useGetDashboardStats, getGetDashboardStatsQueryKey } from '@workspace/api-client-react';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { Users, UserCheck, CalendarCheck, Clock, DollarSign, Sparkles, TrendingUp, Building2 } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from 'recharts';
-
-const deptColors = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+  LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
+  CreditCard, Inbox, FileText, Bot, MessageSquare, TrendingUp,
+  Shield, Settings, Download, Printer, DollarSign
+} from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const [location] = useLocation();
 
   const { data: stats, isLoading } = useGetDashboardStats(
     { companyId: user?.companyId || 0 },
     { query: { enabled: !!user?.companyId, queryKey: getGetDashboardStatsQueryKey({ companyId: user?.companyId || 0 }) } }
   );
 
-  const statCards = [
-    { title: t('totalEmployees'),  value: stats?.totalEmployees  ?? '—', icon: Users,        color: 'from-blue-500 to-cyan-500' },
-    { title: t('presentToday'),    value: stats?.presentToday    ?? '—', icon: UserCheck,    color: 'from-green-500 to-emerald-500' },
-    { title: t('onLeave'),         value: stats?.onLeave         ?? '—', icon: CalendarCheck, color: 'from-amber-500 to-orange-500' },
-    { title: t('pendingRequests'), value: stats?.pendingRequests ?? '—', icon: Clock,        color: 'from-purple-500 to-pink-500' },
-  ];
-
-  const payrollData = [
-    {
-      month: new Date().toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
-      amount: stats?.monthlyPayroll ?? 0,
-    },
-  ];
-
-  const aiInsights = [
-    { text: 'Attendance improved 12% vs last month', color: 'border-l-green-500 bg-green-500/5 text-green-700 dark:text-green-400' },
-    { text: 'Sales dept. has 18% absence rate — review recommended', color: 'border-l-red-500 bg-red-500/5 text-red-700 dark:text-red-400' },
-    { text: 'Potential $12,400 savings in overtime allocation', color: 'border-l-blue-500 bg-blue-500/5 text-blue-700 dark:text-blue-400' },
+  const modules = [
+    { id: 1, name: 'لوحة التحكم', badge: 'Live', badgeColor: 'bg-green-500/10 text-green-500 border-green-500/20', icon: LayoutDashboard, iconColor: 'bg-green-500', href: '/dashboard' },
+    { id: 2, name: 'الموظفون', badge: `+${stats?.totalEmployees || 110}`, badgeColor: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Users, iconColor: 'bg-blue-500', href: '/dashboard/employees' },
+    { id: 3, name: 'الحضور', badge: 'Today', badgeColor: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20', icon: Clock, iconColor: 'bg-cyan-500', href: '/dashboard/attendance' },
+    { id: 4, name: 'الجداول', badge: 'Shifts', badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: CalendarDays, iconColor: 'bg-indigo-500', href: '/dashboard/schedule' },
+    { id: 5, name: 'الإجازات', badge: 'Days 21', badgeColor: 'bg-amber-500/10 text-amber-500 border-amber-500/20', icon: CalendarCheck, iconColor: 'bg-amber-500', href: '/dashboard/leaves' },
+    { id: 6, name: 'الرواتب', badge: 'SAR', badgeColor: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: CreditCard, iconColor: 'bg-emerald-500', href: '/dashboard/payroll' },
+    { id: 7, name: 'الطلبات', badge: `${stats?.pendingRequests || 12}`, badgeColor: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: Inbox, iconColor: 'bg-orange-500', href: '/dashboard/requests' },
+    { id: 8, name: 'التقارير', badge: 'CSV/PDF', badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20', icon: FileText, iconColor: 'bg-purple-500', href: '/dashboard/reports' },
+    { id: 9, name: 'المساعد الذكي', badge: 'GPT-4o', badgeColor: 'bg-violet-500/10 text-violet-400 border-violet-500/20', icon: Bot, iconColor: 'bg-violet-500', href: '/dashboard/ai' },
+    { id: 10, name: 'الاتصالات', badge: 'Channels', badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20', icon: MessageSquare, iconColor: 'bg-sky-500', href: '/dashboard/communication' },
+    { id: 11, name: 'الأداء', badge: 'KPIs', badgeColor: 'bg-teal-500/10 text-teal-400 border-teal-500/20', icon: TrendingUp, iconColor: 'bg-teal-500', href: '/dashboard/performance' },
+    { id: 12, name: 'الأمن', badge: 'AES-256', badgeColor: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Shield, iconColor: 'bg-red-500', href: '/dashboard/security' },
+    { id: 13, name: 'الإعدادات', badge: 'Config', badgeColor: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Settings, iconColor: 'bg-slate-500', href: '/dashboard/settings' },
   ];
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn pb-20">
+      
       {/* Welcome Banner */}
-      <div className="rounded-3xl p-6 sm:p-8 bg-animated-gradient text-white relative overflow-hidden shadow-2xl shadow-teal-950/20 card-3d border-0">
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_80%_50%,_white_0%,_transparent_50%)]" />
-        {/* Animated Particles */}
-        <div className="particle w-32 h-32" style={{ left: '70%', top: '60%', animationDelay: '0s' }} />
-        <div className="particle w-16 h-16" style={{ left: '85%', top: '20%', animationDelay: '1.5s' }} />
-        <div className="particle w-24 h-24" style={{ left: '50%', top: '80%', animationDelay: '3s' }} />
-
-        <div className="relative z-10">
-          <p className="text-[10px] uppercase tracking-[.2em] text-emerald-200/75 mb-3 font-data">FIELD BRIEF / {new Date().toLocaleDateString()}</p>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">{t('welcome')}, {user?.fullName}</h1>
-          <p className="text-white/80 text-sm max-w-lg leading-relaxed">{t('workforceOverview')}.</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="font-display text-3xl font-bold mb-1 text-white">{t('welcome')}, {user?.fullName?.split(' ')[0]}</h1>
+          <p className="text-muted-foreground text-sm">{new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-900/20">
+          <span className="text-white font-bold text-lg">{user?.fullName?.charAt(0) || 'U'}</span>
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat, i) => (
-          <Link
-            key={i}
-            href={['/dashboard/employees', '/dashboard/attendance', '/dashboard/leaves', '/dashboard/requests'][i]}
-             data-testid={`card-dashboard-stat-${i}`}
-             className={`block p-5 rounded-2xl transition pressable animate-fadeIn stagger-${i + 1} card-3d`}
-          >
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-4 shadow-lg`}>
-              <stat.icon className="w-6 h-6 text-white" />
-            </div>
-            <div className="text-3xl font-bold mb-1">{isLoading ? '—' : stat.value}</div>
-            <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{stat.title}</div>
-            
-            {/* Decorative progress bar */}
-            <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-4 overflow-hidden">
-               <div className={`h-full rounded-full bg-gradient-to-r ${stat.color} w-3/4`} />
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Attendance Chart */}
-        <div className="lg:col-span-2 p-6 rounded-2xl card-3d">
-           <h3 className="font-display text-lg font-bold mb-4 flex items-center gap-2">
-             <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-             {t('attendanceOverview')}
-           </h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={stats?.recentAttendance || []}>
-              <defs>
-                <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="date" stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }} />
-              <Area type="monotone" dataKey="present" stroke="#6366f1" strokeWidth={3} fill="url(#grad1)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Dept Distribution */}
-        <div className="p-6 rounded-2xl card-3d">
-          <h3 className="font-display text-lg font-bold mb-4">{t('departmentDistribution')}</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={stats?.departmentStats || []}
-                cx="50%" cy="50%"
-                innerRadius={60} outerRadius={80}
-                paddingAngle={4}
-                dataKey="count" nameKey="department"
-                stroke="none"
-              >
-                {(stats?.departmentStats || []).map((_, idx) => (
-                  <Cell key={idx} fill={deptColors[idx % deptColors.length]} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex flex-wrap gap-3 mt-4">
-            {(stats?.departmentStats || []).map((d, idx) => (
-              <Link key={idx} href="/dashboard/employees" className="flex items-center gap-2 text-xs font-medium hover:opacity-70 transition-opacity">
-                <div className="w-3 h-3 rounded-full" style={{ background: deptColors[idx % deptColors.length] }} />
-                <span style={{ color: 'var(--muted)' }}>{d.department}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Payroll + AI Row */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Payroll Bar */}
-        <div className="p-6 rounded-2xl card-3d">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-display text-lg font-bold">{t('payrollTrend')}</h3>
-            <span className="text-xs font-bold tracking-wide uppercase text-indigo-500 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20">
-              {t('currentPeriod')}
-            </span>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={payrollData}>
-              <defs>
-                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" />
-                  <stop offset="100%" stopColor="#8b5cf6" />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="month" stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-              <Tooltip
-                formatter={(v: any) => [`$${Number(v).toLocaleString()}`, 'Payroll']}
-                contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}
-                cursor={{ fill: 'var(--muted-bg)' }}
-              />
-              <Bar dataKey="amount" fill="url(#barGrad)" radius={[6, 6, 0, 0]} barSize={40} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* AI Insights */}
-        <div className="p-6 rounded-2xl card-3d bg-gradient-to-b from-[var(--card)] to-[var(--muted-bg)]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <h3 className="font-display text-lg font-bold">AI Insights</h3>
-          </div>
-          <div className="space-y-3 mb-6">
-            {aiInsights.map((ins, i) => (
-              <div key={i} className={`flex items-start gap-3 p-4 rounded-xl text-sm font-medium border-l-4 card-3d !shadow-sm ${ins.color}`}>
-                <TrendingUp className="w-4 h-4 flex-shrink-0 mt-0.5 opacity-70" />
-                {ins.text}
-              </div>
-            ))}
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              {
-                label: t('avgSalary'),
-                value: stats?.totalEmployees && stats.monthlyPayroll
-                  ? `$${Math.round(stats.monthlyPayroll / stats.totalEmployees).toLocaleString()}`
-                  : '—',
-                icon: DollarSign,
-              },
-              { label: t('departments'), value: stats?.departmentStats?.length ?? '—', icon: Building2 },
-            ].map((item, i) => (
-              <Link
-                key={i}
-                href={i === 0 ? '/dashboard/payroll' : '/dashboard/employees'}
-                className="block p-4 rounded-xl transition card-3d pressable"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                    <item.icon className="w-4 h-4 text-indigo-500" />
-                  </div>
+      {/* Module List */}
+      <div className="space-y-3">
+        {modules.map((module, i) => {
+          const isActive = location === module.href;
+          return (
+            <Link
+              key={module.id}
+              href={module.href}
+              className={`card-module flex items-center justify-between p-4 pressable stagger-${(i % 6) + 1} ${isActive ? 'active' : ''}`}
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${module.iconColor}`}>
+                  <module.icon className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-xl font-bold font-data">{isLoading ? '—' : item.value}</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{item.label}</div>
-              </Link>
-            ))}
+                <div className="flex items-center gap-3">
+                  <span className="text-muted-foreground font-data text-sm font-bold w-5 text-center opacity-50">{module.id}</span>
+                  <span className="font-bold text-lg text-foreground">{module.name}</span>
+                </div>
+              </div>
+              <div className={`px-3 py-1.5 rounded-lg text-xs font-bold border font-data tracking-wide uppercase ${module.badgeColor}`}>
+                {module.badge}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Featured Detail Card (Reference 2) */}
+      <div className="mt-8 rounded-2xl bg-gradient-to-br from-[#141424] to-[#1a1a2e] border border-white/5 p-6 shadow-2xl relative overflow-hidden">
+        {/* Glow effect */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-[60px]" />
+        
+        <h3 className="font-display text-2xl font-bold mb-3 text-white relative z-10">التقارير الإدارية، مؤشرات الأداء وتصدير البيانات</h3>
+        <p className="text-muted-foreground text-sm leading-relaxed mb-6 relative z-10 max-w-[90%]">
+          نظام متكامل لاستخراج تقارير الحضور والانصراف، الرواتب، وتقييم الأداء بضغطة زر. يدعم التصدير بصيغ متعددة مع إمكانية جدولة التقارير التلقائية.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 mb-8 relative z-10">
+          <button className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors">
+            <Download className="w-4 h-4" />
+            تصدير Excel / CSV
+          </button>
+          <button className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2.5 rounded-xl border border-white/10 text-sm font-bold transition-colors">
+            <Printer className="w-4 h-4" />
+            طباعة PDF
+          </button>
+        </div>
+
+        {/* Tab Chips */}
+        <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-6 relative z-10">
+          <span className="px-4 py-1.5 rounded-full bg-white/10 text-white text-xs font-bold">تقارير شهرية</span>
+          <span className="px-4 py-1.5 rounded-full text-muted-foreground text-xs font-bold">أسبوعية</span>
+          <span className="px-4 py-1.5 rounded-full text-muted-foreground text-xs font-bold">يومية</span>
+        </div>
+
+        {/* Stat Cards inside Featured */}
+        <div className="grid grid-cols-2 gap-4 relative z-10">
+          <div className="bg-black/20 border border-white/5 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">متوسط التكلفة</div>
+              <div className="font-data font-bold text-lg text-white">SAR 12,450</div>
+            </div>
+          </div>
+          <div className="bg-black/20 border border-white/5 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">ساعات العمل</div>
+              <div className="font-data font-bold text-lg text-white">1,204 hrs</div>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 }

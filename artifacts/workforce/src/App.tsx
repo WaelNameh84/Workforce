@@ -82,7 +82,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="workforce-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="workforce-theme">
         <LanguageProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, '') || ''}>

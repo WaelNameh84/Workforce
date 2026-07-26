@@ -45,7 +45,7 @@ export default function Login() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-background relative overflow-hidden" dir={dir}>
       {/* Dynamic Background elements for mobile */}
       <div className="absolute inset-0 z-0 lg:hidden bg-animated-gradient opacity-10" />
-      <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[50%] bg-teal-500/20 blur-[120px] rounded-full z-0 lg:hidden" />
+      <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[50%] bg-purple-600/20 blur-[120px] rounded-full z-0 lg:hidden" />
       
       {/* Brand Panel */}
       <div className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden text-white bg-animated-gradient z-10">
@@ -58,13 +58,13 @@ export default function Login() {
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><Users className="w-6 h-6 text-white" /></div>
             <div><div className="text-white/70 text-sm">Active Workforce</div><div className="text-2xl font-bold font-data">1,248</div></div>
           </div>
-          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden"><div className="w-3/4 h-full bg-emerald-400 rounded-full" /></div>
+          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden"><div className="w-3/4 h-full bg-purple-500 rounded-full" /></div>
         </div>
 
         <div className="absolute right-20 bottom-1/4 w-72 h-40 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl animate-float-delayed p-6 flex flex-col justify-between" style={{ transform: 'rotate(5deg)' }}>
            <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><Activity className="w-6 h-6 text-white" /></div>
-            <div><div className="text-white/70 text-sm">System Health</div><div className="text-2xl font-bold text-emerald-400">Optimal</div></div>
+            <div><div className="text-white/70 text-sm">System Health</div><div className="text-2xl font-bold text-purple-400">Optimal</div></div>
           </div>
           <div className="flex gap-2"><div className="h-6 w-full bg-white/20 rounded-md" /><div className="h-6 w-2/3 bg-white/20 rounded-md" /><div className="h-6 w-1/3 bg-white/20 rounded-md" /></div>
         </div>
@@ -72,7 +72,7 @@ export default function Login() {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
             <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg">
-              <ShieldCheck className="h-6 w-6 text-teal-700" />
+              <ShieldCheck className="h-6 w-6 text-indigo-600" />
             </div>
             <span className="text-3xl font-display font-bold tracking-tight">{t('appName')}</span>
           </div>
@@ -117,7 +117,7 @@ export default function Login() {
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-[420px] glass p-8 sm:p-10 rounded-[2rem]">
             <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg">
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-900/20">
                 <ShieldCheck className="h-7 w-7 text-white" />
               </div>
               <span className="text-3xl font-display font-bold">{t('appName')}</span>

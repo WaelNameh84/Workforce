@@ -100,12 +100,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [location]);
 
   const sidebarContent = (
-    <>
+    <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-300 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-950/20">
-            <Globe className="w-5 h-5 text-emerald-950" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-900/20">
+            <Globe className="w-5 h-5 text-white" />
           </div>
           <span className="font-display font-bold text-lg tracking-tight" style={{ color: 'var(--sidebar-fg)' }}>{t('appName')}</span>
         </div>
@@ -121,14 +121,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => setOpenGroups((groups) => ({ ...groups, [group.id]: !groups[group.id] }))}
-              className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-start text-xs font-semibold uppercase tracking-wider opacity-60 transition hover:bg-white/10"
+              className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-start text-xs font-bold uppercase tracking-wider opacity-50 transition hover:bg-white/5"
               style={{ color: 'var(--sidebar-fg)' }}
               aria-expanded={!!openGroups[group.id]}
             >
               <span>{group.title}</span>
               <ChevronDown className={`h-3.5 w-3.5 transition-transform ${openGroups[group.id] ? '' : '-rotate-90'}`} />
             </button>
-            {openGroups[group.id] && <div className="space-y-0.5">
+            {openGroups[group.id] && <div className="space-y-1">
               {group.items.map((item, i) => {
                 const active = isActive(item.href);
                 return (
@@ -136,14 +136,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     key={i}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all pressable ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all pressable ${
                       active
-                         ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-emerald-950 shadow-lg shadow-emerald-950/20'
-                        : 'hover:bg-white/10'
+                         ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/20'
+                        : 'hover:bg-white/5'
                     }`}
-                    style={active ? {} : { color: 'var(--sidebar-fg)', opacity: active ? 1 : 0.75 }}
+                    style={active ? {} : { color: 'var(--sidebar-fg)', opacity: 0.75 }}
                   >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <item.icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'opacity-70'}`} />
                     {item.label}
                   </Link>
                 );
@@ -154,25 +154,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </nav>
 
       {/* User */}
-      <div className="p-4 border-t" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+      <div className="p-4 border-t flex flex-col gap-4" style={{ borderColor: 'var(--sidebar-border)' }}>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+           <span className="text-xs font-bold text-indigo-400">نظام بدون جداول روتينية</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
             {user.fullName?.charAt(0) || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium truncate" style={{ color: 'var(--sidebar-fg)' }}>{user.fullName}</div>
-            <div className="text-xs truncate opacity-50" style={{ color: 'var(--sidebar-fg)' }}>{user.email}</div>
+            <div className="text-sm font-bold truncate" style={{ color: 'var(--sidebar-fg)' }}>{user.fullName}</div>
+            <div className="text-xs font-medium truncate opacity-50" style={{ color: 'var(--sidebar-fg)' }}>{user.email}</div>
           </div>
         </div>
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition text-red-400"
-        >
-          <LogOut className="w-4 h-4" />
-          {t('logout')}
-        </button>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -376,7 +372,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const active = isActive(item.href);
           return (
             <Link key={item.href} href={item.href} className={`flex flex-col items-center justify-center w-full h-full relative transition-colors ${active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              {active && <div className="absolute top-0 w-12 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-500 rounded-b-full shadow-[0_2px_8px_rgba(15,118,110,0.5)]" />}
+              {active && <div className="absolute top-0 w-12 h-[3px] bg-gradient-to-r from-indigo-500 to-purple-600 rounded-b-full shadow-[0_2px_8px_rgba(124,58,237,0.5)]" />}
               <item.icon className="w-5 h-5 mb-1" />
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
