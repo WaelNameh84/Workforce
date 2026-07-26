@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import {
   useGetLeaves,    getGetLeavesQueryKey,    useUpdateLeave,
   useGetRequests,  getGetRequestsQueryKey,  useUpdateRequest,
@@ -14,7 +15,7 @@ import {
   Timer, Users, CreditCard, Inbox, ChevronDown, ChevronUp,
   Filter, RefreshCw, Eye, UserX, Zap, TrendingDown,
   CalendarCheck, BadgeCheck, AlertTriangle, Activity,
-  ArrowRight, User, CalendarDays, MessageSquare,
+  ArrowRight, User, CalendarDays, MessageSquare, X, ExternalLink,
 } from 'lucide-react';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -61,32 +62,296 @@ const kindMeta: Record<ActionKind, { icon: typeof Bell; iconColor: string; label
   payroll: { icon: CreditCard,    iconColor: 'text-green-400 bg-green-500/15',   label: 'راتب معلق' },
 };
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ icon: Icon, label, value, sub, color }: {
-  icon: typeof Bell; label: string; value: number | string; sub?: string; color: string;
-}) {
+type StatKey = 'leaves' | 'requests' | 'attendance' | 'absent' | 'payroll' | 'employees';
+
+const detailValue = (value: unknown) =>
+  value === undefined || value === null || value === '' ? '—' : String(value);
+
+function itemDetails(item: ActionItem) {
+  const raw = item.raw || {};
+  const rows: { label: string; value: string }[] = [
+    { label: 'الموظف', value: detailValue(item.employeeName || item.title) },
+    { label: 'نوع الإجراء', value: kindMeta[item.kind].label },
+  ];
+
+  if (item.kind === 'leave') {
+    rows.push(
+      { label: 'نوع الإجازة', value: detailValue(raw.type || raw.leaveType) },
+      { label: 'من', value: detailValue(raw.startDate) },
+      { label: 'إلى', value: detailValue(raw.endDate) },
+      { label: 'عدد الأيام', value: detailValue(raw.daysCount) },
+      { label: 'السبب', value: detailValue(raw.reason) },
+      { label: 'الحالة', value: detailValue(raw.status) },
+      { label: 'حالة الدفع', value: detailValue(raw.paymentStatus) },
+    );
+  } else if (item.kind === 'request') {
+    rows.push(
+      { label: 'نوع الطلب', value: detailValue(raw.type || raw.category) },
+      { label: 'العنوان', value: detailValue(raw.title) },
+      { label: 'الوصف', value: detailValue(raw.description) },
+      { label: 'الحالة', value: detailValue(raw.status) },
+      { label: 'حالة الدفع', value: detailValue(raw.paymentStatus) },
+    );
+  } else if (item.kind === 'late') {
+    const typeLabel: Record<string, string> = {
+      late: 'دخول متأخر',
+      early: 'خروج مبكر',
+      overtime: 'عمل إضافي',
+      other: 'تبرير حضور آخر',
+    };
+    rows.push(
+      { label: 'نوع التبرير', value: typeLabel[raw.justificationType] || detailValue(raw.justificationType) },
+      { label: 'التاريخ', value: detailValue(raw.date) },
+      { label: 'وقت الدخول', value: detailValue(raw.clockIn) },
+      { label: 'وقت الخروج', value: detailValue(raw.clockOut) },
+      { label: 'الساعات', value: detailValue(raw.totalHours) },
+      { label: 'الملاحظات', value: detailValue(raw.notes) },
+      { label: 'حالة التبرير', value: detailValue(raw.justificationStatus) },
+      { label: 'حالة الدفع', value: detailValue(raw.paymentStatus) },
+    );
+  } else if (item.kind === 'absent') {
+    rows.push(
+      { label: 'المسمى الوظيفي', value: detailValue(raw.position) },
+      { label: 'القسم', value: detailValue(raw.department) },
+      { label: 'التاريخ', value: detailValue(raw.date) },
+      { label: 'الحالة', value: 'لم يسجل الحضور اليوم' },
+    );
+  } else if (item.kind === 'payroll') {
+    rows.push(
+      { label: 'الفترة', value: detailValue(raw.period) },
+      { label: 'الراتب الأساسي', value: detailValue(raw.basicSalary) },
+      { label: 'الإضافي', value: detailValue(raw.overtime) },
+      { label: 'الخصومات', value: detailValue(raw.deductions) },
+      { label: 'الصافي', value: detailValue(raw.netSalary || raw.basicSalary) },
+      { label: 'الحالة', value: detailValue(raw.status) },
+    );
+  }
+
+  return rows;
+}
+
+const sectionRouteByKind: Record<ActionKind, { href: string; label: string }> = {
+  leave: { href: '/dashboard/leaves', label: 'فتح سجل الإجازات' },
+  request: { href: '/dashboard/requests', label: 'فتح سجل الطلبات' },
+  late: { href: '/dashboard/attendance', label: 'فتح سجل الحضور' },
+  absent: { href: '/dashboard/attendance', label: 'فتح سجل الحضور' },
+  payroll: { href: '/dashboard/payroll', label: 'فتح صفحة الرواتب' },
+};
+
+function DetailsModal({ item, onClose }: { item: ActionItem | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!item) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [item, onClose]);
+
+  if (!item) return null;
+  const km = kindMeta[item.kind];
+  const Icon = km.icon;
+
   return (
-    <div className="rounded-2xl border border-border p-4 flex items-center gap-4 animate-fadeIn" style={{ background: 'var(--card)' }}>
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div>
-        <div className="font-data font-bold text-2xl leading-none">{value}</div>
-        <div className="text-xs font-bold mt-0.5">{label}</div>
-        {sub && <div className="text-[10px] text-muted-foreground mt-0.5">{sub}</div>}
+    <div
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`تفاصيل ${item.title}`}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
+        style={{ background: 'var(--card)' }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start gap-3 border-b border-border p-5">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${km.iconColor}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-black">{item.title}</h2>
+              <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold text-indigo-400">
+                {km.label}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{item.subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="إغلاق التفاصيل"
+            className="rounded-xl p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="grid gap-2 p-5 sm:grid-cols-2">
+          {itemDetails(item).map((row) => (
+            <div key={row.label} className="rounded-2xl border border-border bg-white/[0.03] p-3">
+              <div className="text-[11px] text-muted-foreground">{row.label}</div>
+              <div className="mt-1 break-words text-sm font-bold">{row.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-border p-5">
+          <span className="text-xs text-muted-foreground">{item.meta}</span>
+          <div className="flex items-center gap-2">
+            <Link
+              href={sectionRouteByKind[item.kind].href}
+              onClick={onClose}
+              className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-xs font-bold text-indigo-300 transition hover:bg-indigo-500/20"
+            >
+              {sectionRouteByKind[item.kind].label}
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-600"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
+function StatDetailsModal({
+  statKey,
+  onClose,
+  items,
+}: {
+  statKey: StatKey | null;
+  onClose: () => void;
+  items: Record<StatKey, { title: string; subtitle: string; meta: string }[]>;
+}) {
+  useEffect(() => {
+    if (!statKey) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [statKey, onClose]);
+
+  if (!statKey) return null;
+  const titles: Record<StatKey, string> = {
+    leaves: 'تفاصيل الإجازات المعلقة',
+    requests: 'تفاصيل طلبات العمل المعلقة',
+    attendance: 'تفاصيل تبريرات الحضور',
+    absent: 'الموظفون الذين لم يسجلوا الحضور',
+    payroll: 'تفاصيل الرواتب المعلقة',
+    employees: 'قائمة الموظفين',
+  };
+  const sectionRoute: Record<StatKey, string> = {
+    leaves: '/dashboard/leaves',
+    requests: '/dashboard/requests',
+    attendance: '/dashboard/attendance',
+    absent: '/dashboard/attendance',
+    payroll: '/dashboard/payroll',
+    employees: '/dashboard/employees',
+  };
+  const sectionLabel: Record<StatKey, string> = {
+    leaves: 'فتح الإجازات',
+    requests: 'فتح الطلبات',
+    attendance: 'فتح الحضور',
+    absent: 'فتح الحضور',
+    payroll: 'فتح الرواتب',
+    employees: 'فتح الموظفين',
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={titles[statKey]}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
+        style={{ background: 'var(--card)' }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border p-5">
+          <div>
+            <h2 className="text-lg font-black">{titles[statKey]}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">{items[statKey].length} بند</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="إغلاق القائمة" className="rounded-xl p-2 text-muted-foreground hover:bg-white/10">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="space-y-2 p-5">
+          {items[statKey].length === 0 ? (
+            <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-6 text-center text-sm text-green-400">
+              لا توجد بيانات حالياً
+            </div>
+          ) : (
+            items[statKey].map((entry, index) => (
+              <div key={`${entry.title}-${index}`} className="rounded-2xl border border-border p-4">
+                <div className="font-bold">{entry.title}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{entry.subtitle}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{entry.meta}</div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-border p-5">
+          <Link
+            href={sectionRoute[statKey]}
+            onClick={onClose}
+            className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-xs font-bold text-indigo-300 hover:bg-indigo-500/20"
+          >
+            {sectionLabel[statKey]}
+          </Link>
+          <button type="button" onClick={onClose} className="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-600">
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+function StatCard({ icon: Icon, label, value, sub, color, onClick }: {
+  icon: typeof Bell; label: string; value: number | string; sub?: string; color: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-4 rounded-2xl border border-border p-4 text-start transition hover:-translate-y-0.5 hover:border-indigo-500/40 hover:bg-white/[0.03] animate-fadeIn"
+      style={{ background: 'var(--card)' }}
+      aria-label={`عرض تفاصيل ${label}`}
+    >
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <div className="font-data font-bold text-2xl leading-none">{value}</div>
+        <div className="text-xs font-bold mt-0.5">{label}</div>
+        {sub && <div className="text-[10px] text-muted-foreground mt-0.5">{sub}</div>}
+      </div>
+      <Eye className="ms-auto h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
+    </button>
+  );
+}
+
 // ─── Action Row ───────────────────────────────────────────────────────────────
 function ActionRow({
-  item, onApprovePaid, onApproveUnpaid, onReject, loading,
+  item, onApprovePaid, onApproveUnpaid, onReject, onOpenDetails, loading,
 }: {
   item: ActionItem;
   onApprovePaid?: () => void;
   onApproveUnpaid?: () => void;
   onReject?: () => void;
+  onOpenDetails: () => void;
   loading?: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -105,7 +370,12 @@ function ActionRow({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
+        <button
+          type="button"
+          onClick={onOpenDetails}
+          className="flex-1 min-w-0 text-start"
+          aria-label={`عرض تفاصيل ${item.title}`}
+        >
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-sm">{item.title}</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black border ${pm.color} ${pm.bg}`}>
@@ -117,19 +387,31 @@ function ActionRow({
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
           <div className="text-[11px] text-muted-foreground mt-0.5">{item.meta}</div>
-        </div>
+        </button>
 
         {/* Expand toggle + actions */}
         <div className="flex items-center gap-2 shrink-0">
-          {canAct && (
+          <div className="flex items-center gap-1 shrink-0">
             <button
+              type="button"
+              onClick={onOpenDetails}
+              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-indigo-400 transition hover:bg-indigo-500/10"
+              title="عرض التفاصيل"
+            >
+              <Eye className="h-4 w-4" />
+              <span className="hidden sm:inline">تفاصيل</span>
+            </button>
+            {canAct && (
+            <button
+              type="button"
               onClick={() => setExpanded(!expanded)}
               className="p-1.5 rounded-lg hover:bg-white/10 transition text-muted-foreground"
               title="تفاصيل"
             >
               {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -230,6 +512,8 @@ export default function ActionCenterPage() {
   const queryClient = useQueryClient();
   const [filterKind, setFilterKind] = useState<ActionKind | 'all'>('all');
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ActionItem | null>(null);
+  const [selectedStat, setSelectedStat] = useState<StatKey | null>(null);
 
   const cid = user?.companyId || 0;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -403,13 +687,46 @@ export default function ActionCenterPage() {
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const stats = [
-    { icon: CalendarX,  label: 'إجازات معلقة',     value: pendingLeaves.length,   sub: 'تنتظر قرارك',      color: 'text-teal-400 bg-teal-500/10 border border-teal-500/20' },
-    { icon: Inbox,      label: 'طلبات عمل معلقة',  value: pendingReqs.length,     sub: 'تحتاج مراجعة',     color: 'text-amber-400 bg-amber-500/10 border border-amber-500/20' },
-    { icon: Timer,      label: 'تبريرات معلقة',   value: pendingAttendance.length, sub: 'تحتاج قراراً',      color: 'text-violet-400 bg-violet-500/10 border border-violet-500/20' },
-    { icon: UserX,      label: 'لم يسجلوا بعد',   value: notClockedIn.length,    sub: 'من المتوقع حضورهم', color: 'text-red-400 bg-red-500/10 border border-red-500/20' },
-    { icon: CreditCard, label: 'رواتب معلقة',      value: pendingPayroll.length,  sub: 'هذا الشهر',         color: 'text-green-400 bg-green-500/10 border border-green-500/20' },
-    { icon: Users,      label: 'إجمالي الموظفين',  value: employees.length,       sub: 'موظف مسجّل',        color: 'text-blue-400 bg-blue-500/10 border border-blue-500/20' },
+    { key: 'leaves' as StatKey, icon: CalendarX,  label: 'إجازات معلقة',     value: pendingLeaves.length,   sub: 'تنتظر قرارك',      color: 'text-teal-400 bg-teal-500/10 border border-teal-500/20' },
+    { key: 'requests' as StatKey, icon: Inbox,      label: 'طلبات عمل معلقة',  value: pendingReqs.length,    sub: 'تحتاج مراجعة',     color: 'text-amber-400 bg-amber-500/10 border border-amber-500/20' },
+    { key: 'attendance' as StatKey, icon: Timer,      label: 'تبريرات معلقة',   value: pendingAttendance.length, sub: 'تحتاج قراراً',      color: 'text-violet-400 bg-violet-500/10 border border-violet-500/20' },
+    { key: 'absent' as StatKey, icon: UserX,      label: 'لم يسجلوا بعد',   value: notClockedIn.length,    sub: 'من المتوقع حضورهم', color: 'text-red-400 bg-red-500/10 border border-red-500/20' },
+    { key: 'payroll' as StatKey, icon: CreditCard, label: 'رواتب معلقة',      value: pendingPayroll.length,  sub: 'هذا الشهر',         color: 'text-green-400 bg-green-500/10 border border-green-500/20' },
+    { key: 'employees' as StatKey, icon: Users,      label: 'إجمالي الموظفين',  value: employees.length,       sub: 'موظف مسجّل',        color: 'text-blue-400 bg-blue-500/10 border border-blue-500/20' },
   ];
+
+  const statItems: Record<StatKey, { title: string; subtitle: string; meta: string }[]> = {
+    leaves: pendingLeaves.map((leave: any) => ({
+      title: leave.employeeName || 'موظف',
+      subtitle: `${leave.leaveType || leave.type || 'إجازة'} · ${leave.daysCount || '—'} يوم`,
+      meta: `${fmt(leave.startDate)} → ${fmt(leave.endDate)} · ${leave.reason || 'بدون سبب'}`,
+    })),
+    requests: pendingReqs.map((request: any) => ({
+      title: request.employeeName || 'موظف',
+      subtitle: request.title || 'طلب جديد',
+      meta: `${request.description || 'بدون وصف'} · ${relDate(request.createdAt)}`,
+    })),
+    attendance: pendingAttendance.map((record: any) => ({
+      title: record.employeeName || 'موظف',
+      subtitle: record.justificationType || 'تبرير حضور',
+      meta: `${record.date || todayStr} · ${record.notes || 'بدون ملاحظات'}`,
+    })),
+    absent: notClockedIn.map((employee: any) => ({
+      title: employee.fullName || 'موظف',
+      subtitle: employee.position || employee.departmentName || 'موظف',
+      meta: `لم يسجل الحضور اليوم · ${todayStr}`,
+    })),
+    payroll: pendingPayroll.map((entry: any) => ({
+      title: employees.find((employee: any) => employee.id === entry.employeeId)?.fullName || `موظف #${entry.employeeId}`,
+      subtitle: `راتب ${entry.period || todayStr.slice(0, 7)}`,
+      meta: `الصافي: ${Number(entry.netSalary || entry.basicSalary || 0).toLocaleString('ar-SA')} ريال`,
+    })),
+    employees: employees.map((employee: any) => ({
+      title: employee.fullName || 'موظف',
+      subtitle: employee.position || employee.departmentName || 'موظف',
+      meta: `${employee.email || 'بدون بريد'} · ${employee.status || 'نشط'}`,
+    })),
+  };
 
   const filterOptions: { value: ActionKind | 'all'; label: string }[] = [
     { value: 'all',     label: 'الكل' },
@@ -456,7 +773,15 @@ export default function ActionCenterPage() {
       {/* ── Stats Grid ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         {stats.map((s) => (
-          <StatCard key={s.label} icon={s.icon} label={s.label} value={s.value} sub={s.sub} color={s.color} />
+          <StatCard
+            key={s.label}
+            icon={s.icon}
+            label={s.label}
+            value={s.value}
+            sub={s.sub}
+            color={s.color}
+            onClick={() => setSelectedStat(s.key)}
+          />
         ))}
       </div>
 
@@ -536,6 +861,7 @@ export default function ActionCenterPage() {
                     onApprovePaid={onApprovePaid}
                     onApproveUnpaid={onApproveUnpaid}
                     onReject={onReject}
+                    onOpenDetails={() => setSelectedItem(item)}
                     loading={loadingId === item.id}
                   />
                 );
@@ -564,7 +890,15 @@ export default function ActionCenterPage() {
               onApprovePaid={() => handleLeave(l.id, 'approved', 'paid')}
               onApproveUnpaid={() => handleLeave(l.id, 'approved', 'unpaid')}
               onReject={() => handleLeave(l.id, 'rejected')}
-              loading={loadingId === `ls-${l.id}`}
+                onOpenDetails={() => setSelectedItem({
+                  id: `ls-${l.id}`, kind: 'leave',
+                  priority: l.daysCount >= 5 ? 'high' : 'medium',
+                  title: l.employeeName || 'موظف',
+                  subtitle: `${l.leaveType || 'إجازة'} · ${l.daysCount || '—'} يوم`,
+                  meta: `${fmt(l.startDate)} → ${fmt(l.endDate)}`,
+                  rawId: l.id, raw: l,
+                })}
+                loading={loadingId === `leave-${l.id}`}
             />
           ))}
         </Section>
@@ -585,7 +919,15 @@ export default function ActionCenterPage() {
               onApprovePaid={() => handleRequest(r.id, 'approved', 'paid')}
               onApproveUnpaid={() => handleRequest(r.id, 'approved', 'unpaid')}
               onReject={() => handleRequest(r.id, 'rejected')}
-              loading={loadingId === `rs-${r.id}`}
+                onOpenDetails={() => setSelectedItem({
+                  id: `rs-${r.id}`, kind: 'request',
+                  priority: r.priority === 'urgent' ? 'critical' : r.priority === 'high' ? 'high' : 'medium',
+                  title: r.employeeName || 'موظف',
+                  subtitle: r.title || 'طلب جديد',
+                  meta: `${r.category || ''} · ${relDate(r.createdAt)}`,
+                  rawId: r.id, raw: r,
+                })}
+                loading={loadingId === `req-${r.id}`}
             />
           ))}
         </Section>
@@ -607,6 +949,14 @@ export default function ActionCenterPage() {
               onApprovePaid={() => handleAttendance(a.id, 'approved', 'paid')}
               onApproveUnpaid={() => handleAttendance(a.id, 'approved', 'unpaid')}
               onReject={() => handleAttendance(a.id, 'rejected')}
+                onOpenDetails={() => setSelectedItem({
+                  id: `lat-${a.id}`, kind: 'late', priority: 'medium',
+                  title: a.employeeName || 'موظف',
+                  subtitle: a.justificationType === 'early' ? 'تبرير خروج مبكر' : a.justificationType === 'overtime' ? 'طلب احتساب عمل إضافي' : 'تبرير دخول متأخر',
+                  meta: a.clockIn ? `وقت الوصول: ${new Date(a.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}` : 'لم يُسجّل وقت الدخول',
+                  rawId: a.id, raw: a,
+                })}
+                loading={loadingId === `late-${a.id}`}
             />
           ))}
         </Section>
@@ -622,7 +972,15 @@ export default function ActionCenterPage() {
                 subtitle: e.position || e.department || '—',
                 meta: `لم يُسجّل الحضور بعد اليوم — ${todayStr}`,
                 rawId: e.id,
+                raw: e,
               }}
+              onOpenDetails={() => setSelectedItem({
+                id: `nc-${e.id}`, kind: 'absent', priority: 'high',
+                title: e.fullName || 'موظف',
+                subtitle: e.position || e.department || '—',
+                meta: `لم يُسجّل الحضور بعد اليوم — ${todayStr}`,
+                rawId: e.id, raw: e,
+              })}
             />
           ))}
         </Section>
@@ -643,6 +1001,15 @@ export default function ActionCenterPage() {
                     : 'انتقل لصفحة الرواتب لإتمام الدفع',
                   rawId: p.id, raw: p,
                 }}
+                 onOpenDetails={() => setSelectedItem({
+                   id: `ps-${p.id}`, kind: 'payroll', priority: 'high',
+                   title: emp?.fullName || `موظف #${p.employeeId}`,
+                   subtitle: `راتب ${p.period || todayStr.slice(0, 7)}`,
+                   meta: p.basicSalary
+                     ? `الأساسي: ${Number(p.basicSalary).toLocaleString()} · الصافي: ${Number(p.netSalary || p.basicSalary).toLocaleString()}`
+                     : 'انتقل لصفحة الرواتب لإتمام الدفع',
+                   rawId: p.id, raw: p,
+                 })}
               />
             );
           })}
@@ -665,17 +1032,20 @@ export default function ActionCenterPage() {
             { label: 'الاتصالات',  href: '/dashboard/communication', icon: MessageSquare, color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
             { label: 'الأداء',     href: '/dashboard/performance', icon: TrendingDown,  color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
           ].map(({ label, href, icon: Icon, color }) => (
-            <a
+            <Link
               key={href}
               href={href}
               className={`flex items-center gap-2 p-3 rounded-xl border text-sm font-bold hover:opacity-80 transition ${color}`}
             >
               <Icon className="w-4 h-4 shrink-0" />
               {label}
-            </a>
+            </Link>
           ))}
         </div>
       </div>
+
+      <DetailsModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+      <StatDetailsModal statKey={selectedStat} onClose={() => setSelectedStat(null)} items={statItems} />
     </div>
   );
 }
