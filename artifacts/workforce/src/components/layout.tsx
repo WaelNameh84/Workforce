@@ -545,7 +545,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="fixed inset-0 z-10" onClick={() => setNotificationsOpen(false)} />
                   <div
                     dir="rtl"
-                    className="absolute left-0 top-full mt-2 z-20 w-80 rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+                    className="fixed top-[3.5rem] left-2 right-2 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 z-20 rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
                     style={{ background: 'var(--card)' }}
                   >
                     {/* Header */}
@@ -638,7 +638,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {userMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-xl border border-white/10 shadow-xl py-1" style={{ background: 'var(--card)' }}>
+                  <div className="fixed top-[3.5rem] right-2 left-auto sm:absolute sm:top-full sm:mt-1 sm:right-0 z-20 w-[min(13rem,calc(100vw-1rem))] rounded-xl border border-white/10 shadow-xl py-1" style={{ background: 'var(--card)' }}>
                     <div className="px-4 py-2 border-b border-white/5">
                       <div className="text-sm font-medium truncate">{user?.fullName}</div>
                       <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
