@@ -663,6 +663,52 @@ components:
           items:
             $ref: '#/components/schemas/Department'
 
+    # Location
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    LocationInput:
+      type: object
+      required: [name, companyId]
+      properties:
+        name:
+          type: string
+        companyId:
+          type: integer
+        address:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+
+    LocationList:
+      type: object
+      properties:
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+
 security:
   - bearerAuth: []
 
@@ -898,6 +944,69 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Department'
+
+  /departments/{id}:
+    delete:
+      operationId: deleteDepartment
+      summary: Delete department
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: No content
+
+  # Locations
+  /locations:
+    get:
+      operationId: getLocations
+      summary: List locations
+      parameters:
+        - name: companyId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationList'
+    post:
+      operationId: createLocation
+      summary: Create location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+
+  /locations/{id}:
+    delete:
+      operationId: deleteLocation
+      summary: Delete location
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: No content
 
   # Attendance
   /attendance:

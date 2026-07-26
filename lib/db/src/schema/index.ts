@@ -145,6 +145,16 @@ export const assets = pgTable('assets', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const locations = pgTable('locations', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  address: text('address'),
+  city: varchar('city', { length: 100 }),
+  country: varchar('country', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const auditLogs = pgTable('audit_logs', {
   id: serial('id').primaryKey(),
   userId: integer('user_id'),
@@ -167,6 +177,7 @@ export const insertScheduleSchema = createInsertSchema(schedules).omit({ id: tru
 export const insertPayrollSchema = createInsertSchema(payroll).omit({ id: true, createdAt: true });
 export const insertRequestSchema = createInsertSchema(requests).omit({ id: true, createdAt: true });
 export const insertAssetSchema = createInsertSchema(assets).omit({ id: true, createdAt: true });
+export const insertLocationSchema = createInsertSchema(locations).omit({ id: true, createdAt: true });
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -179,3 +190,4 @@ export type Schedule = typeof schedules.$inferSelect;
 export type Payroll = typeof payroll.$inferSelect;
 export type Request = typeof requests.$inferSelect;
 export type Asset = typeof assets.$inferSelect;
+export type Location = typeof locations.$inferSelect;

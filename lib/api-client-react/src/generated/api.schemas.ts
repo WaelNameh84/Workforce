@@ -548,6 +548,31 @@ export interface DepartmentList {
   departments?: Department[];
 }
 
+export interface Location {
+  id?: number;
+  companyId?: number;
+  name?: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
+  createdAt?: string;
+}
+
+export interface LocationInput {
+  name: string;
+  companyId: number;
+  address?: string;
+  city?: string;
+  country?: string;
+}
+
+export interface LocationList {
+  locations?: Location[];
+}
+
 export type GetHealth200 = {
   status?: string;
 };
@@ -564,6 +589,10 @@ status?: string;
 };
 
 export type GetDepartmentsParams = {
+companyId: number;
+};
+
+export type GetLocationsParams = {
 companyId: number;
 };
 

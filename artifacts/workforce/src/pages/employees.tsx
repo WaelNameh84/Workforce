@@ -3,7 +3,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
   useGetEmployees, useGetDepartments, useCreateEmployee, useUpdateEmployee, useDeleteEmployee,
-  getGetEmployeesQueryKey, getGetDepartmentsQueryKey, EmployeeInput, Employee
+  useGetLocations, useCreateLocation, useDeleteLocation, useDeleteDepartment, useCreateDepartment,
+  getGetEmployeesQueryKey, getGetDepartmentsQueryKey, getGetLocationsQueryKey,
+  EmployeeInput, Employee, LocationInput, DepartmentInput
 } from '@workspace/api-client-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -113,6 +115,19 @@ export default function Employees() {
   const [workDaysAdd, setWorkDaysAdd] = useState('Sun, Mon, Tue, Wed, Thu');
   const [workDaysEdit, setWorkDaysEdit] = useState('Sun, Mon, Tue, Wed, Thu');
 
+  // Departments section state
+  const [isDeptAddOpen, setIsDeptAddOpen] = useState(false);
+  const [deleteDeptId, setDeleteDeptId] = useState<number | null>(null);
+  const [deptName, setDeptName] = useState('');
+  const [deptDesc, setDeptDesc] = useState('');
+
+  // Locations section state
+  const [isLocAddOpen, setIsLocAddOpen] = useState(false);
+  const [deleteLocId, setDeleteLocId] = useState<number | null>(null);
+  const [locName, setLocName] = useState('');
+  const [locAddress, setLocAddress] = useState('');
+  const [locCity, setLocCity] = useState('');
+
   const cid = user?.companyId || 0;
 
   const { data: employeesData, isLoading } = useGetEmployees(
@@ -120,16 +135,66 @@ export default function Employees() {
     { query: { enabled: !!cid, queryKey: getGetEmployeesQueryKey({ companyId: cid, search, departmentId: departmentId !== 'all' ? parseInt(departmentId) : undefined, status: status !== 'all' ? status : undefined }) } }
   );
 
-  const { data: deptsData } = useGetDepartments(
+  const { data: deptsData, refetch: refetchDepts } = useGetDepartments(
     { companyId: cid },
     { query: { enabled: !!cid, queryKey: getGetDepartmentsQueryKey({ companyId: cid }) } }
+  );
+
+  const { data: locsData, refetch: refetchLocs } = useGetLocations(
+    { companyId: cid },
+    { query: { enabled: !!cid, queryKey: getGetLocationsQueryKey({ companyId: cid }) } }
   );
 
   const createMutation = useCreateEmployee();
   const updateMutation = useUpdateEmployee();
   const deleteMutation = useDeleteEmployee();
 
+  const createDeptMutation = useCreateDepartment();
+  const deleteDeptMutation = useDeleteDepartment();
+  const createLocMutation = useCreateLocation();
+  const deleteLocMutation = useDeleteLocation();
+
   const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
+
+  // Department handlers
+  const handleAddDept = async () => {
+    if (!deptName.trim()) return;
+    try {
+      await createDeptMutation.mutateAsync({ data: { name: deptName, companyId: cid, description: deptDesc || undefined } as DepartmentInput });
+      toast({ title: locale === 'ar' ? 'تم إضافة القسم' : locale === 'sv' ? 'Avdelning tillagd' : 'Department added' });
+      setIsDeptAddOpen(false); setDeptName(''); setDeptDesc('');
+      refetchDepts();
+    } catch { toast({ variant: 'destructive', title: locale === 'ar' ? 'فشل الإضافة' : 'Failed' }); }
+  };
+
+  const handleDeleteDept = async () => {
+    if (!deleteDeptId) return;
+    try {
+      await deleteDeptMutation.mutateAsync({ id: deleteDeptId });
+      toast({ title: locale === 'ar' ? 'تم حذف القسم' : locale === 'sv' ? 'Avdelning raderad' : 'Department deleted' });
+      setDeleteDeptId(null); refetchDepts(); invalidate();
+    } catch { toast({ variant: 'destructive', title: locale === 'ar' ? 'فشل الحذف' : 'Failed' }); }
+  };
+
+  // Location handlers
+  const handleAddLoc = async () => {
+    if (!locName.trim()) return;
+    try {
+      await createLocMutation.mutateAsync({ data: { name: locName, companyId: cid, address: locAddress || undefined, city: locCity || undefined } as LocationInput });
+      toast({ title: locale === 'ar' ? 'تم إضافة الموقع' : locale === 'sv' ? 'Plats tillagd' : 'Location added' });
+      setIsLocAddOpen(false); setLocName(''); setLocAddress(''); setLocCity('');
+      refetchLocs();
+    } catch { toast({ variant: 'destructive', title: locale === 'ar' ? 'فشل الإضافة' : 'Failed' }); }
+  };
+
+  const handleDeleteLoc = async () => {
+    if (!deleteLocId) return;
+    try {
+      await deleteLocMutation.mutateAsync({ id: deleteLocId });
+      toast({ title: locale === 'ar' ? 'تم حذف الموقع' : locale === 'sv' ? 'Plats raderad' : 'Location deleted' });
+      setDeleteLocId(null); refetchLocs();
+    } catch { toast({ variant: 'destructive', title: locale === 'ar' ? 'فشل الحذف' : 'Failed' }); }
+  };
 
   const handleAddSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -547,6 +612,250 @@ export default function Employees() {
           );
         })}
       </div>
+
+      {/* ===================== DEPARTMENTS SECTION ===================== */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-xl font-bold">
+              {locale === 'ar' ? 'الأقسام' : locale === 'sv' ? 'Avdelningar' : 'Departments'}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {deptsData?.departments?.length || 0} {locale === 'ar' ? 'قسم' : locale === 'sv' ? 'avdelningar' : 'departments'}
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsDeptAddOpen(true)}
+            size="sm"
+            className="gap-2 rounded-xl h-9 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white border-0 shadow-md shadow-blue-500/20"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {locale === 'ar' ? 'إضافة قسم' : locale === 'sv' ? 'Lägg till avdelning' : 'Add Department'}
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {!deptsData?.departments?.length ? (
+            <div className="col-span-full card-3d p-10 text-center flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center mb-3">
+                <Building2 className="w-7 h-7 text-blue-400" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">
+                {locale === 'ar' ? 'لا توجد أقسام' : locale === 'sv' ? 'Inga avdelningar' : 'No departments yet'}
+              </p>
+            </div>
+          ) : deptsData.departments.map((dept, idx) => {
+            const color = deptGradients[idx % deptGradients.length];
+            return (
+              <div key={dept.id} className="card-3d overflow-hidden group">
+                <div className={`h-2 w-full bg-gradient-to-r ${color.from} ${color.to}`} />
+                <div className="p-4 flex items-start gap-3">
+                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${color.from} ${color.to} flex items-center justify-center flex-shrink-0 shadow-md`}>
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-sm truncate">{dept.name}</h3>
+                    {dept.description && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{dept.description}</p>
+                    )}
+                    <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md mt-2 ${color.light} ${color.text}`}>
+                      <Users className="h-3 w-3" />
+                      {employees.filter(e => e.departmentId === dept.id).length} {locale === 'ar' ? 'موظف' : locale === 'sv' ? 'anst.' : 'emp.'}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setDeleteDeptId(dept.id ?? null)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-400 hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ===================== LOCATIONS SECTION ===================== */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-xl font-bold">
+              {locale === 'ar' ? 'مواقع العمل' : locale === 'sv' ? 'Arbetsplatser' : 'Work Locations'}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {locsData?.locations?.length || 0} {locale === 'ar' ? 'موقع' : locale === 'sv' ? 'platser' : 'locations'}
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsLocAddOpen(true)}
+            size="sm"
+            className="gap-2 rounded-xl h-9 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0 shadow-md shadow-emerald-500/20"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {locale === 'ar' ? 'إضافة موقع' : locale === 'sv' ? 'Lägg till plats' : 'Add Location'}
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {!locsData?.locations?.length ? (
+            <div className="col-span-full card-3d p-10 text-center flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center mb-3">
+                <MapPin className="w-7 h-7 text-emerald-400" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">
+                {locale === 'ar' ? 'لا توجد مواقع' : locale === 'sv' ? 'Inga platser' : 'No locations yet'}
+              </p>
+            </div>
+          ) : locsData.locations.map((loc, idx) => {
+            const color = deptGradients[(idx + 1) % deptGradients.length];
+            return (
+              <div key={loc.id} className="card-3d overflow-hidden group">
+                <div className={`h-2 w-full bg-gradient-to-r from-emerald-500 to-teal-600`} />
+                <div className="p-4 flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                    <MapPin className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-sm truncate">{loc.name}</h3>
+                    {loc.address && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{loc.address}</p>
+                    )}
+                    {loc.city && (
+                      <div className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md mt-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                        <MapPin className="h-3 w-3" />
+                        {loc.city}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setDeleteLocId(loc.id ?? null)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-400 hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ===================== ADD DEPARTMENT DIALOG ===================== */}
+      <Dialog open={isDeptAddOpen} onOpenChange={setIsDeptAddOpen}>
+        <DialogContent className="rounded-3xl border-0 card-3d max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <Plus className="h-4 w-4 text-white" />
+              </div>
+              {locale === 'ar' ? 'إضافة قسم' : locale === 'sv' ? 'Lägg till avdelning' : 'Add Department'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {locale === 'ar' ? 'اسم القسم' : locale === 'sv' ? 'Avdelningsnamn' : 'Department Name'} *
+              </Label>
+              <Input value={deptName} onChange={e => setDeptName(e.target.value)} className="rounded-xl h-10" placeholder={locale === 'ar' ? 'مثال: الموارد البشرية' : 'e.g. Human Resources'} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {locale === 'ar' ? 'الوصف' : locale === 'sv' ? 'Beskrivning' : 'Description'}
+              </Label>
+              <Input value={deptDesc} onChange={e => setDeptDesc(e.target.value)} className="rounded-xl h-10" placeholder={locale === 'ar' ? 'وصف اختياري' : 'Optional description'} />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1 rounded-xl h-10" onClick={() => { setIsDeptAddOpen(false); setDeptName(''); setDeptDesc(''); }}>
+                {t('cancel')}
+              </Button>
+              <Button
+                className="flex-1 rounded-xl h-10 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white border-0 font-bold"
+                onClick={handleAddDept}
+                disabled={!deptName.trim() || createDeptMutation.isPending}
+              >
+                {t('save')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===================== ADD LOCATION DIALOG ===================== */}
+      <Dialog open={isLocAddOpen} onOpenChange={setIsLocAddOpen}>
+        <DialogContent className="rounded-3xl border-0 card-3d max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                <Plus className="h-4 w-4 text-white" />
+              </div>
+              {locale === 'ar' ? 'إضافة موقع' : locale === 'sv' ? 'Lägg till plats' : 'Add Location'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {locale === 'ar' ? 'اسم الموقع' : locale === 'sv' ? 'Platsnamn' : 'Location Name'} *
+              </Label>
+              <Input value={locName} onChange={e => setLocName(e.target.value)} className="rounded-xl h-10" placeholder={locale === 'ar' ? 'مثال: المقر الرئيسي' : 'e.g. Head Office'} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {locale === 'ar' ? 'العنوان' : locale === 'sv' ? 'Adress' : 'Address'}
+              </Label>
+              <Input value={locAddress} onChange={e => setLocAddress(e.target.value)} className="rounded-xl h-10" placeholder={locale === 'ar' ? 'العنوان التفصيلي' : 'Street address'} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {locale === 'ar' ? 'المدينة' : locale === 'sv' ? 'Stad' : 'City'}
+              </Label>
+              <Input value={locCity} onChange={e => setLocCity(e.target.value)} className="rounded-xl h-10" placeholder={locale === 'ar' ? 'مثال: الرياض' : 'e.g. Riyadh'} />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1 rounded-xl h-10" onClick={() => { setIsLocAddOpen(false); setLocName(''); setLocAddress(''); setLocCity(''); }}>
+                {t('cancel')}
+              </Button>
+              <Button
+                className="flex-1 rounded-xl h-10 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0 font-bold"
+                onClick={handleAddLoc}
+                disabled={!locName.trim() || createLocMutation.isPending}
+              >
+                {t('save')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===================== DELETE DEPT CONFIRM ===================== */}
+      <AlertDialog open={deleteDeptId !== null} onOpenChange={(open) => { if (!open) setDeleteDeptId(null); }}>
+        <AlertDialogContent className="rounded-3xl border-0 card-3d">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">{t('confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('confirmDeleteDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="rounded-xl h-11">{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDept} className="rounded-xl h-11 bg-red-500 hover:bg-red-600 text-white border-0">
+              {t('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ===================== DELETE LOC CONFIRM ===================== */}
+      <AlertDialog open={deleteLocId !== null} onOpenChange={(open) => { if (!open) setDeleteLocId(null); }}>
+        <AlertDialogContent className="rounded-3xl border-0 card-3d">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">{t('confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('confirmDeleteDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="rounded-xl h-11">{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteLoc} className="rounded-xl h-11 bg-red-500 hover:bg-red-600 text-white border-0">
+              {t('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ===================== ADD DIALOG ===================== */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>

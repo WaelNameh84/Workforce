@@ -1,52 +1,52 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { departments } from "@workspace/db";
+import { locations } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { authMiddleware } from "../middlewares/auth";
 
 const router = Router();
 
-// GET /api/departments
-router.get("/departments", authMiddleware, async (req, res) => {
+// GET /api/locations
+router.get("/locations", authMiddleware, async (req, res) => {
   try {
     const companyId = parseInt(req.query.companyId as string);
     if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
 
     const rows = await db
       .select()
-      .from(departments)
-      .where(eq(departments.companyId, companyId))
-      .orderBy(departments.name);
+      .from(locations)
+      .where(eq(locations.companyId, companyId))
+      .orderBy(locations.name);
 
-    res.json({ departments: rows });
+    res.json({ locations: rows });
   } catch (err) {
-    req.log.error({ err }, "Get departments error");
+    req.log.error({ err }, "Get locations error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// POST /api/departments
-router.post("/departments", authMiddleware, async (req, res) => {
+// POST /api/locations
+router.post("/locations", authMiddleware, async (req, res) => {
   try {
-    const [dept] = await db
-      .insert(departments)
+    const [loc] = await db
+      .insert(locations)
       .values(req.body)
       .returning();
-    res.status(201).json(dept);
+    res.status(201).json(loc);
   } catch (err) {
-    req.log.error({ err }, "Create department error");
+    req.log.error({ err }, "Create location error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// DELETE /api/departments/:id
-router.delete("/departments/:id", authMiddleware, async (req, res) => {
+// DELETE /api/locations/:id
+router.delete("/locations/:id", authMiddleware, async (req, res) => {
   try {
     const id = parseInt(req.params.id as string);
-    await db.delete(departments).where(eq(departments.id, id));
+    await db.delete(locations).where(eq(locations.id, id));
     res.status(204).send();
   } catch (err) {
-    req.log.error({ err }, "Delete department error");
+    req.log.error({ err }, "Delete location error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

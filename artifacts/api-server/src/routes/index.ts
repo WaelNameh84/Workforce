@@ -10,6 +10,7 @@ import schedulesRouter from "./schedules";
 import payrollRouter from "./payroll";
 import requestsRouter from "./requests";
 import assetsRouter from "./assets";
+import locationsRouter from "./locations";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(schedulesRouter);
 router.use(payrollRouter);
 router.use(requestsRouter);
 router.use(assetsRouter);
+router.use(locationsRouter);
 
 export default router;

@@ -319,6 +319,68 @@ export const CreateDepartmentResponse = zod.object({
 
 
 /**
+ * @summary Delete department
+ */
+export const DeleteDepartmentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteDepartmentResponse = zod.void()
+
+
+/**
+ * @summary List locations
+ */
+export const GetLocationsQueryParams = zod.object({
+  "companyId": zod.coerce.number()
+})
+
+export const GetLocationsResponse = zod.object({
+  "locations": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "companyId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional()
+})).optional()
+})
+
+
+/**
+ * @summary Create location
+ */
+export const CreateLocationBody = zod.object({
+  "name": zod.string(),
+  "companyId": zod.number(),
+  "address": zod.string().optional(),
+  "city": zod.string().optional(),
+  "country": zod.string().optional()
+})
+
+export const CreateLocationResponse = zod.object({
+  "id": zod.number().optional(),
+  "companyId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete location
+ */
+export const DeleteLocationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteLocationResponse = zod.void()
+
+
+/**
  * @summary List attendance records
  */
 export const GetAttendanceQueryParams = zod.object({
