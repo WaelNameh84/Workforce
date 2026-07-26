@@ -1,5 +1,7 @@
 import Dashboard from '@/pages/dashboard';
 import Employees from '@/pages/employees';
+import Departments from '@/pages/departments';
+import Locations from '@/pages/locations';
 import Attendance from '@/pages/attendance';
 import Leaves from '@/pages/leaves';
 import Payroll from '@/pages/payroll';
@@ -19,6 +21,8 @@ import Developers from '@/pages/developers';
 export {
   Dashboard,
   Employees,
+  Departments,
+  Locations,
   Attendance,
   Schedule,
   Leaves,

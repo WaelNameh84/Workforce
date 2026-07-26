@@ -7,7 +7,8 @@ import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
-  LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User
+  LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User,
+  Building2, MapPin
 } from 'lucide-react';
 
 const navVisuals: Record<string, {
@@ -136,6 +137,20 @@ const navVisuals: Record<string, {
     badgeBorder: 'border-purple-300/30',
     glow: 'shadow-purple-400/20',
   },
+  '/dashboard/departments': {
+    icon: 'text-blue-300 bg-blue-950/70 border-blue-400/40',
+    border: 'border-blue-500/30',
+    badge: 'text-blue-200 bg-blue-950/80',
+    badgeBorder: 'border-blue-400/30',
+    glow: 'shadow-blue-500/20',
+  },
+  '/dashboard/locations': {
+    icon: 'text-emerald-300 bg-emerald-950/70 border-emerald-400/40',
+    border: 'border-emerald-500/30',
+    badge: 'text-emerald-200 bg-emerald-950/80',
+    badgeBorder: 'border-emerald-400/30',
+    glow: 'shadow-emerald-500/20',
+  },
 };
 
 const navBadges: Record<string, string> = {
@@ -156,6 +171,8 @@ const navBadges: Record<string, string> = {
   '/dashboard/security': 'AES-256',
   '/dashboard/developers': 'API',
   '/dashboard/settings': 'CONFIG',
+  '/dashboard/departments': 'DEPTS',
+  '/dashboard/locations': 'SITES',
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -236,11 +253,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       id: 'hr-management',
       title: 'HR Management',
       items: [
-        { href: '/dashboard/employees',  label: t('employees'),  icon: Users },
-        { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
-        { href: '/dashboard/leaves',     label: t('leaves'),     icon: CalendarCheck },
-        { href: '/dashboard/payroll',    label: t('payroll'),    icon: CreditCard },
-        { href: '/dashboard/requests',   label: t('requests'),   icon: Inbox },
+        { href: '/dashboard/employees',   label: t('employees'),   icon: Users },
+        { href: '/dashboard/departments', label: 'الأقسام',        icon: Building2 },
+        { href: '/dashboard/locations',   label: 'المواقع',        icon: MapPin },
+        { href: '/dashboard/attendance',  label: t('attendance'),  icon: Clock },
+        { href: '/dashboard/leaves',      label: t('leaves'),      icon: CalendarCheck },
+        { href: '/dashboard/payroll',     label: t('payroll'),     icon: CreditCard },
+        { href: '/dashboard/requests',    label: t('requests'),    icon: Inbox },
       ],
     },
     {
