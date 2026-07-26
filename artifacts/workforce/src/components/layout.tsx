@@ -6,7 +6,7 @@ import { useTheme } from '@/components/theme-provider';
 import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
-  TrendingUp, Laptop, Users2, Workflow, Link2, Shield, Code,
+  TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
   LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown
 } from 'lucide-react';
 
@@ -64,8 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { href: '/dashboard/ai',            label: t('aiAssistant'),   icon: Bot },
         { href: '/dashboard/communication', label: t('communication'), icon: MessageSquare },
         { href: '/dashboard/performance',   label: t('performance'),   icon: TrendingUp },
-        { href: '/dashboard/assets',        label: t('assets'),        icon: Laptop },
-        { href: '/dashboard/visitors',      label: t('visitors'),      icon: Users2 },
+        { href: '/dashboard/purchases',     label: t('purchases'),     icon: ShoppingCart },
       ],
     },
     {

@@ -108,8 +108,10 @@ export default function Login() {
                 <div className="space-y-2">
                   <Label htmlFor="email">{t('email')}</Label>
                   <Input 
-                    id="email" 
+                    id="email"
+                    name="email"
                     type="email" 
+                    autoComplete="email"
                     placeholder="admin@company.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -119,8 +121,10 @@ export default function Login() {
                 <div className="space-y-2">
                   <Label htmlFor="password">{t('password')}</Label>
                   <Input 
-                    id="password" 
+                    id="password"
+                    name="password"
                     type="password" 
+                    autoComplete="current-password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required

@@ -11,7 +11,6 @@ import AI from '@/pages/ai';
 import Assets from '@/pages/assets';
 import Communication from '@/pages/communication';
 import Performance from '@/pages/performance';
-import Visitors from '@/pages/visitors';
 import Automation from '@/pages/automation';
 import Integrations from '@/pages/integrations';
 import Security from '@/pages/security';
@@ -31,7 +30,6 @@ export {
   Communication,
   Performance,
   Assets,
-  Visitors,
   Automation,
   Integrations,
   Security,

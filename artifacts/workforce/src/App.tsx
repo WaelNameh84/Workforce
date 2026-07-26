@@ -24,8 +24,7 @@ import {
   AI,
   Communication,
   Performance,
-  Assets,
-  Visitors,
+  Assets as Purchases,
   Automation,
   Integrations,
   Security,
@@ -63,8 +62,7 @@ function Router() {
       <ProtectedRoute path="/dashboard/ai" component={AI} />
       <ProtectedRoute path="/dashboard/communication" component={Communication} />
       <ProtectedRoute path="/dashboard/performance" component={Performance} />
-      <ProtectedRoute path="/dashboard/assets" component={Assets} />
-      <ProtectedRoute path="/dashboard/visitors" component={Visitors} />
+      <ProtectedRoute path="/dashboard/purchases" component={Purchases} />
       <ProtectedRoute path="/dashboard/automation" component={Automation} />
       <ProtectedRoute path="/dashboard/integrations" component={Integrations} />
       <ProtectedRoute path="/dashboard/security" component={Security} />

@@ -3,7 +3,7 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { useTheme } from '@/components/theme-provider';
 import {
   Globe, Users, Calendar, Clock, DollarSign, BarChart3, Shield, Cpu,
-  MessageSquare, Award, Package, UserCheck, Workflow, Plug, Settings,
+  MessageSquare, Award, Package, Workflow, Plug, Settings,
   Code2, ArrowRight, Moon, Sun, Check, Sparkles, Building2,
   Fingerprint, QrCode, Wifi, Smartphone, Mail, KeyRound,
   Bot, Bell, Database
@@ -29,8 +29,7 @@ export default function LandingPage() {
     { icon: Bot,          title: t('aiAssistant'),   color: 'from-fuchsia-500 to-purple-500',desc: 'Chat AI • Predict • Detect Fraud' },
     { icon: MessageSquare,title: t('communication'), color: 'from-sky-500 to-blue-500',      desc: 'Chat • Email • SMS • WhatsApp' },
     { icon: Award,        title: t('performance'),   color: 'from-yellow-500 to-amber-500',  desc: 'KPI • Goals • Evaluations • Rewards' },
-    { icon: Package,      title: t('assets'),        color: 'from-teal-500 to-cyan-500',     desc: 'Laptop • Phone • Keys • Vehicles' },
-    { icon: UserCheck,    title: t('visitors'),      color: 'from-lime-500 to-green-500',    desc: 'QR Pass • Appointments • Logs' },
+    { icon: Package,      title: t('purchases'),     color: 'from-teal-500 to-cyan-500',     desc: 'Orders • Suppliers • Purchase dates' },
     { icon: Workflow,     title: t('automation'),    color: 'from-violet-500 to-purple-500', desc: 'IF/THEN • Auto Approval • Webhooks' },
     { icon: Plug,         title: t('integrations'),  color: 'from-slate-500 to-gray-500',    desc: 'Google • Microsoft • Slack • SAP' },
     { icon: Shield,       title: t('security'),      color: 'from-red-500 to-rose-500',      desc: 'AES-256 • JWT • MFA • GDPR' },
