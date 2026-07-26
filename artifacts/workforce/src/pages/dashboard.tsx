@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useGetDashboardStats, useGetAttendance, useGetLeaves, useGetPayroll, getGetDashboardStatsQueryKey, getGetAttendanceQueryKey, getGetLeavesQueryKey, getGetPayrollQueryKey } from '@workspace/api-client-react';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -5,7 +6,8 @@ import { Link, useLocation } from 'wouter';
 import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Bot, MessageSquare, TrendingUp,
-  Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, XCircle, AlertCircle
+  Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, AlertCircle,
+  ChevronDown
 } from 'lucide-react';
 
 // Admin dashboard showing all modules + company stats
@@ -19,26 +21,57 @@ function AdminDashboard() {
     { query: { enabled: !!user?.companyId, queryKey: getGetDashboardStatsQueryKey({ companyId: user?.companyId || 0 }) } }
   );
 
-  const modules = [
-    { id: 1, name: 'لوحة التحكم', badge: 'Live', badgeColor: 'bg-green-500/10 text-green-500 border-green-500/20', icon: LayoutDashboard, iconColor: 'bg-green-500', href: '/dashboard' },
-    { id: 2, name: 'الموظفون', badge: `${stats?.totalEmployees || 0}`, badgeColor: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Users, iconColor: 'bg-blue-500', href: '/dashboard/employees' },
-    { id: 3, name: 'الحضور', badge: 'Today', badgeColor: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20', icon: Clock, iconColor: 'bg-cyan-500', href: '/dashboard/attendance' },
-    { id: 4, name: 'الجداول', badge: 'Shifts', badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: CalendarDays, iconColor: 'bg-indigo-500', href: '/dashboard/schedule' },
-    { id: 5, name: 'الإجازات', badge: 'Days 21', badgeColor: 'bg-amber-500/10 text-amber-500 border-amber-500/20', icon: CalendarCheck, iconColor: 'bg-amber-500', href: '/dashboard/leaves' },
-    { id: 6, name: 'الرواتب', badge: 'SAR', badgeColor: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: CreditCard, iconColor: 'bg-emerald-500', href: '/dashboard/payroll' },
-    { id: 7, name: 'الطلبات', badge: `${stats?.pendingRequests || 0} معلق`, badgeColor: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: Inbox, iconColor: 'bg-orange-500', href: '/dashboard/requests' },
-    { id: 8, name: 'التقارير', badge: 'CSV/PDF', badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20', icon: FileText, iconColor: 'bg-purple-500', href: '/dashboard/reports' },
-    { id: 9, name: 'المساعد الذكي', badge: 'AI', badgeColor: 'bg-violet-500/10 text-violet-400 border-violet-500/20', icon: Bot, iconColor: 'bg-violet-500', href: '/dashboard/ai' },
-    { id: 10, name: 'الاتصالات', badge: 'Channels', badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20', icon: MessageSquare, iconColor: 'bg-sky-500', href: '/dashboard/communication' },
-    { id: 11, name: 'الأداء', badge: 'KPIs', badgeColor: 'bg-teal-500/10 text-teal-400 border-teal-500/20', icon: TrendingUp, iconColor: 'bg-teal-500', href: '/dashboard/performance' },
-    { id: 12, name: 'الأمن', badge: 'AES-256', badgeColor: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Shield, iconColor: 'bg-red-500', href: '/dashboard/security' },
-    { id: 13, name: 'الإعدادات', badge: 'Config', badgeColor: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Settings, iconColor: 'bg-slate-500', href: '/dashboard/settings' },
+  const groups = [
+    {
+      id: 'hr',
+      label: 'إدارة الموارد البشرية',
+      color: 'from-blue-500/20 to-cyan-500/10 border-blue-500/20',
+      dot: 'bg-blue-500',
+      open: true,
+      items: [
+        { id: 2, name: 'الموظفون',  badge: `${stats?.totalEmployees || 0}`,       badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/20',   icon: Users,        iconColor: 'bg-blue-500',    href: '/dashboard/employees' },
+        { id: 3, name: 'الحضور',    badge: 'اليوم',                               badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',   icon: Clock,        iconColor: 'bg-cyan-500',    href: '/dashboard/attendance' },
+        { id: 4, name: 'الجداول',   badge: 'Shifts',                              badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: CalendarDays, iconColor: 'bg-indigo-500', href: '/dashboard/schedule' },
+        { id: 5, name: 'الإجازات',  badge: 'Days 21',                             badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20', icon: CalendarCheck, iconColor: 'bg-amber-500', href: '/dashboard/leaves' },
+        { id: 6, name: 'الرواتب',   badge: 'SAR',                                 badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: CreditCard, iconColor: 'bg-emerald-500', href: '/dashboard/payroll' },
+        { id: 7, name: 'الطلبات',   badge: `${stats?.pendingRequests || 0} معلق`, badgeColor: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Inbox,      iconColor: 'bg-orange-500',  href: '/dashboard/requests' },
+      ],
+    },
+    {
+      id: 'advanced',
+      label: 'الأدوات المتقدمة',
+      color: 'from-violet-500/20 to-purple-500/10 border-violet-500/20',
+      dot: 'bg-violet-500',
+      open: false,
+      items: [
+        { id: 8,  name: 'التقارير',      badge: 'CSV/PDF',   badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20', icon: FileText,     iconColor: 'bg-purple-500',  href: '/dashboard/reports' },
+        { id: 9,  name: 'المساعد الذكي', badge: 'AI',        badgeColor: 'bg-violet-500/10 text-violet-400 border-violet-500/20', icon: Bot,          iconColor: 'bg-violet-500',  href: '/dashboard/ai' },
+        { id: 10, name: 'الاتصالات',     badge: 'Channels',  badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20',         icon: MessageSquare, iconColor: 'bg-sky-500',    href: '/dashboard/communication' },
+        { id: 11, name: 'الأداء',        badge: 'KPIs',      badgeColor: 'bg-teal-500/10 text-teal-400 border-teal-500/20',      icon: TrendingUp,   iconColor: 'bg-teal-500',    href: '/dashboard/performance' },
+      ],
+    },
+    {
+      id: 'system',
+      label: 'إعدادات النظام',
+      color: 'from-slate-500/20 to-gray-500/10 border-slate-500/20',
+      dot: 'bg-slate-400',
+      open: false,
+      items: [
+        { id: 12, name: 'الأمن',      badge: 'AES-256', badgeColor: 'bg-red-500/10 text-red-400 border-red-500/20',       icon: Shield,   iconColor: 'bg-red-500',   href: '/dashboard/security' },
+        { id: 13, name: 'الإعدادات', badge: 'Config',   badgeColor: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Settings, iconColor: 'bg-slate-500', href: '/dashboard/settings' },
+      ],
+    },
   ];
 
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(
+    Object.fromEntries(groups.map(g => [g.id, g.open]))
+  );
+  const toggle = (id: string) => setOpenGroups(p => ({ ...p, [id]: !p[id] }));
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn pb-20">
+    <div className="max-w-3xl mx-auto space-y-5 animate-fadeIn pb-20">
       {/* Welcome Banner */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <h1 className="font-display text-3xl font-bold mb-1 text-white">{t('welcome')}, {user?.fullName?.split(' ')[0]}</h1>
           <p className="text-muted-foreground text-sm">{new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -66,35 +99,83 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* Module List */}
-      <div className="space-y-3">
-        {modules.map((module, i) => {
-          const isActive = location === module.href;
-          return (
-            <Link
-              key={module.id}
-              href={module.href}
-              className={`card-module flex items-center justify-between p-4 pressable stagger-${(i % 6) + 1} ${isActive ? 'active' : ''}`}
+      {/* لوحة التحكم — always-visible single card */}
+      <Link
+        href="/dashboard"
+        className={`card-module flex items-center justify-between p-4 pressable ${location === '/dashboard' ? 'active' : ''}`}
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg bg-green-500">
+            <LayoutDashboard className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-bold text-lg text-foreground">لوحة التحكم</span>
+        </div>
+        <span className="px-3 py-1.5 rounded-lg text-xs font-bold border font-data bg-green-500/10 text-green-400 border-green-500/20 uppercase tracking-wide">
+          Live
+        </span>
+      </Link>
+
+      {/* Collapsible groups */}
+      {groups.map(group => {
+        const isOpen = openGroups[group.id];
+        return (
+          <div key={group.id} className={`rounded-2xl border bg-gradient-to-br overflow-hidden transition-all ${group.color}`}>
+            {/* Group header — tap to toggle */}
+            <button
+              onClick={() => toggle(group.id)}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
             >
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${module.iconColor}`}>
-                  <module.icon className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1.5 items-center">
+                  <span className={`w-2 h-2 rounded-full ${group.dot}`} />
+                  <span className={`w-2 h-2 rounded-full ${group.dot} opacity-60`} />
+                  <span className={`w-2 h-2 rounded-full ${group.dot} opacity-30`} />
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-muted-foreground font-data text-sm font-bold w-5 text-center opacity-50">{module.id}</span>
-                  <span className="font-bold text-lg text-foreground">{module.name}</span>
-                </div>
+                <span className="font-bold text-base text-foreground">{group.label}</span>
+                <span className="text-xs text-muted-foreground font-medium">({group.items.length})</span>
               </div>
-              <div className={`px-3 py-1.5 rounded-lg text-xs font-bold border font-data tracking-wide uppercase ${module.badgeColor}`}>
-                {module.badge}
+              <ChevronDown
+                className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {/* Items — animated slide */}
+            <div
+              className="overflow-hidden transition-all duration-300"
+              style={{ maxHeight: isOpen ? `${group.items.length * 72}px` : '0px' }}
+            >
+              <div className="px-3 pb-3 space-y-2">
+                {group.items.map(item => {
+                  const active = location.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className={`card-module flex items-center justify-between p-3.5 pressable ${active ? 'active' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shadow-lg ${item.iconColor}`}>
+                          <item.icon className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground font-data text-xs font-bold w-4 text-center opacity-40">{item.id}</span>
+                          <span className="font-bold text-base text-foreground">{item.name}</span>
+                        </div>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border font-data tracking-wide uppercase ${item.badgeColor}`}>
+                        {item.badge}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
-            </Link>
-          );
-        })}
-      </div>
+            </div>
+          </div>
+        );
+      })}
 
       {/* Reports Feature Card */}
-      <div className="mt-8 rounded-2xl bg-gradient-to-br from-[#141424] to-[#1a1a2e] border border-white/5 p-6 shadow-2xl relative overflow-hidden">
+      <div className="mt-2 rounded-2xl bg-gradient-to-br from-[#141424] to-[#1a1a2e] border border-white/5 p-6 shadow-2xl relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-[60px]" />
         <h3 className="font-display text-2xl font-bold mb-3 text-white relative z-10">التقارير الإدارية ومؤشرات الأداء</h3>
         <p className="text-muted-foreground text-sm leading-relaxed mb-6 relative z-10 max-w-[90%]">
