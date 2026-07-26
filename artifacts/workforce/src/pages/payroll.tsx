@@ -68,6 +68,9 @@ function calcAttendanceDay(
     ? (clockOut.getTime() - scheduledEnd.getTime()) / 60000
     : 0;
   const otMin = rawOtMin >= cfg.otThresholdMin ? rawOtMin : 0;
+  const earlyMin = clockOut < scheduledEnd
+    ? (scheduledEnd.getTime() - clockOut.getTime()) / 60000
+    : 0;
 
   // Raw worked minutes (excluding break)
   const rawMin = (clockOut.getTime() - effectiveIn.getTime()) / 60000;
@@ -77,7 +80,7 @@ function calcAttendanceDay(
     workedHours: netMin / 60,
     overtime:    otMin / 60,
     late:        lateMin / 60,
-    early:       0,
+    early:       earlyMin / 60,
   };
 }
 
@@ -96,10 +99,11 @@ function calcLeaves(leaves: any[], from: string, to: string): LeaveCalc {
     if (!overlap) continue;
     const days = lv.daysCount || 0;
     const type: string = lv.type || '';
+    const isPaid = lv.paymentStatus === 'paid';
     if (type === 'sick') {
-      if (type.includes('unpaid') || lv.paid === false) result.sickUnpaidDays += days;
+      if (!isPaid) result.sickUnpaidDays += days;
       else result.sickPaidDays += days;
-    } else if (type === 'unpaid') {
+    } else if (!isPaid) {
       result.unpaidDays += days;
     } else {
       result.paidDays += days;
@@ -122,12 +126,14 @@ interface EmployeePaySummary {
   workedHours: number;
   overtimeHours: number;
   lateHours: number;
+  earlyHours: number;
   // Additions
   overtimePay: number;
   bonus: number;
   additions: number;
   // Deductions
   lateDeduction: number;
+  earlyDeduction: number;
   unpaidLeaveDeduction: number;
   sickUnpaidDeduction: number;
   advances: number;
@@ -384,6 +390,7 @@ function PayslipModal({ emp, onClose, currency, cfg }: { emp: EmployeePaySummary
           <div className="rounded-xl p-4 border border-border">
             <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><ArrowDownRight className="w-4 h-4 text-red-400" /> الخصومات</h4>
             {emp.lateDeduction > 0 && <Row label="خصم التأخير" value={emp.lateDeduction} color="text-red-400" sign="-" />}
+            {emp.earlyDeduction > 0 && <Row label="خصم الخروج المبكر" value={emp.earlyDeduction} color="text-red-400" sign="-" />}
             {emp.unpaidLeaveDeduction > 0 && <Row label="خصم الإجازات غير المدفوعة" value={emp.unpaidLeaveDeduction} color="text-red-400" sign="-" />}
             {emp.sickUnpaidDeduction > 0 && <Row label="خصم الإجازة المرضية غير المدفوعة" value={emp.sickUnpaidDeduction} color="text-red-400" sign="-" />}
             {emp.advances > 0 && <Row label="السلف" value={emp.advances} color="text-red-400" sign="-" />}
@@ -524,15 +531,24 @@ export default function PayrollPage() {
         let workedHours   = 0;
         let overtimeHours = 0;
         let lateHours     = 0;
+        let earlyHours    = 0;
 
         for (const a of empAtt) {
           const ci = a.clockIn  ? new Date(a.clockIn)  : null;
           const co = a.clockOut ? new Date(a.clockOut) : null;
           const calc = calcAttendanceDay(ci, co, { workStart: (emp as any).workStart, workEnd: (emp as any).workEnd }, cfg);
+          const justificationPaid = a.justificationStatus === 'approved' && a.paymentStatus === 'paid';
           if (calc.workedHours > 0) workedDays++;
           workedHours   += calc.workedHours;
-          overtimeHours += calc.overtime;
-          lateHours     += calc.late;
+          if (a.justificationType === 'overtime' && justificationPaid) {
+            overtimeHours += calc.overtime;
+          }
+          if (!(a.justificationType === 'late' || a.justificationType === 'early') || !justificationPaid) {
+            lateHours += calc.late;
+          }
+          if (a.justificationType === 'early' && !justificationPaid) {
+            earlyHours += calc.early;
+          }
         }
 
         // If no attendance records, fall back to payroll data
@@ -540,7 +556,6 @@ export default function PayrollPage() {
           const daysInPeriod = new Date(new Date(dateFrom).getFullYear(), new Date(dateFrom).getMonth() + 1, 0).getDate();
           workedDays = daysInPeriod;
           workedHours = workedDays * dailyHours;
-          overtimeHours = money(pr?.overtime) / Math.max(hourlyRate, 1);
         }
 
         // Leave calculations
@@ -554,6 +569,7 @@ export default function PayrollPage() {
 
         // Late deduction — always by hour (late minutes are already exact)
         const lateDeduction = lateHours * hourlyRate;
+        const earlyDeduction = earlyHours * hourlyRate;
 
         // Absence/unpaid-leave deduction — method from settings
         const unpaidDeductPerDay = cfg.deductRate === 'full'
@@ -567,7 +583,7 @@ export default function PayrollPage() {
         const advances             = 0;
         const purchases            = 0;
         const otherDeductions      = money(pr?.deductions);
-        const totalDeductions      = lateDeduction + unpaidLeaveDeduction + sickUnpaidDeduction + advances + purchases + otherDeductions;
+        const totalDeductions      = lateDeduction + earlyDeduction + unpaidLeaveDeduction + sickUnpaidDeduction + advances + purchases + otherDeductions;
 
         const netSalary = Math.max(0, grossSalary - totalDeductions);
 
@@ -583,10 +599,12 @@ export default function PayrollPage() {
           workedHours,
           overtimeHours,
           lateHours,
+          earlyHours,
           overtimePay,
           bonus,
           additions,
           lateDeduction,
+          earlyDeduction,
           unpaidLeaveDeduction,
           sickUnpaidDeduction,
           advances,

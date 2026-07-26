@@ -30,6 +30,7 @@ router.get("/leaves", authMiddleware, async (req, res) => {
         daysCount: leaves.daysCount,
         reason: leaves.reason,
         status: leaves.status,
+        paymentStatus: leaves.paymentStatus,
         approvedBy: leaves.approvedBy,
         approvedAt: leaves.approvedAt,
         createdAt: leaves.createdAt,
@@ -70,6 +71,10 @@ router.put("/leaves/:id", authMiddleware, async (req, res) => {
     const updates: Record<string, unknown> = { ...req.body };
     if (req.body.status === "approved" || req.body.status === "rejected") {
       updates.approvedAt = new Date();
+      updates.approvedBy = req.user?.userId ?? req.body.approvedBy;
+      updates.paymentStatus = req.body.status === "approved"
+        ? (req.body.paymentStatus === "unpaid" ? "unpaid" : "paid")
+        : "pending";
     }
     const [leave] = await db
       .update(leaves)

@@ -35,6 +35,11 @@ router.get("/attendance", authMiddleware, async (req, res) => {
         status: attendance.status,
         isLate: attendance.isLate,
         notes: attendance.notes,
+        justificationType: attendance.justificationType,
+        justificationStatus: attendance.justificationStatus,
+        paymentStatus: attendance.paymentStatus,
+        justificationApprovedBy: attendance.justificationApprovedBy,
+        justificationApprovedAt: attendance.justificationApprovedAt,
         createdAt: attendance.createdAt,
       })
       .from(attendance)
@@ -143,13 +148,25 @@ router.post("/attendance/clock-out", authMiddleware, async (req, res) => {
 router.patch("/attendance/:id", authMiddleware, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id), 10);
-    const { notes, status } = req.body;
+    const { notes, status, justificationType, justificationStatus, paymentStatus } = req.body;
 
     const [updated] = await db
       .update(attendance)
       .set({
         ...(notes !== undefined ? { notes } : {}),
         ...(status !== undefined ? { status } : {}),
+        ...(justificationType !== undefined ? { justificationType } : {}),
+        ...(justificationStatus !== undefined ? { justificationStatus } : {}),
+        ...(paymentStatus !== undefined ? { paymentStatus } : {}),
+        ...(justificationStatus === "approved" || justificationStatus === "rejected"
+          ? {
+              justificationApprovedBy: req.user?.userId,
+              justificationApprovedAt: new Date(),
+              paymentStatus: justificationStatus === "approved"
+                ? (paymentStatus === "unpaid" ? "unpaid" : "paid")
+                : "pending",
+            }
+          : {}),
       })
       .where(eq(attendance.id, id))
       .returning();

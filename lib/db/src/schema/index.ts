@@ -77,6 +77,11 @@ export const attendance = pgTable('attendance', {
   status: varchar('status', { length: 20 }).default('present'),
   isLate: boolean('is_late').default(false),
   notes: text('notes'),
+  justificationType: varchar('justification_type', { length: 30 }),
+  justificationStatus: varchar('justification_status', { length: 20 }).default('none'),
+  paymentStatus: varchar('payment_status', { length: 20 }).default('pending'),
+  justificationApprovedBy: integer('justification_approved_by'),
+  justificationApprovedAt: timestamp('justification_approved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -89,6 +94,7 @@ export const leaves = pgTable('leaves', {
   daysCount: integer('days_count').notNull(),
   reason: text('reason'),
   status: varchar('status', { length: 20 }).default('pending'),
+  paymentStatus: varchar('payment_status', { length: 20 }).default('pending'),
   approvedBy: integer('approved_by'),
   approvedAt: timestamp('approved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -128,6 +134,7 @@ export const requests = pgTable('requests', {
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   status: varchar('status', { length: 20 }).default('pending'),
+  paymentStatus: varchar('payment_status', { length: 20 }).default('pending'),
   approvedBy: integer('approved_by'),
   approvedAt: timestamp('approved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

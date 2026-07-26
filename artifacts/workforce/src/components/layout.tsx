@@ -9,7 +9,7 @@ import {
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
   LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User,
-  Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2,
+  Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2, Zap,
 } from 'lucide-react';
 import {
   useGetAttendance, getGetAttendanceQueryKey,
@@ -157,9 +157,17 @@ const navVisuals: Record<string, {
     badgeBorder: 'border-emerald-400/30',
     glow: 'shadow-emerald-500/20',
   },
+  '/dashboard/action-center': {
+    icon: 'text-rose-300 bg-rose-950/70 border-rose-400/40',
+    border: 'border-rose-500/30',
+    badge: 'text-rose-200 bg-rose-950/80',
+    badgeBorder: 'border-rose-400/30',
+    glow: 'shadow-rose-500/20',
+  },
 };
 
 const navBadges: Record<string, string> = {
+  '/dashboard/action-center': 'HOT',
   '/dashboard': 'LIVE',
   '/dashboard/employees': 'TEAM',
   '/dashboard/attendance': '5G',
@@ -316,7 +324,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       id: 'main',
       title: 'Main',
-      items: [{ href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
+      items: [
+        { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+        { href: '/dashboard/action-center', label: 'مركز الإجراءات', icon: Zap },
+      ],
     },
     {
       id: 'hr-management',
@@ -634,7 +645,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page content */}
-        <main className="flex-1 page-shell p-4 lg:p-8 max-w-[1600px] w-full mx-auto pb-4 lg:pb-8">
+        <main className="flex-1 page-shell w-full min-w-0 p-3 sm:p-4 lg:p-6 max-w-[1800px] mx-auto pb-20 lg:pb-6 overflow-x-hidden">
           {children}
         </main>
       </div>

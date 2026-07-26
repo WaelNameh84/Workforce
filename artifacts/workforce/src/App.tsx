@@ -12,6 +12,7 @@ import Register from '@/pages/register';
 import DashboardLayout from '@/components/layout';
 
 import {
+  ActionCenter,
   Dashboard,
   Employees,
   Departments,
@@ -71,6 +72,7 @@ function Router() {
       <ProtectedRoute path="/dashboard/settings" component={Settings} />
 
       {/* Admin / Manager only routes */}
+      <ProtectedRoute path="/dashboard/action-center" component={ActionCenter} adminOnly />
       <ProtectedRoute path="/dashboard/employees" component={Employees} adminOnly />
       <ProtectedRoute path="/dashboard/departments" component={Departments} adminOnly />
       <ProtectedRoute path="/dashboard/locations" component={Locations} adminOnly />

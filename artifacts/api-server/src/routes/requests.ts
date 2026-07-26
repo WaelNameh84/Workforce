@@ -30,6 +30,7 @@ router.get("/requests", authMiddleware, async (req, res) => {
         title: requests.title,
         description: requests.description,
         status: requests.status,
+        paymentStatus: requests.paymentStatus,
         approvedBy: requests.approvedBy,
         approvedAt: requests.approvedAt,
         createdAt: requests.createdAt,
@@ -71,6 +72,10 @@ router.put("/requests/:id", authMiddleware, async (req, res) => {
     const updates: Record<string, unknown> = { ...req.body };
     if (req.body.status === "approved" || req.body.status === "rejected") {
       updates.approvedAt = new Date();
+      updates.approvedBy = req.user?.userId ?? req.body.approvedBy;
+      updates.paymentStatus = req.body.status === "approved"
+        ? (req.body.paymentStatus === "unpaid" ? "unpaid" : "paid")
+        : "pending";
     }
     const [request] = await db
       .update(requests)

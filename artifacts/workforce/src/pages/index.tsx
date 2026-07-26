@@ -1,3 +1,4 @@
+import ActionCenter from '@/pages/action-center';
 import Dashboard from '@/pages/dashboard';
 import Employees from '@/pages/employees';
 import Departments from '@/pages/departments';
@@ -19,6 +20,7 @@ import Security from '@/pages/security';
 import Developers from '@/pages/developers';
 
 export {
+  ActionCenter,
   Dashboard,
   Employees,
   Departments,

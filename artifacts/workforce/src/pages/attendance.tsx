@@ -177,17 +177,23 @@ export default function Attendance() {
     } catch {}
   };
 
-  const submitJustification = async (notes: string) => {
+  const submitJustification = async (notes: string, justificationType: 'late' | 'early' | 'overtime' | 'other') => {
     if (!pendingRecId) return;
-    try { await updateMutation.mutateAsync({ id: pendingRecId, data: { notes } }); invalidate(); } catch {}
+    try {
+      await updateMutation.mutateAsync({
+        id: pendingRecId,
+        data: { notes, justificationType, justificationStatus: 'pending', paymentStatus: 'pending' },
+      });
+      invalidate();
+    } catch {}
   };
 
   const handleLateInSubmit = async () => {
-    await submitJustification(justText || ar ? 'تأخير — بدون سبب' : 'Late — no reason given');
+    await submitJustification(justText || (ar ? 'تأخير — بدون سبب' : 'Late — no reason given'), 'late');
     setShowLateIn(false); setJustText('');
   };
   const handleEarlyOutSubmit = async () => {
-    await submitJustification(justText || ar ? 'خروج مبكر — بدون سبب' : 'Early out — no reason given');
+    await submitJustification(justText || (ar ? 'خروج مبكر — بدون سبب' : 'Early out — no reason given'), 'early');
     setShowEarlyOut(false); setJustText('');
   };
   const handleLateOutSubmit = async () => {
@@ -195,7 +201,7 @@ export default function Attendance() {
     if (lateOutReason === 'overtime')  notes = ar ? 'عمل إضافي' : 'Overtime work';
     if (lateOutReason === 'forgot')    notes = ar ? 'نسيت تسجيل الخروج — لا يُحتسب إضافي' : 'Forgot to clock out — not overtime';
     if (lateOutReason === 'other')     notes = justText || (ar ? 'خروج متأخر — بدون سبب' : 'Late out — no reason given');
-    await submitJustification(notes);
+    await submitJustification(notes, lateOutReason === 'overtime' ? 'overtime' : 'other');
     setShowLateOut(false); setJustText(''); setLateOutReason('overtime');
   };
 

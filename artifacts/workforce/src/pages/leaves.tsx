@@ -151,11 +151,11 @@ export default function Leaves() {
     }
   };
 
-  const updateStatus = async (leave: Leave, status: 'approved' | 'rejected') => {
+  const updateStatus = async (leave: Leave, status: 'approved' | 'rejected', paymentStatus?: 'paid' | 'unpaid') => {
     if (!leave.id) return;
     try {
-      await updateMutation.mutateAsync({ id: leave.id, data: { status, approvedBy: user?.id || undefined } });
-      toast({ title: t(status) });
+      await updateMutation.mutateAsync({ id: leave.id, data: { status, paymentStatus, approvedBy: user?.id || undefined } });
+      toast({ title: status === 'approved' ? `تمت الموافقة — ${paymentStatus === 'unpaid' ? 'غير مدفوعة' : 'مدفوعة'}` : t(status) });
       refresh();
     } catch {
       toast({ variant: 'destructive', title: t('actions'), description: 'Could not update this request.' });
@@ -250,13 +250,21 @@ export default function Leaves() {
                     <div className="flex flex-col sm:items-end gap-2 border-t border-border sm:border-0 pt-3 sm:pt-0">
                       <div className="flex items-center justify-between sm:justify-end gap-4 w-full">
                         <span className="font-data text-sm opacity-80">{leave.startDate || '—'} → {leave.endDate || '—'}</span>
-                        <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${statusColor(leave.status)}`}>{t((leave.status || 'pending') as any)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${statusColor(leave.status)}`}>{t((leave.status || 'pending') as any)}</span>
+                            {leave.status === 'approved' && (
+                              <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${leave.paymentStatus === 'unpaid' ? 'bg-orange-500/10 text-orange-500' : 'bg-green-500/10 text-green-500'}`}>
+                                {leave.paymentStatus === 'unpaid' ? 'غير مدفوعة' : 'مدفوعة'}
+                              </span>
+                            )}
+                          </div>
                       </div>
                       
                       <div className="flex gap-2 justify-end" onClick={(event) => event.stopPropagation()}>
                         {leave.status === 'pending' && (
                           <>
-                            <button data-testid={`button-approve-leave-${leave.id}`} aria-label={t('approved')} onClick={() => updateStatus(leave, 'approved')} className="h-8 w-8 flex items-center justify-center rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white transition-colors"><CheckCircle2 className="w-5 h-5" /></button>
+                            <button data-testid={`button-approve-leave-paid-${leave.id}`} aria-label="موافقة مدفوعة" onClick={() => updateStatus(leave, 'approved', 'paid')} className="h-8 px-2 flex items-center justify-center gap-1 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white transition-colors text-[10px] font-bold"><CheckCircle2 className="w-4 h-4" /> مدفوعة</button>
+                            <button data-testid={`button-approve-leave-unpaid-${leave.id}`} aria-label="موافقة غير مدفوعة" onClick={() => updateStatus(leave, 'approved', 'unpaid')} className="h-8 px-2 flex items-center justify-center gap-1 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500 hover:text-white transition-colors text-[10px] font-bold"><CheckCircle2 className="w-4 h-4" /> غير مدفوعة</button>
                             <button data-testid={`button-reject-leave-${leave.id}`} aria-label={t('rejected')} onClick={() => updateStatus(leave, 'rejected')} className="h-8 w-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors"><XCircle className="w-5 h-5" /></button>
                           </>
                         )}

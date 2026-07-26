@@ -268,6 +268,22 @@ components:
         notes:
           type: string
           nullable: true
+        justificationType:
+          type: string
+          nullable: true
+          enum: [late, early, overtime, other]
+        justificationStatus:
+          type: string
+          enum: [none, pending, approved, rejected]
+        paymentStatus:
+          type: string
+          enum: [pending, paid, unpaid]
+        justificationApprovedBy:
+          type: integer
+          nullable: true
+        justificationApprovedAt:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -300,6 +316,15 @@ components:
           type: string
           enum: [present, absent, late, half-day]
           nullable: true
+        justificationType:
+          type: string
+          enum: [late, early, overtime, other]
+        justificationStatus:
+          type: string
+          enum: [none, pending, approved, rejected]
+        paymentStatus:
+          type: string
+          enum: [pending, paid, unpaid]
 
     # Leave
     Leave:
@@ -327,6 +352,9 @@ components:
         status:
           type: string
           enum: [pending, approved, rejected]
+        paymentStatus:
+          type: string
+          enum: [pending, paid, unpaid]
         approvedBy:
           type: integer
           nullable: true
@@ -361,6 +389,9 @@ components:
         status:
           type: string
           enum: [pending, approved, rejected]
+        paymentStatus:
+          type: string
+          enum: [pending, paid, unpaid]
         approvedBy:
           type: integer
 
@@ -479,6 +510,9 @@ components:
         status:
           type: string
           enum: [pending, approved, rejected]
+        paymentStatus:
+          type: string
+          enum: [pending, paid, unpaid]
         approvedBy:
           type: integer
           nullable: true
@@ -509,6 +543,9 @@ components:
         status:
           type: string
           enum: [pending, approved, rejected]
+        paymentStatus:
+          type: string
+          enum: [pending, paid, unpaid]
         approvedBy:
           type: integer
 

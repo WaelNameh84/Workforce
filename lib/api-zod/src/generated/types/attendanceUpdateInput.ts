@@ -5,6 +5,9 @@
  * WorkforceOS - Multilingual Workforce Management Platform API
  * OpenAPI spec version: 1.0.0
  */
+import type { AttendanceUpdateInputJustificationStatus } from './attendanceUpdateInputJustificationStatus';
+import type { AttendanceUpdateInputJustificationType } from './attendanceUpdateInputJustificationType';
+import type { AttendanceUpdateInputPaymentStatus } from './attendanceUpdateInputPaymentStatus';
 import type { AttendanceUpdateInputStatus } from './attendanceUpdateInputStatus';
 
 export interface AttendanceUpdateInput {
@@ -12,4 +15,7 @@ export interface AttendanceUpdateInput {
   notes?: string | null;
   /** @nullable */
   status?: AttendanceUpdateInputStatus;
+  justificationType?: AttendanceUpdateInputJustificationType;
+  justificationStatus?: AttendanceUpdateInputJustificationStatus;
+  paymentStatus?: AttendanceUpdateInputPaymentStatus;
 }

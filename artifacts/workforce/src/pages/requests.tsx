@@ -38,11 +38,11 @@ export default function Requests() {
   const requests = data?.requests || [];
   const refresh = () => queryClient.invalidateQueries({ queryKey: getGetRequestsQueryKey() });
 
-  const updateStatus = async (request: WorkRequest, status: 'approved' | 'rejected') => {
+  const updateStatus = async (request: WorkRequest, status: 'approved' | 'rejected', paymentStatus?: 'paid' | 'unpaid') => {
     if (!request.id) return;
     try {
-      await updateMutation.mutateAsync({ id: request.id, data: { status, approvedBy: user?.id || undefined } });
-      toast({ title: t(status) });
+      await updateMutation.mutateAsync({ id: request.id, data: { status, paymentStatus, approvedBy: user?.id || undefined } });
+      toast({ title: status === 'approved' ? `تمت الموافقة — ${paymentStatus === 'unpaid' ? 'غير مدفوع' : 'مدفوع'}` : t(status) });
       refresh();
     } catch { toast({ variant: 'destructive', title: t('actions'), description: 'Could not update this request.' }); }
   };
@@ -122,11 +122,15 @@ export default function Requests() {
                     {request.status === 'approved' ? <CheckCircle2 className="w-4 h-4" /> : request.status === 'rejected' ? <XCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                     {t((request.status || 'pending') as any)}
                   </span>
+                  {request.status === 'approved' && <span className={`px-3 py-1.5 rounded-xl text-xs font-bold ${request.paymentStatus === 'unpaid' ? 'bg-orange-500/10 text-orange-600' : 'bg-green-500/10 text-green-600'}`}>{request.paymentStatus === 'unpaid' ? 'غير مدفوع' : 'مدفوع'}</span>}
                   
                   {request.status === 'pending' && (
                     <div className="flex gap-2 ml-2">
-                      <button aria-label={t('approved')} onClick={() => updateStatus(request, 'approved')} className="h-9 w-9 flex items-center justify-center rounded-xl bg-card border border-border shadow-sm text-green-500 hover:bg-green-500 hover:text-white transition-colors">
-                        <CheckCircle2 className="w-5 h-5" />
+                      <button aria-label="موافقة مدفوعة" onClick={() => updateStatus(request, 'approved', 'paid')} className="h-9 px-2 flex items-center gap-1 rounded-xl bg-card border border-green-500/30 shadow-sm text-green-500 hover:bg-green-500 hover:text-white transition-colors text-[10px] font-bold">
+                        <CheckCircle2 className="w-4 h-4" /> مدفوع
+                      </button>
+                      <button aria-label="موافقة غير مدفوعة" onClick={() => updateStatus(request, 'approved', 'unpaid')} className="h-9 px-2 flex items-center gap-1 rounded-xl bg-card border border-orange-500/30 shadow-sm text-orange-500 hover:bg-orange-500 hover:text-white transition-colors text-[10px] font-bold">
+                        <CheckCircle2 className="w-4 h-4" /> غير مدفوع
                       </button>
                       <button aria-label={t('rejected')} onClick={() => updateStatus(request, 'rejected')} className="h-9 w-9 flex items-center justify-center rounded-xl bg-card border border-border shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors">
                         <XCircle className="w-5 h-5" />

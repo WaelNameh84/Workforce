@@ -5,6 +5,7 @@
  * WorkforceOS - Multilingual Workforce Management Platform API
  * OpenAPI spec version: 1.0.0
  */
+import type { WorkRequestPaymentStatus } from './workRequestPaymentStatus';
 import type { WorkRequestStatus } from './workRequestStatus';
 import type { WorkRequestType } from './workRequestType';
 
@@ -18,6 +19,7 @@ export interface WorkRequest {
   /** @nullable */
   description?: string | null;
   status?: WorkRequestStatus;
+  paymentStatus?: WorkRequestPaymentStatus;
   /** @nullable */
   approvedBy?: number | null;
   /** @nullable */

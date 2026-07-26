@@ -156,6 +156,38 @@ export const AttendanceStatus = {
   'half-day': 'half-day',
 } as const;
 
+/**
+ * @nullable
+ */
+export type AttendanceJustificationType = typeof AttendanceJustificationType[keyof typeof AttendanceJustificationType] | null;
+
+
+export const AttendanceJustificationType = {
+  late: 'late',
+  early: 'early',
+  overtime: 'overtime',
+  other: 'other',
+} as const;
+
+export type AttendanceJustificationStatus = typeof AttendanceJustificationStatus[keyof typeof AttendanceJustificationStatus];
+
+
+export const AttendanceJustificationStatus = {
+  none: 'none',
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export type AttendancePaymentStatus = typeof AttendancePaymentStatus[keyof typeof AttendancePaymentStatus];
+
+
+export const AttendancePaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  unpaid: 'unpaid',
+} as const;
+
 export interface Attendance {
   id?: number;
   employeeId?: number;
@@ -176,6 +208,14 @@ export interface Attendance {
   isLate?: boolean;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  justificationType?: AttendanceJustificationType;
+  justificationStatus?: AttendanceJustificationStatus;
+  paymentStatus?: AttendancePaymentStatus;
+  /** @nullable */
+  justificationApprovedBy?: number | null;
+  /** @nullable */
+  justificationApprovedAt?: string | null;
   createdAt?: string;
 }
 
@@ -202,11 +242,43 @@ export const AttendanceUpdateInputStatus = {
   'half-day': 'half-day',
 } as const;
 
+export type AttendanceUpdateInputJustificationType = typeof AttendanceUpdateInputJustificationType[keyof typeof AttendanceUpdateInputJustificationType];
+
+
+export const AttendanceUpdateInputJustificationType = {
+  late: 'late',
+  early: 'early',
+  overtime: 'overtime',
+  other: 'other',
+} as const;
+
+export type AttendanceUpdateInputJustificationStatus = typeof AttendanceUpdateInputJustificationStatus[keyof typeof AttendanceUpdateInputJustificationStatus];
+
+
+export const AttendanceUpdateInputJustificationStatus = {
+  none: 'none',
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export type AttendanceUpdateInputPaymentStatus = typeof AttendanceUpdateInputPaymentStatus[keyof typeof AttendanceUpdateInputPaymentStatus];
+
+
+export const AttendanceUpdateInputPaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  unpaid: 'unpaid',
+} as const;
+
 export interface AttendanceUpdateInput {
   /** @nullable */
   notes?: string | null;
   /** @nullable */
   status?: AttendanceUpdateInputStatus;
+  justificationType?: AttendanceUpdateInputJustificationType;
+  justificationStatus?: AttendanceUpdateInputJustificationStatus;
+  paymentStatus?: AttendanceUpdateInputPaymentStatus;
 }
 
 export type LeaveType = typeof LeaveType[keyof typeof LeaveType];
@@ -230,6 +302,15 @@ export const LeaveStatus = {
   rejected: 'rejected',
 } as const;
 
+export type LeavePaymentStatus = typeof LeavePaymentStatus[keyof typeof LeavePaymentStatus];
+
+
+export const LeavePaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  unpaid: 'unpaid',
+} as const;
+
 export interface Leave {
   id?: number;
   employeeId?: number;
@@ -242,6 +323,7 @@ export interface Leave {
   /** @nullable */
   reason?: string | null;
   status?: LeaveStatus;
+  paymentStatus?: LeavePaymentStatus;
   /** @nullable */
   approvedBy?: number | null;
   /** @nullable */
@@ -279,8 +361,18 @@ export const LeaveUpdateStatus = {
   rejected: 'rejected',
 } as const;
 
+export type LeaveUpdatePaymentStatus = typeof LeaveUpdatePaymentStatus[keyof typeof LeaveUpdatePaymentStatus];
+
+
+export const LeaveUpdatePaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  unpaid: 'unpaid',
+} as const;
+
 export interface LeaveUpdate {
   status?: LeaveUpdateStatus;
+  paymentStatus?: LeaveUpdatePaymentStatus;
   approvedBy?: number;
 }
 
@@ -391,6 +483,15 @@ export const WorkRequestStatus = {
   rejected: 'rejected',
 } as const;
 
+export type WorkRequestPaymentStatus = typeof WorkRequestPaymentStatus[keyof typeof WorkRequestPaymentStatus];
+
+
+export const WorkRequestPaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  unpaid: 'unpaid',
+} as const;
+
 export interface WorkRequest {
   id?: number;
   employeeId?: number;
@@ -401,6 +502,7 @@ export interface WorkRequest {
   /** @nullable */
   description?: string | null;
   status?: WorkRequestStatus;
+  paymentStatus?: WorkRequestPaymentStatus;
   /** @nullable */
   approvedBy?: number | null;
   /** @nullable */
@@ -435,8 +537,18 @@ export const WorkRequestUpdateStatus = {
   rejected: 'rejected',
 } as const;
 
+export type WorkRequestUpdatePaymentStatus = typeof WorkRequestUpdatePaymentStatus[keyof typeof WorkRequestUpdatePaymentStatus];
+
+
+export const WorkRequestUpdatePaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  unpaid: 'unpaid',
+} as const;
+
 export interface WorkRequestUpdate {
   status?: WorkRequestUpdateStatus;
+  paymentStatus?: WorkRequestUpdatePaymentStatus;
   approvedBy?: number;
 }
 

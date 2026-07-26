@@ -405,6 +405,11 @@ export const GetAttendanceResponse = zod.object({
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
+  "justificationType": zod.enum(['late', 'early', 'overtime', 'other']).nullish(),
+  "justificationStatus": zod.enum(['none', 'pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
+  "justificationApprovedBy": zod.number().nullish(),
+  "justificationApprovedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })).optional(),
   "total": zod.number().optional()
@@ -433,6 +438,11 @@ export const ClockInResponse = zod.object({
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
+  "justificationType": zod.enum(['late', 'early', 'overtime', 'other']).nullish(),
+  "justificationStatus": zod.enum(['none', 'pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
+  "justificationApprovedBy": zod.number().nullish(),
+  "justificationApprovedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })
 
@@ -457,6 +467,11 @@ export const ClockOutResponse = zod.object({
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
+  "justificationType": zod.enum(['late', 'early', 'overtime', 'other']).nullish(),
+  "justificationStatus": zod.enum(['none', 'pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
+  "justificationApprovedBy": zod.number().nullish(),
+  "justificationApprovedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })
 
@@ -470,7 +485,10 @@ export const UpdateAttendanceParams = zod.object({
 
 export const UpdateAttendanceBody = zod.object({
   "notes": zod.string().nullish(),
-  "status": zod.enum(['present', 'absent', 'late', 'half-day']).nullish()
+  "status": zod.enum(['present', 'absent', 'late', 'half-day']).nullish(),
+  "justificationType": zod.enum(['late', 'early', 'overtime', 'other']).optional(),
+  "justificationStatus": zod.enum(['none', 'pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional()
 })
 
 export const UpdateAttendanceResponse = zod.object({
@@ -486,6 +504,11 @@ export const UpdateAttendanceResponse = zod.object({
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
+  "justificationType": zod.enum(['late', 'early', 'overtime', 'other']).nullish(),
+  "justificationStatus": zod.enum(['none', 'pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
+  "justificationApprovedBy": zod.number().nullish(),
+  "justificationApprovedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })
 
@@ -510,6 +533,11 @@ export const GetTodayAttendanceResponse = zod.object({
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
+  "justificationType": zod.enum(['late', 'early', 'overtime', 'other']).nullish(),
+  "justificationStatus": zod.enum(['none', 'pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
+  "justificationApprovedBy": zod.number().nullish(),
+  "justificationApprovedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })
 
@@ -534,6 +562,7 @@ export const GetLeavesResponse = zod.object({
   "daysCount": zod.number().optional(),
   "reason": zod.string().nullish(),
   "status": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
   "approvedBy": zod.number().nullish(),
   "approvedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
@@ -564,6 +593,7 @@ export const CreateLeaveResponse = zod.object({
   "daysCount": zod.number().optional(),
   "reason": zod.string().nullish(),
   "status": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
   "approvedBy": zod.number().nullish(),
   "approvedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
@@ -579,6 +609,7 @@ export const UpdateLeaveParams = zod.object({
 
 export const UpdateLeaveBody = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
   "approvedBy": zod.number().optional()
 })
 
@@ -592,6 +623,7 @@ export const UpdateLeaveResponse = zod.object({
   "daysCount": zod.number().optional(),
   "reason": zod.string().nullish(),
   "status": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
   "approvedBy": zod.number().nullish(),
   "approvedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
@@ -736,6 +768,7 @@ export const GetRequestsResponse = zod.object({
   "title": zod.string().optional(),
   "description": zod.string().nullish(),
   "status": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
   "approvedBy": zod.number().nullish(),
   "approvedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
@@ -762,6 +795,7 @@ export const CreateRequestResponse = zod.object({
   "title": zod.string().optional(),
   "description": zod.string().nullish(),
   "status": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
   "approvedBy": zod.number().nullish(),
   "approvedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
@@ -777,6 +811,7 @@ export const UpdateRequestParams = zod.object({
 
 export const UpdateRequestBody = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
   "approvedBy": zod.number().optional()
 })
 
@@ -788,6 +823,7 @@ export const UpdateRequestResponse = zod.object({
   "title": zod.string().optional(),
   "description": zod.string().nullish(),
   "status": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'unpaid']).optional(),
   "approvedBy": zod.number().nullish(),
   "approvedAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()

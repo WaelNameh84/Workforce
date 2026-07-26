@@ -5,9 +5,11 @@
  * WorkforceOS - Multilingual Workforce Management Platform API
  * OpenAPI spec version: 1.0.0
  */
+import type { LeaveUpdatePaymentStatus } from './leaveUpdatePaymentStatus';
 import type { LeaveUpdateStatus } from './leaveUpdateStatus';
 
 export interface LeaveUpdate {
   status?: LeaveUpdateStatus;
+  paymentStatus?: LeaveUpdatePaymentStatus;
   approvedBy?: number;
 }
