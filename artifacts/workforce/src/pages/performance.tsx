@@ -1,7 +1,6 @@
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Target, TrendingUp, Award, Activity } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
@@ -99,30 +98,14 @@ export default function Performance() {
           <CardHeader>
             <CardTitle>{t('recentReviews')}</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>{t('employee')}</TableHead>
-                  <TableHead className="text-right">{t('score')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {topEmployees.map((emp) => (
-                  <TableRow key={emp.id}>
-                    <TableCell className="font-medium">{emp.fullName}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={emp.score >= 9 ? 'success' : 'secondary'}>{emp.score.toFixed(1)}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {topEmployees.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground py-8">{t('noEmployeesFound')}</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+          <CardContent className="space-y-2">
+            {topEmployees.length === 0 ? <div className="text-center text-muted-foreground py-8">{t('noEmployeesFound')}</div> : topEmployees.map((emp, index) => (
+              <div key={emp.id} data-testid={`card-performance-${emp.id}`} className={`flex items-center gap-3 rounded-xl p-3 border pressable animate-fadeIn stagger-${index + 1}`} style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-300 to-teal-600 flex items-center justify-center text-emerald-950 font-bold">{emp.fullName?.charAt(0) || 'U'}</div>
+                <span className="font-medium flex-1">{emp.fullName}</span>
+                <Badge variant={emp.score >= 9 ? 'success' : 'secondary'}>{emp.score.toFixed(1)}</Badge>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

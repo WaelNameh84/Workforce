@@ -146,34 +146,17 @@ export default function Leaves() {
         ))}
       </div>
 
-      <div className="p-6 rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+      <div className="surface p-4 sm:p-6 rounded-2xl">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold">{t('leaveRequests')}</h3>
           <span className="text-sm text-muted-foreground">{leaves.length} {t('total').toLowerCase()}</span>
         </div>
-        <table className="w-full min-w-[850px]">
-          <thead><tr className="text-sm" style={{ color: 'var(--muted)' }}>{[t('employee'), t('leaveType'), t('from'), t('to'), t('days'), t('reason'), t('status'), t('actions')].map((head) => <th key={head} className="text-left py-3 px-2 font-medium">{head}</th>)}</tr></thead>
-          <tbody>
-            {isLoading ? <tr><td colSpan={8} className="text-center py-10 text-muted-foreground">{t('loading')}</td></tr> : !leaves.length ? <tr><td colSpan={8} className="text-center py-10 text-muted-foreground">{t('noData')}</td></tr> : leaves.map((leave) => (
-              <tr key={leave.id} onClick={() => setSelected(leave)} className="text-sm border-t cursor-pointer hover:bg-muted/30" style={{ borderColor: 'var(--border)' }}>
-                <td className="py-3 px-2 font-medium">{leave.employeeName || `#${leave.employeeId}`}</td>
-                <td className="py-3 px-2">{t((leave.type || 'annual') as any)}</td>
-                <td className="py-3 px-2">{leave.startDate || '—'}</td>
-                <td className="py-3 px-2">{leave.endDate || '—'}</td>
-                <td className="py-3 px-2 font-medium">{leave.daysCount || 0}</td>
-                <td className="py-3 px-2 max-w-[180px] truncate" style={{ color: 'var(--muted)' }}>{leave.reason || '—'}</td>
-                <td className="py-3 px-2"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor(leave.status)}`}>{leave.status === 'approved' ? <CheckCircle2 className="w-3 h-3 inline me-1" /> : leave.status === 'rejected' ? <XCircle className="w-3 h-3 inline me-1" /> : <Clock className="w-3 h-3 inline me-1" />}{t((leave.status || 'pending') as any)}</span></td>
-                <td className="py-3 px-2" onClick={(event) => event.stopPropagation()}>
-                  <div className="flex gap-1">
-                    {leave.status === 'pending' && <><button aria-label={t('approved')} onClick={() => updateStatus(leave, 'approved')} className="p-1.5 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20"><CheckCircle2 className="w-4 h-4" /></button><button aria-label={t('rejected')} onClick={() => updateStatus(leave, 'rejected')} className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20"><XCircle className="w-4 h-4" /></button></>}
-                    <button aria-label={t('delete')} onClick={() => setDeleteId(leave.id || null)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500"><Trash2 className="w-4 h-4" /></button>
-                    <button aria-label={t('viewProfile')} onClick={() => setSelected(leave)} className="p-1.5 rounded-lg hover:bg-muted"><FileText className="w-4 h-4" /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {isLoading ? <div className="h-24 rounded-xl animate-pulse" style={{ background: 'var(--muted-bg)' }} /> : !leaves.length ? <div className="py-10 text-center text-muted-foreground">{t('noData')}</div> : <div className="space-y-3">{leaves.map((leave, index) => (
+          <div key={leave.id} data-testid={`card-leave-${leave.id}`} onClick={() => setSelected(leave)} className={`rounded-xl p-4 border cursor-pointer pressable animate-fadeIn stagger-${(index % 4) + 1}`} style={{ background: 'var(--background)', borderColor: 'var(--border)' }}>
+            <div className="flex items-start gap-3"><div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${leaveTypes.find((item) => item.type === leave.type)?.color || 'from-teal-400 to-emerald-600'} flex items-center justify-center text-white`}><FileText className="w-5 h-5" /></div><div className="min-w-0 flex-1"><div className="font-semibold truncate">{leave.employeeName || `#${leave.employeeId}`}</div><div className="text-xs text-muted-foreground mt-1">{t((leave.type || 'annual') as any)} · {leave.daysCount || 0} {t('days')}</div></div><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor(leave.status)}`}>{t((leave.status || 'pending') as any)}</span></div>
+            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground"><span>{leave.startDate || '—'} → {leave.endDate || '—'}</span><div className="flex gap-1" onClick={(event) => event.stopPropagation()}>{leave.status === 'pending' && <><button data-testid={`button-approve-leave-${leave.id}`} aria-label={t('approved')} onClick={() => updateStatus(leave, 'approved')} className="p-2 rounded-lg bg-green-500/10 text-green-500"><CheckCircle2 className="w-4 h-4" /></button><button data-testid={`button-reject-leave-${leave.id}`} aria-label={t('rejected')} onClick={() => updateStatus(leave, 'rejected')} className="p-2 rounded-lg bg-red-500/10 text-red-500"><XCircle className="w-4 h-4" /></button></>}<button data-testid={`button-delete-leave-${leave.id}`} aria-label={t('delete')} onClick={() => setDeleteId(leave.id || null)} className="p-2 rounded-lg text-red-500"><Trash2 className="w-4 h-4" /></button></div></div>
+          </div>
+        ))}</div>}
       </div>
 
       {showForm && <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>

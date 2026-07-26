@@ -177,42 +177,18 @@ export default function Attendance() {
       </div>
 
       {/* Recent Records */}
-      <div className="p-6 rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+      <div className="surface p-4 sm:p-6 rounded-2xl" data-testid="section-recent-attendance">
         <h3 className="text-lg font-bold mb-4">{t('recentRecords')}</h3>
-        <table className="w-full min-w-[700px]">
-          <thead>
-            <tr className="text-sm" style={{ color: 'var(--muted)' }}>
-              <th className="text-left py-3 px-2 font-medium">{t('employee')}</th>
-              <th className="text-left py-3 px-2 font-medium">{t('date')}</th>
-              <th className="text-left py-3 px-2 font-medium">{t('clockIn')}</th>
-              <th className="text-left py-3 px-2 font-medium">{t('clockOut')}</th>
-              <th className="text-left py-3 px-2 font-medium">{t('total')}</th>
-              <th className="text-left py-3 px-2 font-medium">{t('status')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={6} className="text-center py-10" style={{ color: 'var(--muted)' }}>{t('loading')}</td></tr>
-            ) : !attendanceData?.attendance?.length ? (
-              <tr><td colSpan={6} className="text-center py-10" style={{ color: 'var(--muted)' }}>{t('noRecordsFound')}</td></tr>
-            ) : (
-              attendanceRows.map((rec) => (
-                <tr key={rec.id} className="text-sm border-t" style={{ borderColor: 'var(--border)' }}>
-                  <td className="py-3 px-2 font-medium">{rec.employeeName}</td>
-                  <td className="py-3 px-2">{rec.date ? format(new Date(rec.date), 'MMM d, yyyy') : '—'}</td>
-                  <td className="py-3 px-2">{rec.clockIn ? format(new Date(rec.clockIn), 'HH:mm') : '—'}</td>
-                  <td className="py-3 px-2">{rec.clockOut ? format(new Date(rec.clockOut), 'HH:mm') : '—'}</td>
-                  <td className="py-3 px-2">{rec.totalHours || '—'}</td>
-                  <td className="py-3 px-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColor(rec.status)}`}>
-                      {rec.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        {isLoading ? <div className="h-24 rounded-xl animate-pulse" style={{ background: 'var(--muted-bg)' }} /> : !attendanceData?.attendance?.length ? (
+          <div className="py-10 text-center text-muted-foreground">{t('noRecordsFound')}</div>
+        ) : <div className="space-y-2">{attendanceRows.map((rec, index) => (
+          <div key={rec.id} data-testid={`card-attendance-${rec.id}`} className={`rounded-xl p-3 sm:p-4 flex items-center gap-3 animate-fadeIn stagger-${(index % 4) + 1}`} style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-300 to-teal-600 flex items-center justify-center text-emerald-950 font-bold">{rec.employeeName?.charAt(0) || 'U'}</div>
+            <div className="min-w-0 flex-1"><div className="font-semibold truncate">{rec.employeeName || '—'}</div><div className="text-xs text-muted-foreground">{rec.date ? format(new Date(rec.date), 'MMM d, yyyy') : '—'}</div></div>
+            <div className="hidden sm:block text-right text-xs"><div className="font-data">{rec.clockIn ? format(new Date(rec.clockIn), 'HH:mm') : '—'} → {rec.clockOut ? format(new Date(rec.clockOut), 'HH:mm') : '—'}</div><div className="text-muted-foreground mt-1">{rec.totalHours || '—'} {t('total')}</div></div>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColor(rec.status)}`}>{rec.status}</span>
+          </div>
+        ))}</div>}
       </div>
     </div>
   );

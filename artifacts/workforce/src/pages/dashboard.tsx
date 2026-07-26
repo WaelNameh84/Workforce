@@ -42,10 +42,11 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Welcome Banner */}
-      <div className="rounded-2xl p-6 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 text-white relative overflow-hidden">
+      <div className="rounded-[1.75rem] p-5 sm:p-7 bg-gradient-to-br from-[#0f766e] via-[#166b62] to-[#173b36] text-white relative overflow-hidden shadow-xl shadow-teal-950/15">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, white 0%, transparent 50%)' }} />
         <div className="relative">
-          <h1 className="text-2xl font-bold mb-1">{t('welcome')}, {user?.fullName}</h1>
+          <p className="text-[10px] uppercase tracking-[.2em] text-emerald-200/75 mb-3 font-data">FIELD BRIEF / {new Date().toLocaleDateString()}</p>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold mb-1">{t('welcome')}, {user?.fullName}</h1>
           <p className="text-white/80 text-sm">{t('workforceOverview')}.</p>
         </div>
       </div>
@@ -56,10 +57,11 @@ export default function Dashboard() {
           <Link
             key={i}
             href={['/dashboard/employees', '/dashboard/attendance', '/dashboard/leaves', '/dashboard/requests'][i]}
-            className="block p-5 rounded-2xl transition hover:-translate-y-0.5 hover:shadow-lg"
+             data-testid={`card-dashboard-stat-${i}`}
+             className={`block p-5 rounded-2xl transition pressable animate-fadeIn stagger-${i + 1} surface`}
             style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
           >
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3`}>
+               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center mb-3`}>
               <stat.icon className="w-5 h-5 text-white" />
             </div>
             <div className="text-2xl font-bold">{isLoading ? '—' : stat.value}</div>
@@ -72,7 +74,7 @@ export default function Dashboard() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Attendance Chart */}
         <div className="lg:col-span-2 p-6 rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <h3 className="text-lg font-bold mb-4">{t('attendanceOverview')}</h3>
+           <h3 className="font-display text-lg font-bold mb-4">{t('attendanceOverview')}</h3>
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={stats?.recentAttendance || []}>
               <defs>

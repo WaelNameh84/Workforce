@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-28 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent)' }} />
       </div>
     );
   }
@@ -87,10 +87,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Logo */}
       <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--sidebar-border)' }}>
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <Globe className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-300 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-950/20">
+            <Globe className="w-5 h-5 text-emerald-950" />
           </div>
-          <span className="font-bold text-lg" style={{ color: 'var(--sidebar-fg)' }}>{t('appName')}</span>
+          <span className="font-display font-bold text-lg tracking-tight" style={{ color: 'var(--sidebar-fg)' }}>{t('appName')}</span>
         </div>
         <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1 rounded-lg hover:bg-white/10 transition" style={{ color: 'var(--sidebar-fg)' }}>
           <X className="w-5 h-5" />
@@ -112,9 +112,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     key={i}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all pressable ${
                       active
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20'
+                         ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-emerald-950 shadow-lg shadow-emerald-950/20'
                         : 'hover:bg-white/10'
                     }`}
                     style={active ? {} : { color: 'var(--sidebar-fg)', opacity: active ? 1 : 0.75 }}
@@ -186,18 +186,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main */}
       <div
-        className="flex-1 flex flex-col min-h-screen min-w-0 lg:ms-64"
+        className="flex-1 flex flex-col min-h-[100dvh] min-w-0 lg:ms-64"
       >
         {/* Topbar */}
         <header
-          className="sticky top-0 z-20 h-16 flex items-center justify-between px-4 lg:px-6 backdrop-blur-md border-b"
+          className="sticky top-0 z-20 h-[4.5rem] flex items-center justify-between px-3 sm:px-4 lg:px-6 backdrop-blur-xl border-b"
           style={{ background: 'color-mix(in srgb, var(--background) 85%, transparent)', borderColor: 'var(--border)' }}
         >
           {/* Left: hamburger + search */}
           <div className="flex items-center gap-3 flex-1">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg transition"
+               className="lg:hidden p-2.5 rounded-xl transition pressable"
               style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
               aria-label="Open menu"
             >
@@ -231,7 +231,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-xl hover:opacity-80 transition"
+               data-testid="button-toggle-theme"
+               className="p-2.5 rounded-xl hover:opacity-80 transition pressable"
               style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -239,7 +240,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <button
               onClick={toggleLanguage}
-              className="px-3 py-2 rounded-xl text-xs font-bold hover:opacity-80 transition uppercase"
+               data-testid="button-toggle-language"
+               className="px-3 py-2 rounded-xl text-xs font-bold hover:opacity-80 transition uppercase"
               style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
             >
               {locale}
@@ -249,11 +251,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button
                 onClick={() => setNotificationsOpen((open) => !open)}
                 aria-label={t('notifications')}
-                className="relative p-2 rounded-xl hover:opacity-80 transition"
+                 data-testid="button-notifications"
+                 className="relative p-2.5 rounded-xl hover:opacity-80 transition pressable"
                 style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
               >
                 <Bell className="w-4 h-4" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full status-live" />
               </button>
               {notificationsOpen && (
                 <div
@@ -334,7 +337,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 page-shell p-4 lg:p-8 max-w-[1600px] w-full mx-auto">
           {children}
         </main>
       </div>

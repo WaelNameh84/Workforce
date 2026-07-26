@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -243,69 +242,23 @@ export default function Employees() {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-sm">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead>{t('employee')}</TableHead>
-                <TableHead>{t('position')}</TableHead>
-                <TableHead>{t('department')}</TableHead>
-                <TableHead>{t('salary')}</TableHead>
-                <TableHead>{t('status')}</TableHead>
-                <TableHead className="text-right">{t('actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">{t('loading')}</TableCell></TableRow>
-              ) : !employeesData?.employees?.length ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">{t('noEmployeesFound')}</TableCell></TableRow>
-              ) : (
-                employeesData.employees.map((emp) => (
-                  <TableRow key={emp.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                          {emp.fullName?.charAt(0) || 'U'}
-                        </div>
-                        <div>
-                          <div className="font-medium">{emp.fullName}</div>
-                          <div className="text-xs text-muted-foreground">{emp.email}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{emp.position || '-'}</TableCell>
-                    <TableCell>{emp.departmentName || '-'}</TableCell>
-                    <TableCell>{emp.salary ? `$${Number(emp.salary).toLocaleString()}` : '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant={emp.status === 'active' ? 'success' : emp.status === 'on-leave' ? 'warning' : 'secondary'} className="capitalize">
-                        {emp.status === 'active' ? t('active') : emp.status === 'on-leave' ? t('onLeaveStatus') : t('inactive')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2" onClick={() => setProfileEmployee(emp)}><Eye className="h-4 w-4" /> {t('viewProfile')}</DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => { setSelectedEmployee(emp); setIsEditOpen(true); }}>
-                            <Edit className="h-4 w-4" /> {t('edit')}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => setDeleteId(emp.id || null)}>
-                            <Trash2 className="h-4 w-4" /> {t('delete')}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {isLoading ? <div className="surface rounded-2xl h-24 animate-pulse" /> : !employeesData?.employees?.length ? (
+          <div className="surface rounded-2xl p-10 text-center text-muted-foreground">{t('noEmployeesFound')}</div>
+        ) : employeesData.employees.map((emp, index) => (
+          <div key={emp.id} data-testid={`card-employee-${emp.id}`} className={`surface rounded-2xl p-4 sm:p-5 pressable animate-fadeIn stagger-${(index % 4) + 1}`}>
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-emerald-950 font-bold flex-shrink-0">{emp.fullName?.charAt(0) || 'U'}</div>
+              <button data-testid={`button-view-employee-${emp.id}`} onClick={() => setProfileEmployee(emp)} className="min-w-0 flex-1 text-left">
+                <div className="font-semibold truncate">{emp.fullName}</div><div className="text-xs text-muted-foreground truncate">{emp.position || emp.email}</div>
+              </button>
+              <Badge variant={emp.status === 'active' ? 'success' : emp.status === 'on-leave' ? 'warning' : 'secondary'} className="capitalize">{emp.status === 'active' ? t('active') : emp.status === 'on-leave' ? t('onLeaveStatus') : t('inactive')}</Badge>
+              <DropdownMenu><DropdownMenuTrigger asChild><Button data-testid={`button-employee-actions-${emp.id}`} variant="ghost" size="icon" className="h-10 w-10"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem className="gap-2" onClick={() => setProfileEmployee(emp)}><Eye className="h-4 w-4" /> {t('viewProfile')}</DropdownMenuItem><DropdownMenuItem className="gap-2" onClick={() => { setSelectedEmployee(emp); setIsEditOpen(true); }}><Edit className="h-4 w-4" /> {t('edit')}</DropdownMenuItem><DropdownMenuItem className="gap-2 text-destructive" onClick={() => setDeleteId(emp.id || null)}><Trash2 className="h-4 w-4" /> {t('delete')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><span className="text-muted-foreground">{t('department')}</span><p className="font-medium mt-1">{emp.departmentName || '—'}</p></div><div><span className="text-muted-foreground">{t('salary')}</span><p className="font-data font-bold mt-1">{emp.salary ? `$${Number(emp.salary).toLocaleString()}` : '—'}</p></div></div>
+          </div>
+        ))}
+      </div>
       <DetailDialog
         open={!!profileEmployee}
         onOpenChange={(open) => !open && setProfileEmployee(null)}
