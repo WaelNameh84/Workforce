@@ -2,10 +2,15 @@ import { createRoot } from 'react-dom/client';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 
 import App from './App';
+import { SettingsProvider } from '@/contexts/settings-context';
 
 import './index.css';
 
 // Attach JWT token from localStorage to every API request
 setAuthTokenGetter(() => localStorage.getItem('token'));
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+  <SettingsProvider>
+    <App />
+  </SettingsProvider>
+);

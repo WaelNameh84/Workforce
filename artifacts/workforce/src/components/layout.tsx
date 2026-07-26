@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useTheme } from '@/components/theme-provider';
+import { useAppSettings } from '@/contexts/settings-context';
 import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
@@ -180,7 +181,38 @@ const navBadges: Record<string, string> = {
   '/dashboard/locations': 'SITES',
 };
 
+// ─── Live Clock widget ────────────────────────────────────────────────────────
+function LiveClock() {
+  const s = useAppSettings();
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (s.clockPos !== 'header') return null;
+
+  const timeStr = now.toLocaleTimeString(s.showArabicDay ? 'ar-SA' : 'en-US', {
+    hour: '2-digit', minute: '2-digit',
+    second: s.showSeconds ? '2-digit' : undefined,
+    hour12: s.show12h,
+  });
+  const dateStr = s.showDate
+    ? now.toLocaleDateString(s.showArabicDay ? 'ar-SA' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    : null;
+
+  const sizeClass = s.clockSize === 'small' ? 'text-xs' : s.clockSize === 'large' ? 'text-base' : 'text-sm';
+
+  return (
+    <div className="hidden sm:flex flex-col items-center leading-none px-3 py-1.5 rounded-xl border border-border bg-white/5">
+      <span className={`font-mono font-black ${sizeClass}`} style={{ color: s.clockColor }}>{timeStr}</span>
+      {dateStr && <span className="text-[10px] text-muted-foreground mt-0.5">{dateStr}</span>}
+    </div>
+  );
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const s = useAppSettings();
   const { user, isLoading, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const { t, locale, setLocale, dir } = useLanguage();
@@ -353,7 +385,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-white font-bold text-sm">W</span>
           </div>
           <div>
-            <div className="font-display font-bold text-sm text-white">WorkforceOS</div>
+            <div className="font-display font-bold text-sm text-white">{s.appName}</div>
             <div className="text-[10px] text-muted-foreground">HR Management</div>
           </div>
         </div>
@@ -483,6 +515,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex-1 lg:hidden" />
+
+          {/* Live clock */}
+          <LiveClock />
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">

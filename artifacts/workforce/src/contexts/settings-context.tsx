@@ -1,0 +1,222 @@
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+export interface AppSettings {
+  // General
+  appName: string;
+  welcomeMsg: string;
+  companyName: string;
+  companyAddr: string;
+  companyPhone: string;
+  companyEmail: string;
+
+  // Appearance
+  appColor: string;
+  fontSize: 'small' | 'medium' | 'large';
+  fontFamily: string;
+  iconStyle: 'rounded' | 'square' | 'circle';
+  clockStyle: 'digital' | 'analog' | 'minimal';
+  cardColors: string;
+  buttonColor: string;
+  background: string;
+  fontShape: string;
+
+  // Live Clock
+  clockType: 'digital' | 'analog' | 'flip';
+  clockColor: string;
+  clockSize: 'small' | 'medium' | 'large';
+  clockPos: 'header' | 'sidebar' | 'dashboard' | 'floating' | 'hidden';
+  showDate: boolean;
+  showSeconds: boolean;
+  show12h: boolean;
+  showArabicDay: boolean;
+  showShiftClock: boolean;
+
+  // Smart Assistant
+  assistantOn: boolean;
+  assistantName: string;
+  assistantMsg: string;
+  assistantPersonality: string;
+  assistantLang: string;
+
+  // API Keys
+  apiKeys: Record<string, string>;
+
+  // Notifications
+  notif: {
+    app: boolean;
+    email: boolean;
+    whatsapp: boolean;
+    sound: boolean;
+    shiftStart: boolean;
+    shiftEnd: boolean;
+    salary: boolean;
+    leaves: boolean;
+  };
+  shiftStartAlarm: string;
+  shiftEndAlarm: string;
+
+  // Attendance
+  workStart: string;
+  workEnd: string;
+  breakMin: string;
+  weekStart: string;
+  lateGrace: string;
+  otThreshold: string;
+  deductRate: string;
+  annualLeave: string;
+  holidays: string[];
+  leavePolicy: string;
+}
+
+const DEFAULTS: AppSettings = {
+  appName: 'WorkforceOS',
+  welcomeMsg: 'أهلاً وسهلاً في نظام إدارة القوى العاملة',
+  companyName: '',
+  companyAddr: '',
+  companyPhone: '',
+  companyEmail: '',
+
+  appColor: '#6366f1',
+  fontSize: 'medium',
+  fontFamily: 'system',
+  iconStyle: 'rounded',
+  clockStyle: 'digital',
+  cardColors: 'auto',
+  buttonColor: 'auto',
+  background: 'default',
+  fontShape: 'normal',
+
+  clockType: 'digital',
+  clockColor: '#6366f1',
+  clockSize: 'medium',
+  clockPos: 'header',
+  showDate: true,
+  showSeconds: true,
+  show12h: false,
+  showArabicDay: true,
+  showShiftClock: true,
+
+  assistantOn: true,
+  assistantName: 'WorkBot',
+  assistantMsg: 'مرحباً! كيف يمكنني مساعدتك؟',
+  assistantPersonality: 'professional',
+  assistantLang: 'ar',
+
+  apiKeys: {
+    openai: '', gemini: '', claude: '',
+    firebase: '', maps: '', smtp: '', whatsapp: '',
+  },
+
+  notif: {
+    app: true, email: true, whatsapp: false,
+    sound: true, shiftStart: true, shiftEnd: true, salary: true, leaves: true,
+  },
+  shiftStartAlarm: '08:45',
+  shiftEndAlarm: '17:00',
+
+  workStart: '09:00',
+  workEnd: '17:00',
+  breakMin: '60',
+  weekStart: 'sunday',
+  lateGrace: '15',
+  otThreshold: '60',
+  deductRate: 'hour',
+  annualLeave: '21',
+  holidays: ['الجمعة', 'السبت'],
+  leavePolicy: 'carryover',
+};
+
+// ─── Helper: parse hex → rgb string ──────────────────────────────────────────
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+  return `${r} ${g} ${b}`;
+}
+
+// ─── Context ──────────────────────────────────────────────────────────────────
+interface SettingsCtx {
+  s: AppSettings;
+  update: (patch: Partial<AppSettings>) => void;
+  save: () => void;
+}
+
+const Ctx = createContext<SettingsCtx | null>(null);
+
+export function SettingsProvider({ children }: { children: React.ReactNode }) {
+  const [s, setS] = useState<AppSettings>(() => {
+    try {
+      const stored = localStorage.getItem('workforce-settings');
+      if (stored) return { ...DEFAULTS, ...JSON.parse(stored) };
+    } catch { /* ignore */ }
+    return DEFAULTS;
+  });
+
+  // Apply CSS variables & body classes whenever settings change
+  useEffect(() => {
+    const root = document.documentElement;
+
+    // Primary color
+    root.style.setProperty('--primary', s.appColor);
+    root.style.setProperty('--ring', s.appColor);
+
+    // Font size class
+    root.classList.remove('text-sm-setting', 'text-base-setting', 'text-lg-setting');
+    if (s.fontSize === 'small')  root.style.fontSize = '14px';
+    if (s.fontSize === 'medium') root.style.fontSize = '16px';
+    if (s.fontSize === 'large')  root.style.fontSize = '18px';
+
+    // Font family
+    const fontMap: Record<string, string> = {
+      system:   'Almarai, sans-serif',
+      inter:    'Inter, sans-serif',
+      cairo:    'Cairo, sans-serif',
+      tajawal:  'Tajawal, sans-serif',
+      poppins:  'Poppins, sans-serif',
+      mono:     'Space Mono, monospace',
+    };
+    if (s.fontFamily !== 'system' && fontMap[s.fontFamily]) {
+      root.style.setProperty('--font-sans', fontMap[s.fontFamily]);
+    }
+  }, [s.appColor, s.fontSize, s.fontFamily]);
+
+  const update = useCallback((patch: Partial<AppSettings>) => {
+    setS(prev => {
+      const next = { ...prev, ...patch };
+      // Merge nested objects
+      if (patch.notif) next.notif = { ...prev.notif, ...patch.notif };
+      if (patch.apiKeys) next.apiKeys = { ...prev.apiKeys, ...patch.apiKeys };
+      return next;
+    });
+  }, []);
+
+  const save = useCallback(() => {
+    setS(prev => {
+      localStorage.setItem('workforce-settings', JSON.stringify(prev));
+      return prev;
+    });
+  }, []);
+
+  // Auto-save on every change (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('workforce-settings', JSON.stringify(s));
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [s]);
+
+  return <Ctx.Provider value={{ s, update, save }}>{children}</Ctx.Provider>;
+}
+
+export function useSettings() {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error('useSettings must be inside SettingsProvider');
+  return ctx;
+}
+
+// ─── Convenience hook for read-only consumers ─────────────────────────────────
+export function useAppSettings() {
+  return useSettings().s;
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { useAppSettings } from '@/contexts/settings-context';
 import { Bot, Sparkles, Send, TrendingUp, AlertCircle, Lightbulb, Activity, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -23,10 +24,11 @@ const quickQuestions = ['Analyze attendance', 'Predict turnover', 'Generate repo
 
 export default function AI() {
   const { t } = useLanguage();
-  const [messages, setMessages] = useState([
-    { role: 'ai',   content: "Hello! I'm your AI assistant. I can help with payroll analysis, attendance patterns, and generate insights. What would you like to know?" },
-    { role: 'user', content: 'Show me attendance trends for last month' },
-    { role: 'ai',   content: 'Based on analysis of 248 employees, attendance improved by 12% compared to December. Average clock-in time was 9:03 AM. Engineering had the highest attendance at 94%.' },
+  const s = useAppSettings();
+  const [messages, setMessages] = useState(() => [
+    { role: 'ai', content: s.assistantMsg || "مرحباً! كيف يمكنني مساعدتك؟" },
+    { role: 'user', content: 'أعطني ملخص الحضور هذا الشهر' },
+    { role: 'ai', content: 'بناءً على تحليل بيانات 248 موظفاً، تحسّن الحضور بنسبة 12% مقارنة بالشهر الماضي. متوسط وقت تسجيل الدخول: 9:03 صباحاً. قسم الهندسة سجّل أعلى نسبة حضور 94%.' },
   ]);
   const [input, setInput] = useState('');
 
@@ -47,8 +49,10 @@ export default function AI() {
           <Bot className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">{t('aiAssistant')}</h1>
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>AI-powered workforce intelligence</p>
+          <h1 className="text-2xl font-bold">{s.assistantName || t('aiAssistant')}</h1>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            {s.assistantLang === 'ar' ? 'مساعد ذكي لإدارة القوى العاملة' : 'AI-powered workforce intelligence'}
+          </p>
         </div>
       </div>
 
