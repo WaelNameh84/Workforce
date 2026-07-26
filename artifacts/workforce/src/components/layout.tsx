@@ -238,7 +238,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       items: [
         { href: '/dashboard/employees',  label: t('employees'),  icon: Users },
         { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
-        { href: '/dashboard/schedule',   label: t('schedule'),   icon: CalendarDays },
         { href: '/dashboard/leaves',     label: t('leaves'),     icon: CalendarCheck },
         { href: '/dashboard/payroll',    label: t('payroll'),    icon: CreditCard },
         { href: '/dashboard/requests',   label: t('requests'),   icon: Inbox },

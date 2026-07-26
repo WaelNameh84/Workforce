@@ -8,7 +8,7 @@ import {
   CreditCard, Inbox, FileText, Bot, MessageSquare, TrendingUp,
   Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, AlertCircle,
   ChevronDown, UserRound, UserX, Stethoscope, Timer, X, ChevronLeft,
-  BarChart3, BellRing, Banknote, TimerReset, Calendar, Activity, ArrowUpRight
+  BarChart3, BellRing, Banknote, TimerReset, Calendar, Activity, ArrowUpRight,
 } from 'lucide-react';
 
 type AdminDetailCard = {
