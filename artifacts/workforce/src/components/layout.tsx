@@ -8,8 +8,13 @@ import {
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
   LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User,
-  Building2, MapPin
+  Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2,
 } from 'lucide-react';
+import {
+  useGetAttendance, getGetAttendanceQueryKey,
+  useGetRequests,  getGetRequestsQueryKey,
+  useGetLeaves,    getGetLeavesQueryKey,
+} from '@workspace/api-client-react';
 
 const navVisuals: Record<string, {
   icon: string;
@@ -184,6 +189,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const cid = user?.companyId || 0;
+  const { data: nAttData } = useGetAttendance(
+    { companyId: cid, date: todayStr },
+    { query: { enabled: !!cid, queryKey: getGetAttendanceQueryKey({ companyId: cid, date: todayStr }) } }
+  );
+  const { data: nReqData } = useGetRequests(
+    { companyId: cid },
+    { query: { enabled: !!cid, queryKey: getGetRequestsQueryKey({ companyId: cid }) } }
+  );
+  const { data: nLeaveData } = useGetLeaves(
+    { companyId: cid },
+    { query: { enabled: !!cid, queryKey: getGetLeavesQueryKey({ companyId: cid }) } }
+  );
+  const nAtt: any[]    = (nAttData as any)?.attendance || [];
+  const nReqs: any[]   = (nReqData as any)?.requests   || [];
+  const nLeaves: any[] = nLeaveData?.leaves             || [];
+  const lateToday    = nAtt.filter((a: any) => a.isLate);
+  const pendingReqs  = nReqs.filter((r: any) => r.status === 'pending');
+  const pendingLeaves= nLeaves.filter((l: any) => l.status === 'pending');
+  const notifItems = [
+    ...lateToday.map((a: any) => ({
+      icon: Timer, color: 'text-violet-400 bg-violet-500/15',
+      title: `${a.employeeName || 'موظف'} — سجّل حضوراً متأخراً`,
+      time: a.clockIn ? new Date(a.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : 'اليوم',
+    })),
+    ...pendingReqs.map((r: any) => ({
+      icon: AlertCircle, color: 'text-amber-400 bg-amber-500/15',
+      title: r.title || 'طلب جديد بانتظار المراجعة',
+      time: r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-SA') : 'اليوم',
+    })),
+    ...pendingLeaves.map((l: any) => ({
+      icon: CalendarX, color: 'text-blue-400 bg-blue-500/15',
+      title: `طلب إجازة — ${l.employeeName || 'موظف'} (${l.daysCount || '—'} أيام)`,
+      time: l.startDate || 'اليوم',
+    })),
+  ];
+  const totalNotifs = notifItems.length;
+
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     main: true,
     'hr-management': true,
@@ -452,10 +496,86 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="relative p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => { setNotificationsOpen(!notificationsOpen); setUserMenuOpen(false); }}
+                className="relative p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground"
+              >
+                <Bell className="w-4 h-4" />
+                {totalNotifs > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white px-1">
+                    {totalNotifs > 9 ? '9+' : totalNotifs}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setNotificationsOpen(false)} />
+                  <div
+                    dir="rtl"
+                    className="absolute left-0 top-full mt-2 z-20 w-80 rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+                    style={{ background: 'var(--card)' }}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-amber-400" />
+                        <span className="font-bold text-sm">الإشعارات</span>
+                        {totalNotifs > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-black border border-red-500/30">
+                            {totalNotifs}
+                          </span>
+                        )}
+                      </div>
+                      <button onClick={() => setNotificationsOpen(false)} className="p-1 rounded-lg hover:bg-white/10 transition">
+                        <X className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                    </div>
+
+                    {/* Items */}
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifItems.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 gap-2">
+                          <CheckCircle2 className="w-8 h-8 text-green-400" />
+                          <p className="text-sm font-bold text-muted-foreground">لا توجد إشعارات جديدة</p>
+                        </div>
+                      ) : (
+                        <div className="p-2 space-y-1">
+                          {notifItems.map((n, i) => (
+                            <div
+                              key={i}
+                              className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition cursor-pointer"
+                            >
+                              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${n.color}`}>
+                                <n.icon className="w-3.5 h-3.5" />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold leading-snug">{n.title}</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    {lateToday.length > 0 || pendingReqs.length > 0 || pendingLeaves.length > 0 ? (
+                      <div className="flex items-center justify-between px-4 py-2.5 border-t border-white/10 text-[11px] text-muted-foreground">
+                        <span>{lateToday.length} متأخر · {pendingReqs.length} طلب · {pendingLeaves.length} إجازة</span>
+                        <button
+                          onClick={() => setNotificationsOpen(false)}
+                          className="text-indigo-400 font-bold hover:text-indigo-300 transition"
+                        >
+                          إغلاق
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* User menu */}
             <div className="relative">

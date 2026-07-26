@@ -8,7 +8,7 @@ import {
   CreditCard, Inbox, FileText, Bot, MessageSquare, TrendingUp,
   Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, AlertCircle,
   ChevronDown, UserRound, UserX, Stethoscope, Timer, X, ChevronLeft,
-  BarChart3, BellRing, Banknote, TimerReset, Calendar, Activity, ArrowUpRight,
+  BarChart3, Banknote, TimerReset, Calendar, Activity, ArrowUpRight,
 } from 'lucide-react';
 
 type AdminDetailCard = {
@@ -244,11 +244,6 @@ function AdminDashboard() {
       tone: 'text-amber-300 bg-amber-500/15',
     })),
   ].slice(0, 6);
-  const notificationItems = [
-    lateRecords.length ? `${lateRecords.length} موظف سجل حضوراً متأخراً` : 'لا يوجد تأخير مسجل اليوم',
-    pendingRequests.length ? `${pendingRequests.length} طلب بانتظار المراجعة` : 'لا توجد طلبات معلقة',
-    activeLeaves.length ? `${activeLeaves.length} موظف في إجازة اليوم` : 'لا توجد إجازات فعالة اليوم',
-  ];
 
   const openAttendanceDetails = (record: any) => {
     setSelectedCard({
@@ -404,25 +399,7 @@ function AdminDashboard() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-3xl border border-amber-400/25 bg-gradient-to-br from-amber-950/60 to-slate-950 p-4 shadow-xl">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <h2 className="font-display text-base font-extrabold text-white">الإشعارات</h2>
-              <p className="text-[10px] font-bold text-slate-400">تنبيهات تحتاج انتباهك</p>
-            </div>
-            <BellRing className="h-5 w-5 text-amber-300" />
-          </div>
-          <div className="space-y-2">
-            {notificationItems.map((notification, index) => (
-              <div key={notification} className="flex items-start gap-2 rounded-xl border border-white/5 bg-black/15 p-2.5">
-                <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${index === 0 && lateRecords.length ? 'bg-violet-400' : index === 1 && pendingRequests.length ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                <span className="text-[11px] font-bold leading-relaxed text-slate-300">{notification}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      <section className="grid grid-cols-1 gap-3">
         <div className="rounded-3xl border border-purple-400/25 bg-gradient-to-br from-purple-950/60 to-slate-950 p-4 shadow-xl">
           <div className="mb-3 flex items-center justify-between">
             <div>
