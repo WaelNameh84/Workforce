@@ -112,7 +112,7 @@ export const EmployeeInputStatus = {
 } as const;
 
 export interface EmployeeInput {
-  employeeCode: string;
+  employeeCode?: string;
   fullName: string;
   email: string;
   phone?: string;

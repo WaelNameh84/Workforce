@@ -166,7 +166,7 @@ components:
 
     EmployeeInput:
       type: object
-      required: [employeeCode, fullName, email]
+      required: [fullName, email]
       properties:
         employeeCode:
           type: string

@@ -78,10 +78,14 @@ router.post("/employees", authMiddleware, async (req, res) => {
       res.status(400).json({ error: "companyId is required" });
       return;
     }
-    const { companyId: _ignored, ...rest } = req.body;
+    const { companyId: _ignored, employeeCode: requestedEmployeeCode, ...rest } = req.body;
+    const employeeCode =
+      typeof requestedEmployeeCode === "string" && requestedEmployeeCode.trim()
+        ? requestedEmployeeCode.trim()
+        : `EMP-${Date.now().toString(36).toUpperCase()}`;
     const [emp] = await db
       .insert(employees)
-      .values({ companyId, ...rest })
+      .values({ companyId, employeeCode, ...rest })
       .returning();
     res.status(201).json(emp);
   } catch (err) {

@@ -47,6 +47,8 @@ const WORK_DAYS_OPTIONS = [
   { en: 'Sat', ar: 'سبت', sv: 'Lör' },
 ];
 
+const generateEmployeeCode = () => `EMP-${Date.now().toString(36).toUpperCase()}`;
+
 function WorkDaysPicker({ value, onChange, locale }: { value: string; onChange: (v: string) => void; locale: string }) {
   const selected = value ? value.split(',').map(s => s.trim()) : [];
   const toggle = (day: string) => {
@@ -140,7 +142,7 @@ export default function Employees() {
     const payload: EmployeeInput = {
       fullName: fd.get('fullName') as string,
       email: fd.get('email') as string,
-      employeeCode: fd.get('employeeCode') as string,
+      employeeCode: String(fd.get('employeeCode') || '').trim() || generateEmployeeCode(),
       departmentId: Number(fd.get('departmentId')) || undefined,
       position: fd.get('position') as string || undefined,
       phone: fd.get('phone') as string || undefined,
@@ -233,15 +235,22 @@ export default function Employees() {
       </TabsList>
 
       {/* Personal Data Tab */}
-      <TabsContent value="personal" className="space-y-4 mt-0">
+      <TabsContent value="personal" forceMount className="space-y-4 mt-0 data-[state=inactive]:hidden">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5 col-span-2">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fullName')}</Label>
             <Input name="fullName" defaultValue={defaultValues?.fullName} required className="rounded-xl h-10" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('employeeCode')}</Label>
-            <Input name="employeeCode" defaultValue={defaultValues?.employeeCode || ''} required={!isEdit} className="rounded-xl h-10" />
+             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+               {t('employeeCode')} <span className="normal-case font-normal opacity-60">({locale === 'ar' ? 'اختياري' : locale === 'sv' ? 'valfritt' : 'optional'})</span>
+             </Label>
+             <Input
+               name="employeeCode"
+               defaultValue={defaultValues?.employeeCode || ''}
+               placeholder={locale === 'ar' ? 'يُنشأ تلقائياً إذا تُرك فارغاً' : 'Generated automatically if left blank'}
+               className="rounded-xl h-10"
+             />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'الجنس' : locale === 'sv' ? 'Kön' : 'Gender'}</Label>
@@ -269,7 +278,7 @@ export default function Employees() {
       </TabsContent>
 
       {/* Work Data Tab */}
-      <TabsContent value="work" className="space-y-4 mt-0">
+      <TabsContent value="work" forceMount className="space-y-4 mt-0 data-[state=inactive]:hidden">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('department')}</Label>
@@ -327,7 +336,7 @@ export default function Employees() {
       </TabsContent>
 
       {/* Schedule Tab */}
-      <TabsContent value="schedule" className="space-y-4 mt-0">
+      <TabsContent value="schedule" forceMount className="space-y-4 mt-0 data-[state=inactive]:hidden">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'بداية الدوام' : locale === 'sv' ? 'Arbetstid start' : 'Work Start'}</Label>

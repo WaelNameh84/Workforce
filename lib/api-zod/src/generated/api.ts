@@ -141,7 +141,7 @@ export const GetEmployeesResponse = zod.object({
  * @summary Create employee
  */
 export const CreateEmployeeBody = zod.object({
-  "employeeCode": zod.string(),
+  "employeeCode": zod.string().optional(),
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().optional(),
@@ -227,7 +227,7 @@ export const UpdateEmployeeParams = zod.object({
 })
 
 export const UpdateEmployeeBody = zod.object({
-  "employeeCode": zod.string(),
+  "employeeCode": zod.string().optional(),
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().optional(),

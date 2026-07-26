@@ -260,13 +260,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
   const totalNotifs = notifItems.length;
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    main: true,
-    'hr-management': true,
-    advanced: false,
-    system: false,
-  });
-
   const isEmployee = user?.role === 'employee';
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
 
@@ -363,13 +356,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isActive = (href: string) =>
     href === '/dashboard' ? location === '/dashboard' : location.startsWith(href);
 
-  useEffect(() => {
-    const activeGroup = navGroups.find(g => g.items.some(i => isActive(i.href)));
-    if (activeGroup) {
-      setOpenGroups(prev => ({ ...prev, [activeGroup.id]: true }));
-    }
-  }, [location]);
-
   const roleBadge = isEmployee
     ? { label: 'موظف', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
     : user?.role === 'manager'
@@ -403,18 +389,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <nav className="flex-1 px-3 py-3 space-y-2 overflow-y-auto scrollbar-thin" aria-label="Dashboard sections">
         {navGroups.map(group => (
           <div key={group.id} className="mb-3">
-            <button
-              onClick={() => setOpenGroups(p => ({ ...p, [group.id]: !p[group.id] }))}
-              className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300 hover:text-white transition-colors"
-            >
+            <div className="flex items-center px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
               <span className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${openGroups[group.id] ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 {group.title}
               </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-300 transition-transform ${openGroups[group.id] ? 'rotate-180' : ''}`} />
-            </button>
-            {openGroups[group.id] && (
-              <div className="mt-1.5 space-y-1.5">
+            </div>
+            <div className="mt-1.5 space-y-1.5">
                 {group.items.map(item => {
                   const active = isActive(item.href);
                   const visual = navVisuals[item.href] || navVisuals['/dashboard'];
@@ -439,8 +420,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </Link>
                   );
                 })}
-              </div>
-            )}
+            </div>
           </div>
         ))}
       </nav>

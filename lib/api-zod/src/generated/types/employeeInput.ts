@@ -8,7 +8,7 @@
 import type { EmployeeInputStatus } from './employeeInputStatus';
 
 export interface EmployeeInput {
-  employeeCode: string;
+  employeeCode?: string;
   fullName: string;
   email: string;
   phone?: string;
