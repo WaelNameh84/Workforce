@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import DetailDialog from '@/components/detail-dialog';
 import { useGetEmployees, useGetDepartments, useCreateEmployee, useUpdateEmployee, useDeleteEmployee, getGetEmployeesQueryKey, getGetDepartmentsQueryKey, EmployeeInput, Employee } from '@workspace/api-client-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,18 +22,18 @@ export default function Employees() {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const [search, setSearch] = useState('');
   const [departmentId, setDepartmentId] = useState<string>('all');
   const [status, setStatus] = useState<string>('all');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [profileEmployee, setProfileEmployee] = useState<Employee | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { data: employeesData, isLoading } = useGetEmployees(
-    { 
+    {
       companyId: user?.companyId || 0,
       ...(search && { search }),
       ...(departmentId !== 'all' && { departmentId: parseInt(departmentId) }),
@@ -53,7 +54,6 @@ export default function Employees() {
   const handleAddSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    
     const payload: EmployeeInput = {
       fullName: fd.get('fullName') as string,
       email: fd.get('email') as string,
@@ -63,23 +63,20 @@ export default function Employees() {
       salary: fd.get('salary') as string,
       status: 'active',
     };
-
     try {
       await createMutation.mutateAsync({ data: payload });
       toast({ title: t('savedSuccessfully') });
       setIsAddOpen(false);
       queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to create employee' });
+    } catch {
+      toast({ variant: 'destructive', title: t('actions'), description: t('failedCreateEmployee') });
     }
   };
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedEmployee || !selectedEmployee.id) return;
-    
+    if (!selectedEmployee?.id) return;
     const fd = new FormData(e.currentTarget);
-    
     const payload: EmployeeInput = {
       fullName: fd.get('fullName') as string,
       email: fd.get('email') as string,
@@ -89,15 +86,14 @@ export default function Employees() {
       salary: fd.get('salary') as string,
       status: fd.get('status') as EmployeeInput['status'] || selectedEmployee.status || 'active',
     };
-
     try {
       await updateMutation.mutateAsync({ id: selectedEmployee.id, data: payload });
       toast({ title: t('savedSuccessfully') });
       setIsEditOpen(false);
       setSelectedEmployee(null);
       queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update employee' });
+    } catch {
+      toast({ variant: 'destructive', title: t('actions'), description: t('failedUpdateEmployee') });
     }
   };
 
@@ -105,128 +101,88 @@ export default function Employees() {
     if (!deleteId) return;
     try {
       await deleteMutation.mutateAsync({ id: deleteId });
-      toast({ title: 'Employee deleted successfully' });
+      toast({ title: t('employeeDeleted') });
       setDeleteId(null);
       queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete employee' });
+    } catch {
+      toast({ variant: 'destructive', title: t('actions'), description: t('failedDeleteEmployee') });
     }
   };
 
-  const getStatusColor = (s?: string) => {
-    switch(s) {
-      case 'active': return 'success';
-      case 'on-leave': return 'warning';
-      default: return 'secondary';
-    }
-  };
+  const employeeForm = (defaultValues?: Employee) => (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label>{t('fullName')}</Label>
+        <Input name="fullName" defaultValue={defaultValues?.fullName} required />
+      </div>
+      <div className="space-y-2">
+        <Label>{t('employeeCode')}</Label>
+        <Input name="employeeCode" defaultValue={defaultValues?.employeeCode || ''} required={!defaultValues} />
+      </div>
+      <div className="space-y-2">
+        <Label>{t('email')}</Label>
+        <Input type="email" name="email" defaultValue={defaultValues?.email} required />
+      </div>
+      <div className="space-y-2">
+        <Label>{t('position')}</Label>
+        <Input name="position" defaultValue={defaultValues?.position || ''} />
+      </div>
+      <div className="space-y-2">
+        <Label>{t('department')}</Label>
+        <Select name="departmentId" defaultValue={defaultValues?.departmentId ? String(defaultValues.departmentId) : undefined}>
+          <SelectTrigger><SelectValue placeholder={t('selectDept')} /></SelectTrigger>
+          <SelectContent>
+            {deptsData?.departments?.map(d => (
+              <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>{t('salary')}</Label>
+        <Input type="number" name="salary" defaultValue={defaultValues?.salary || ''} />
+      </div>
+      {defaultValues && (
+        <div className="space-y-2">
+          <Label>{t('status')}</Label>
+          <Select name="status" defaultValue={defaultValues.status}>
+            <SelectTrigger><SelectValue placeholder={t('selectStatus')} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">{t('active')}</SelectItem>
+              <SelectItem value="on-leave">{t('onLeaveStatus')}</SelectItem>
+              <SelectItem value="inactive">{t('inactive')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold tracking-tight">{t('employees')}</h1>
-        
+
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> {t('addEmployee')}
-            </Button>
+            <Button className="gap-2"><Plus className="h-4 w-4" /> {t('addEmployee')}</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('addEmployee')}</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>{t('addEmployee')}</DialogTitle></DialogHeader>
             <form onSubmit={handleAddSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input name="fullName" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Employee Code</Label>
-                  <Input name="employeeCode" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" name="email" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Position</Label>
-                  <Input name="position" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Department</Label>
-                  <Select name="departmentId">
-                    <SelectTrigger><SelectValue placeholder="Select dept" /></SelectTrigger>
-                    <SelectContent>
-                      {deptsData?.departments?.map(d => (
-                        <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Salary</Label>
-                  <Input type="number" name="salary" />
-                </div>
-              </div>
-              <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-                {t('save')}
-              </Button>
+              {employeeForm()}
+              <Button type="submit" className="w-full" disabled={createMutation.isPending}>{t('save')}</Button>
             </form>
           </DialogContent>
         </Dialog>
 
         <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setSelectedEmployee(null); }}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Employee</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>{t('editEmployee')}</DialogTitle></DialogHeader>
             {selectedEmployee && (
               <form onSubmit={handleEditSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Full Name</Label>
-                    <Input name="fullName" defaultValue={selectedEmployee.fullName} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input type="email" name="email" defaultValue={selectedEmployee.email} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Position</Label>
-                    <Input name="position" defaultValue={selectedEmployee.position || ''} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Department</Label>
-                    <Select name="departmentId" defaultValue={selectedEmployee.departmentId ? String(selectedEmployee.departmentId) : undefined}>
-                      <SelectTrigger><SelectValue placeholder="Select dept" /></SelectTrigger>
-                      <SelectContent>
-                        {deptsData?.departments?.map(d => (
-                          <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Salary</Label>
-                    <Input type="number" name="salary" defaultValue={selectedEmployee.salary || ''} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select name="status" defaultValue={selectedEmployee.status}>
-                      <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="on-leave">On Leave</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
-                  {t('save')}
-                </Button>
+                {employeeForm(selectedEmployee)}
+                <Button type="submit" className="w-full" disabled={updateMutation.isPending}>{t('save')}</Button>
               </form>
             )}
           </DialogContent>
@@ -235,85 +191,83 @@ export default function Employees() {
         <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the employee record.
-              </AlertDialogDescription>
+              <AlertDialogTitle>{t('confirmDelete')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('confirmDeleteDesc')}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleteMutation.isPending}>
-                Delete
+              <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t('delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
 
+      {/* Filters */}
       <Card className="border-none shadow-sm">
-        <CardContent className="p-0">
-          <div className="p-4 border-b flex flex-col sm:flex-row gap-4 items-center bg-muted/20">
-            <div className="relative flex-1 max-w-sm w-full">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder={t('search')} 
-                className="pl-9 bg-background" 
+              <Input
+                placeholder={`${t('search')} ${t('employees').toLowerCase()}...`}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
+                className="pl-9"
               />
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Select value={departmentId} onValueChange={setDepartmentId}>
-                <SelectTrigger className="w-[150px] bg-background">
-                  <SelectValue placeholder={t('department')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {deptsData?.departments?.map(d => (
-                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="w-[120px] bg-background">
-                  <SelectValue placeholder={t('status')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">{t('active')}</SelectItem>
-                  <SelectItem value="on-leave">{t('onLeave')}</SelectItem>
-                  <SelectItem value="inactive">{t('inactive')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder={t('allDepartments')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allDepartments')}</SelectItem>
+                {deptsData?.departments?.map(d => (
+                  <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder={t('allStatus')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allStatus')}</SelectItem>
+                <SelectItem value="active">{t('active')}</SelectItem>
+                <SelectItem value="on-leave">{t('onLeaveStatus')}</SelectItem>
+                <SelectItem value="inactive">{t('inactive')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </CardContent>
+      </Card>
 
+      <Card className="border-none shadow-sm">
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead>Employee</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('employee')}</TableHead>
+                <TableHead>{t('position')}</TableHead>
+                <TableHead>{t('department')}</TableHead>
+                <TableHead>{t('salary')}</TableHead>
+                <TableHead>{t('status')}</TableHead>
+                <TableHead className="text-right">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
-                </TableRow>
-              ) : employeesData?.employees?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No employees found</TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">{t('loading')}</TableCell></TableRow>
+              ) : !employeesData?.employees?.length ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">{t('noEmployeesFound')}</TableCell></TableRow>
               ) : (
-                employeesData?.employees?.map((emp) => (
+                employeesData.employees.map((emp) => (
                   <TableRow key={emp.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
-                          {emp.fullName?.charAt(0)}
+                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          {emp.fullName?.charAt(0) || 'U'}
                         </div>
                         <div>
                           <div className="font-medium">{emp.fullName}</div>
@@ -323,33 +277,24 @@ export default function Employees() {
                     </TableCell>
                     <TableCell>{emp.position || '-'}</TableCell>
                     <TableCell>{emp.departmentName || '-'}</TableCell>
+                    <TableCell>{emp.salary ? `$${Number(emp.salary).toLocaleString()}` : '-'}</TableCell>
                     <TableCell>
-                      <Badge variant={getStatusColor(emp.status)} className="capitalize">
-                        {emp.status}
+                      <Badge variant={emp.status === 'active' ? 'success' : emp.status === 'on-leave' ? 'warning' : 'secondary'} className="capitalize">
+                        {emp.status === 'active' ? t('active') : emp.status === 'on-leave' ? t('onLeaveStatus') : t('inactive')}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => {
-                            // View profile logic here
-                            toast({ title: 'Profile viewing', description: 'Not fully implemented yet' });
-                          }}>
-                            <Eye className="h-4 w-4 mr-2" /> View Profile
+                          <DropdownMenuItem className="gap-2" onClick={() => setProfileEmployee(emp)}><Eye className="h-4 w-4" /> {t('viewProfile')}</DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2" onClick={() => { setSelectedEmployee(emp); setIsEditOpen(true); }}>
+                            <Edit className="h-4 w-4" /> {t('edit')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedEmployee(emp);
-                            setIsEditOpen(true);
-                          }}>
-                            <Edit className="h-4 w-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(emp.id as number)}>
-                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => setDeleteId(emp.id || null)}>
+                            <Trash2 className="h-4 w-4" /> {t('delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -361,6 +306,20 @@ export default function Employees() {
           </Table>
         </CardContent>
       </Card>
+      <DetailDialog
+        open={!!profileEmployee}
+        onOpenChange={(open) => !open && setProfileEmployee(null)}
+        title={profileEmployee?.fullName || t('viewProfile')}
+        items={profileEmployee ? [
+          { label: t('email'), value: profileEmployee.email },
+          { label: t('position'), value: profileEmployee.position },
+          { label: t('department'), value: profileEmployee.departmentName },
+          { label: t('salary'), value: profileEmployee.salary ? `$${Number(profileEmployee.salary).toLocaleString()}` : '—' },
+          { label: t('status'), value: profileEmployee.status },
+          { label: t('phone'), value: profileEmployee.phone },
+          { label: t('address'), value: profileEmployee.address },
+        ] : []}
+      />
     </div>
   );
 }

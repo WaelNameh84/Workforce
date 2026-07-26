@@ -2,6 +2,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useGetDashboardStats, getGetDashboardStatsQueryKey } from '@workspace/api-client-react';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { Users, UserCheck, CalendarCheck, Clock, DollarSign, Sparkles, TrendingUp, Building2 } from 'lucide-react';
+import { Link } from 'wouter';
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -26,12 +27,10 @@ export default function Dashboard() {
   ];
 
   const payrollData = [
-    { month: 'Aug', amount: 238000 },
-    { month: 'Sep', amount: 241000 },
-    { month: 'Oct', amount: 248000 },
-    { month: 'Nov', amount: 255000 },
-    { month: 'Dec', amount: 265000 },
-    { month: 'Jan', amount: 284000 },
+    {
+      month: new Date().toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
+      amount: stats?.monthlyPayroll ?? 0,
+    },
   ];
 
   const aiInsights = [
@@ -46,21 +45,26 @@ export default function Dashboard() {
       <div className="rounded-2xl p-6 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, white 0%, transparent 50%)' }} />
         <div className="relative">
-          <h1 className="text-2xl font-bold mb-1">{t('welcome')}, {user?.fullName} 👋</h1>
-          <p className="text-white/80 text-sm">Here's your workforce overview for today.</p>
+          <h1 className="text-2xl font-bold mb-1">{t('welcome')}, {user?.fullName}</h1>
+          <p className="text-white/80 text-sm">{t('workforceOverview')}.</p>
         </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, i) => (
-          <div key={i} className="p-5 rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          <Link
+            key={i}
+            href={['/dashboard/employees', '/dashboard/attendance', '/dashboard/leaves', '/dashboard/requests'][i]}
+            className="block p-5 rounded-2xl transition hover:-translate-y-0.5 hover:shadow-lg"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+          >
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3`}>
               <stat.icon className="w-5 h-5 text-white" />
             </div>
             <div className="text-2xl font-bold">{isLoading ? '—' : stat.value}</div>
             <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{stat.title}</div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -107,10 +111,10 @@ export default function Dashboard() {
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-2 mt-2">
             {(stats?.departmentStats || []).map((d, idx) => (
-              <div key={idx} className="flex items-center gap-1.5 text-xs">
+              <Link key={idx} href="/dashboard/employees" className="flex items-center gap-1.5 text-xs hover:opacity-70">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: deptColors[idx % deptColors.length] }} />
                 <span style={{ color: 'var(--muted)' }}>{d.department}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -121,8 +125,10 @@ export default function Dashboard() {
         {/* Payroll Bar */}
         <div className="p-6 rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold">Payroll Trend</h3>
-            <span className="text-xs font-medium text-green-500 bg-green-500/10 px-2 py-1 rounded-full">+8.2% vs last month</span>
+            <h3 className="text-lg font-bold">{t('payrollTrend')}</h3>
+            <span className="text-xs font-medium text-indigo-500 bg-indigo-500/10 px-2 py-1 rounded-full">
+              {t('currentPeriod')}
+            </span>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={payrollData}>
@@ -164,16 +170,27 @@ export default function Dashboard() {
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Avg Salary',     value: '$3,920', icon: DollarSign },
-              { label: 'Departments',    value: stats?.departmentStats?.length ?? '—', icon: Building2 },
+              {
+                label: t('avgSalary'),
+                value: stats?.totalEmployees && stats.monthlyPayroll
+                  ? `$${Math.round(stats.monthlyPayroll / stats.totalEmployees).toLocaleString()}`
+                  : '—',
+                icon: DollarSign,
+              },
+              { label: t('departments'), value: stats?.departmentStats?.length ?? '—', icon: Building2 },
             ].map((item, i) => (
-              <div key={i} className="p-3 rounded-xl" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+              <Link
+                key={i}
+                href={i === 0 ? '/dashboard/payroll' : '/dashboard/employees'}
+                className="block p-3 rounded-xl transition hover:-translate-y-0.5"
+                style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
+              >
                 <div className="flex items-center gap-2 mb-1">
                   <item.icon className="w-4 h-4 text-indigo-500" />
                   <span className="text-xs" style={{ color: 'var(--muted)' }}>{item.label}</span>
                 </div>
                 <div className="text-lg font-bold">{isLoading ? '—' : item.value}</div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

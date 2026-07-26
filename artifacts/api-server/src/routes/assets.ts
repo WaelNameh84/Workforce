@@ -58,7 +58,7 @@ router.post("/assets", authMiddleware, async (req, res) => {
 // PUT /api/assets/:id
 router.put("/assets/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const [asset] = await db
       .update(assets)
       .set(req.body)
@@ -74,7 +74,7 @@ router.put("/assets/:id", authMiddleware, async (req, res) => {
 // DELETE /api/assets/:id
 router.delete("/assets/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     await db.delete(assets).where(eq(assets.id, id));
     res.status(204).send();
   } catch (err) {

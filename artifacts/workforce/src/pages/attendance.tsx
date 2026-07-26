@@ -6,7 +6,7 @@ import {
   getGetAttendanceQueryKey, getGetTodayAttendanceQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function Attendance() {
@@ -60,11 +60,29 @@ export default function Attendance() {
     return 'bg-gray-500/10 text-gray-500';
   };
 
+  const methods = [
+    { id: 'gps' as const, icon: MapPin, label: 'GPS' },
+    { id: 'wifi' as const, icon: Wifi, label: 'WiFi' },
+    { id: 'bluetooth' as const, icon: Bluetooth, label: 'BT' },
+  ];
+
+  const attendanceRows = attendanceData?.attendance || [];
+  const totalHours = attendanceRows.reduce((sum, record) => sum + Number(record.totalHours || 0), 0);
+  const lateArrivals = attendanceRows.filter((record) => record.isLate || record.status === 'late').length;
+  const completedRecords = attendanceRows.filter((record) => record.clockOut).length;
+  const openRecords = attendanceRows.filter((record) => !record.clockOut).length;
+  const weekStats = [
+    { label: t('totalHours'), value: `${totalHours.toFixed(1)}h`, color: 'from-blue-500 to-cyan-500' },
+    { label: t('totalRecords'), value: String(attendanceRows.length), color: 'from-indigo-500 to-purple-500' },
+    { label: t('lateArrivals'), value: String(lateArrivals), color: 'from-amber-500 to-orange-500' },
+    { label: t('activeRecords'), value: String(openRecords || completedRecords), color: 'from-green-500 to-emerald-500' },
+  ];
+
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
         <h1 className="text-2xl font-bold">{t('attendance')}</h1>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>Track and manage employee attendance</p>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>{t('trackAttendanceDesc')}</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -78,17 +96,12 @@ export default function Attendance() {
             {isClockedIn && todayRecord?.clockIn && (
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 text-sm">
                 <CheckCircle2 className="w-4 h-4" />
-                Clocked in at {format(new Date(todayRecord.clockIn), 'HH:mm')}
+                {t('clockedIn')} {format(new Date(todayRecord.clockIn), 'HH:mm')}
               </div>
             )}
 
-            {/* Method Buttons */}
             <div className="flex gap-2 justify-center">
-              {[
-                { id: 'gps' as const, icon: MapPin, label: 'GPS' },
-                { id: 'wifi' as const, icon: Wifi, label: 'WiFi' },
-                { id: 'bluetooth' as const, icon: Bluetooth, label: 'BT' },
-              ].map(m => (
+              {methods.map(m => (
                 <button
                   key={m.id}
                   onClick={() => setCheckMethod(m.id)}
@@ -102,7 +115,6 @@ export default function Attendance() {
               ))}
             </div>
 
-            {/* Clock Button */}
             {todayLoading ? (
               <div className="flex justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>
             ) : isClockedIn ? (
@@ -126,19 +138,14 @@ export default function Attendance() {
             )}
 
             <p className="text-xs text-white/60 flex items-center justify-center gap-1">
-              <MapPin className="w-3 h-3" /> Office Location Detected
+              <MapPin className="w-3 h-3" /> {t('officeDetected')}
             </p>
           </div>
         </div>
 
         {/* Week Stats */}
         <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4 content-start">
-          {[
-            { label: 'Total Hours',      value: '38h 45m',  color: 'from-blue-500 to-cyan-500' },
-            { label: 'Overtime',         value: '2h 15m',   color: 'from-indigo-500 to-purple-500' },
-            { label: 'Late Arrivals',    value: '1',        color: 'from-amber-500 to-orange-500' },
-            { label: 'Early Departures', value: '0',        color: 'from-green-500 to-emerald-500' },
-          ].map((s, i) => (
+          {weekStats.map((s, i) => (
             <div key={i} className="p-5 rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
               <div className={`h-1 rounded-full mb-3 bg-gradient-to-r ${s.color}`} />
               <div className="text-xl font-bold">{s.value}</div>
@@ -146,9 +153,8 @@ export default function Attendance() {
             </div>
           ))}
 
-          {/* Today's Summary */}
           <div className="col-span-2 sm:col-span-4 p-5 rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <h3 className="font-bold mb-3">Today's Status</h3>
+            <h3 className="font-bold mb-3">{t('todayStatus')}</h3>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
                 {user?.fullName?.charAt(0) || 'U'}
@@ -157,11 +163,11 @@ export default function Attendance() {
                 <div className="font-medium">{user?.fullName}</div>
                 <div className="text-sm flex items-center gap-2 mt-1">
                   {isClockedIn ? (
-                    <span className="flex items-center gap-1.5 text-green-500"><CheckCircle2 className="w-4 h-4" /> Currently clocked in</span>
+                    <span className="flex items-center gap-1.5 text-green-500"><CheckCircle2 className="w-4 h-4" /> {t('currentlyClockedIn')}</span>
                   ) : todayRecord?.clockOut ? (
-                    <span className="flex items-center gap-1.5 text-blue-500"><CheckCircle2 className="w-4 h-4" /> Clocked out</span>
+                    <span className="flex items-center gap-1.5 text-blue-500"><CheckCircle2 className="w-4 h-4" /> {t('clockedOutStatus')}</span>
                   ) : (
-                    <span className="flex items-center gap-1.5" style={{ color: 'var(--muted)' }}><AlertCircle className="w-4 h-4" /> Not clocked in yet</span>
+                    <span className="flex items-center gap-1.5" style={{ color: 'var(--muted)' }}><AlertCircle className="w-4 h-4" /> {t('notClockedInYet')}</span>
                   )}
                 </div>
               </div>
@@ -172,25 +178,25 @@ export default function Attendance() {
 
       {/* Recent Records */}
       <div className="p-6 rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <h3 className="text-lg font-bold mb-4">Recent Records</h3>
+        <h3 className="text-lg font-bold mb-4">{t('recentRecords')}</h3>
         <table className="w-full min-w-[700px]">
           <thead>
             <tr className="text-sm" style={{ color: 'var(--muted)' }}>
-              <th className="text-left py-3 px-2 font-medium">Employee</th>
-              <th className="text-left py-3 px-2 font-medium">Date</th>
-              <th className="text-left py-3 px-2 font-medium">Clock In</th>
-              <th className="text-left py-3 px-2 font-medium">Clock Out</th>
-              <th className="text-left py-3 px-2 font-medium">Total</th>
+              <th className="text-left py-3 px-2 font-medium">{t('employee')}</th>
+              <th className="text-left py-3 px-2 font-medium">{t('date')}</th>
+              <th className="text-left py-3 px-2 font-medium">{t('clockIn')}</th>
+              <th className="text-left py-3 px-2 font-medium">{t('clockOut')}</th>
+              <th className="text-left py-3 px-2 font-medium">{t('total')}</th>
               <th className="text-left py-3 px-2 font-medium">{t('status')}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={6} className="text-center py-10" style={{ color: 'var(--muted)' }}>Loading...</td></tr>
+              <tr><td colSpan={6} className="text-center py-10" style={{ color: 'var(--muted)' }}>{t('loading')}</td></tr>
             ) : !attendanceData?.attendance?.length ? (
-              <tr><td colSpan={6} className="text-center py-10" style={{ color: 'var(--muted)' }}>No records found</td></tr>
+              <tr><td colSpan={6} className="text-center py-10" style={{ color: 'var(--muted)' }}>{t('noRecordsFound')}</td></tr>
             ) : (
-              attendanceData.attendance.map((rec) => (
+              attendanceRows.map((rec) => (
                 <tr key={rec.id} className="text-sm border-t" style={{ borderColor: 'var(--border)' }}>
                   <td className="py-3 px-2 font-medium">{rec.employeeName}</td>
                   <td className="py-3 px-2">{rec.date ? format(new Date(rec.date), 'MMM d, yyyy') : '—'}</td>

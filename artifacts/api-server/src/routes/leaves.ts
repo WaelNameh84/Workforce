@@ -62,7 +62,7 @@ router.post("/leaves", authMiddleware, async (req, res) => {
 // PUT /api/leaves/:id
 router.put("/leaves/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const updates: Record<string, unknown> = { ...req.body };
     if (req.body.status === "approved" || req.body.status === "rejected") {
       updates.approvedAt = new Date();
@@ -82,7 +82,7 @@ router.put("/leaves/:id", authMiddleware, async (req, res) => {
 // DELETE /api/leaves/:id
 router.delete("/leaves/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     await db.delete(leaves).where(eq(leaves.id, id));
     res.status(204).send();
   } catch (err) {

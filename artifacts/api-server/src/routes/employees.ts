@@ -71,7 +71,7 @@ router.post("/employees", authMiddleware, async (req, res) => {
 // GET /api/employees/:id
 router.get("/employees/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const [emp] = await db
       .select({
         id: employees.id,
@@ -105,7 +105,7 @@ router.get("/employees/:id", authMiddleware, async (req, res) => {
 // PUT /api/employees/:id
 router.put("/employees/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const [emp] = await db
       .update(employees)
       .set(req.body)
@@ -121,7 +121,7 @@ router.put("/employees/:id", authMiddleware, async (req, res) => {
 // DELETE /api/employees/:id
 router.delete("/employees/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     await db.delete(employees).where(eq(employees.id, id));
     res.status(204).send();
   } catch (err) {

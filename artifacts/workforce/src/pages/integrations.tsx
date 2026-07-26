@@ -3,9 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link2, Mail, MessageSquare, Video, LayoutGrid } from 'lucide-react';
+import { useState } from 'react';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function Integrations() {
   const { t } = useLanguage();
+  const { toast } = useToast();
+  const [connected, setConnected] = useState<Record<string, boolean>>({ 'Google Workspace': true });
 
   const integrations = [
     {
@@ -45,7 +49,7 @@ export default function Integrations() {
         <p className="text-muted-foreground">Connect WorkforceOS with your favorite tools.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {integrations.map((integration, i) => (
           <Card key={i} className="border-border/50 flex flex-col h-full">
             <CardHeader>
@@ -53,7 +57,7 @@ export default function Integrations() {
                 <div className={`p-3 rounded-xl bg-muted/50 ${integration.color}`}>
                   <integration.icon className="h-8 w-8" />
                 </div>
-                {integration.status === 'connected' && (
+                 {connected[integration.name] && (
                   <Badge variant="success">Connected</Badge>
                 )}
               </div>
@@ -62,11 +66,16 @@ export default function Integrations() {
             </CardHeader>
             <CardContent className="mt-auto pt-4">
               <Button 
-                variant={integration.status === 'connected' ? 'outline' : 'default'} 
+                 variant={connected[integration.name] ? 'outline' : 'default'}
                 className="w-full gap-2"
+                 onClick={() => {
+                   const next = !connected[integration.name];
+                   setConnected((current) => ({ ...current, [integration.name]: next }));
+                   toast({ title: next ? 'Connected' : 'Disconnected', description: integration.name });
+                 }}
               >
                 <Link2 className="h-4 w-4" /> 
-                {integration.status === 'connected' ? 'Manage' : 'Connect'}
+                 {connected[integration.name] ? 'Manage' : 'Connect'}
               </Button>
             </CardContent>
           </Card>

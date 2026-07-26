@@ -1,0 +1,1 @@
+- [Workspace validation](workspace-validation.md) — keep utility packages' workspace dependencies, TypeScript references, and lockfile in sync so full validation covers the whole monorepo.

@@ -6,6 +6,7 @@ import {
   Building2, Clock, Bell, Globe, Shield, Key, Database,
   Moon, Sun, User, Save, Check, RefreshCw
 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--background)',
@@ -42,14 +43,42 @@ export default function Settings() {
   const { t, locale, setLocale } = useLanguage();
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [saved, setSaved] = useState(false);
   const [notifications, setNotifications] = useState({
     email: true, push: true, sms: false, slack: false,
   });
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('workforce-api-key') || 'sk_live_••••••••••••••••');
 
   const save = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  const generateApiKey = () => {
+    const next = `sk_live_${crypto.randomUUID().replaceAll('-', '')}`;
+    setApiKey(next);
+    localStorage.setItem('workforce-api-key', next);
+    toast({ title: 'API key generated' });
+  };
+
+  const createBackup = () => {
+    const content = `WorkforceOS backup\nCreated: ${new Date().toISOString()}\nCompany: ${user?.companyId || 'current'}`;
+    const url = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'workforceos-backup.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Backup downloaded' });
+  };
+
+  const restoreBackup = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,.json';
+    input.onchange = () => toast({ title: 'Backup selected', description: 'Review the file before applying changes.' });
+    input.click();
   };
 
   const languages = [
@@ -283,12 +312,12 @@ export default function Settings() {
           {/* API Keys */}
           <SectionCard icon={Key} iconColor="text-amber-500" title={t('apiKeys')}>
             <div className="space-y-2 font-mono text-xs">
-              {['pk_live_••••••••••••••••', 'sk_live_••••••••••••••••'].map((key, i) => (
+              {['pk_live_••••••••••••••••', apiKey].map((key, i) => (
                 <div key={i} className="p-3 rounded-lg break-all" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
                   {key}
                 </div>
               ))}
-              <button className="w-full mt-2 py-2 rounded-lg text-xs font-medium text-indigo-500 transition" style={{ border: '1px dashed var(--border)' }}>
+              <button onClick={generateApiKey} className="w-full mt-2 py-2 rounded-lg text-xs font-medium text-indigo-500 transition" style={{ border: '1px dashed var(--border)' }}>
                 + Generate New Key
               </button>
             </div>
@@ -298,11 +327,11 @@ export default function Settings() {
           <SectionCard icon={Database} iconColor="text-green-500" title="Backup & Data">
             <div className="text-sm mb-3" style={{ color: 'var(--muted)' }}>Last backup: 2 hours ago</div>
             <div className="space-y-2">
-              <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition">
+              <button onClick={createBackup} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition">
                 <Database className="w-4 h-4" />
                 Backup Now
               </button>
-              <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+              <button onClick={restoreBackup} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
                 <RefreshCw className="w-4 h-4" />
                 Restore
               </button>

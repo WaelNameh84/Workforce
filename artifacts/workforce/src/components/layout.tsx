@@ -17,6 +17,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { theme, setTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) setLocation('/login');
@@ -206,6 +208,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 left-3" style={{ color: 'var(--muted)' }} />
               <input
                 type="text"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' || !searchText.trim()) return;
+                  const query = searchText.trim().toLowerCase();
+                  const match = navGroups
+                    .flatMap((group) => group.items)
+                    .find((item) => item.label.toLowerCase().includes(query));
+                  if (match) {
+                    setLocation(match.href);
+                    setSearchText('');
+                  }
+                }}
                 placeholder={`${t('search')}...`}
                 className="w-full ps-9 pe-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
@@ -231,13 +246,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {locale}
             </button>
 
-            <button
-              className="relative p-2 rounded-xl hover:opacity-80 transition"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setNotificationsOpen((open) => !open)}
+                aria-label={t('notifications')}
+                className="relative p-2 rounded-xl hover:opacity-80 transition"
+                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+              >
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+              </button>
+              {notificationsOpen && (
+                <div
+                  className="absolute right-0 top-12 z-30 w-72 rounded-2xl p-4 shadow-xl"
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-semibold">{t('notifications')}</span>
+                    <button className="text-xs text-indigo-500" onClick={() => setNotificationsOpen(false)}>Close</button>
+                  </div>
+                  <button
+                    onClick={() => { setNotificationsOpen(false); setLocation('/dashboard/requests'); }}
+                    className="w-full rounded-xl p-3 text-left text-sm hover:bg-muted/50"
+                    style={{ background: 'var(--background)' }}
+                  >
+                    You have pending requests to review.
+                  </button>
+                  <button
+                    onClick={() => { setNotificationsOpen(false); setLocation('/dashboard/attendance'); }}
+                    className="w-full mt-2 rounded-xl p-3 text-left text-sm hover:bg-muted/50"
+                    style={{ background: 'var(--background)' }}
+                  >
+                    Attendance activity was updated today.
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* User dropdown */}
             <div className="relative">

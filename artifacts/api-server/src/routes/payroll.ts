@@ -52,7 +52,7 @@ router.get("/payroll", authMiddleware, async (req, res) => {
 // PUT /api/payroll/:id
 router.put("/payroll/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const updates: Record<string, unknown> = { ...req.body };
     if (req.body.status === "paid") {
       updates.paidAt = new Date();

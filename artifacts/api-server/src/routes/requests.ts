@@ -60,7 +60,7 @@ router.post("/requests", authMiddleware, async (req, res) => {
 // PUT /api/requests/:id
 router.put("/requests/:id", authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const updates: Record<string, unknown> = { ...req.body };
     if (req.body.status === "approved" || req.body.status === "rejected") {
       updates.approvedAt = new Date();

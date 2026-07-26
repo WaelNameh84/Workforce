@@ -1,128 +1,174 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { Plus, CheckCircle2, XCircle, Clock, FileText } from 'lucide-react';
+import {
+  useCreateLeave,
+  useGetEmployees,
+  useGetLeaves,
+  useUpdateLeave,
+  useDeleteLeave,
+  getGetEmployeesQueryKey,
+  getGetLeavesQueryKey,
+  Leave,
+  LeaveInputType,
+} from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/components/ui/use-toast';
+import DetailDialog from '@/components/detail-dialog';
+import { CheckCircle2, XCircle, Clock, FileText, Plus, Trash2 } from 'lucide-react';
 
-const demoLeaves = [
-  { id: 1, employee: 'John Smith',     type: 'annual',    from: '2026-02-01', to: '2026-02-05', days: 5,  status: 'approved', reason: 'Family vacation' },
-  { id: 2, employee: 'Sarah Johnson',  type: 'sick',      from: '2026-01-20', to: '2026-01-21', days: 2,  status: 'approved', reason: 'Flu' },
-  { id: 3, employee: 'Mohammed Ali',   type: 'emergency', from: '2026-01-25', to: '2026-01-25', days: 1,  status: 'pending',  reason: 'Personal emergency' },
-  { id: 4, employee: 'Emma Wilson',    type: 'annual',    from: '2026-03-10', to: '2026-03-20', days: 10, status: 'pending',  reason: 'Travel' },
-  { id: 5, employee: 'Lars Svensson',  type: 'maternity', from: '2026-04-01', to: '2026-07-01', days: 90, status: 'approved', reason: 'Maternity leave' },
-  { id: 6, employee: 'Fatima Hassan',  type: 'unpaid',    from: '2026-02-15', to: '2026-02-16', days: 2,  status: 'rejected', reason: 'Personal reasons' },
+const leaveTypes: Array<{ type: LeaveInputType; color: string }> = [
+  { type: 'annual', color: 'from-blue-500 to-cyan-500' },
+  { type: 'sick', color: 'from-red-500 to-rose-500' },
+  { type: 'emergency', color: 'from-amber-500 to-orange-500' },
+  { type: 'maternity', color: 'from-pink-500 to-rose-500' },
+  { type: 'paternity', color: 'from-purple-500 to-indigo-500' },
+  { type: 'unpaid', color: 'from-gray-500 to-slate-500' },
 ];
 
-const leaveTypes = [
-  { type: 'annual',    color: 'from-blue-500 to-cyan-500',    icon: '🏖️', used: 5, total: 21 },
-  { type: 'sick',      color: 'from-red-500 to-rose-500',     icon: '🤒', used: 2, total: 10 },
-  { type: 'emergency', color: 'from-amber-500 to-orange-500', icon: '⚡', used: 1, total: 5  },
-  { type: 'maternity', color: 'from-pink-500 to-rose-500',    icon: '👶', used: 0, total: 90 },
-  { type: 'paternity', color: 'from-purple-500 to-indigo-500',icon: '👨‍👧', used: 0, total: 30 },
-  { type: 'unpaid',    color: 'from-gray-500 to-slate-500',   icon: '📝', used: 0, total: 30 },
-];
+const statusColor = (status?: string) =>
+  status === 'approved'
+    ? 'bg-green-500/10 text-green-500'
+    : status === 'rejected'
+      ? 'bg-red-500/10 text-red-500'
+      : 'bg-amber-500/10 text-amber-500';
 
-const statusColor = (s: string) => {
-  if (s === 'approved') return 'bg-green-500/10 text-green-500';
-  if (s === 'rejected') return 'bg-red-500/10 text-red-500';
-  return 'bg-amber-500/10 text-amber-500';
-};
-
-const StatusIcon = ({ status }: { status: string }) => {
-  if (status === 'approved') return <CheckCircle2 className="w-3 h-3 inline me-1" />;
-  if (status === 'rejected') return <XCircle className="w-3 h-3 inline me-1" />;
-  return <Clock className="w-3 h-3 inline me-1" />;
-};
+function dayCount(start: string, end: string) {
+  if (!start || !end) return 1;
+  const from = new Date(`${start}T00:00:00`).getTime();
+  const to = new Date(`${end}T00:00:00`).getTime();
+  return Math.max(1, Math.floor((to - from) / 86400000) + 1);
+}
 
 export default function Leaves() {
+  const { user } = useAuth();
   const { t } = useLanguage();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [selected, setSelected] = useState<Leave | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const params = { companyId: user?.companyId || 0 };
+  const { data, isLoading } = useGetLeaves(params, {
+    query: { enabled: !!user?.companyId, queryKey: getGetLeavesQueryKey(params) },
+  });
+  const { data: employeesData } = useGetEmployees(
+    { companyId: user?.companyId || 0 },
+    { query: { enabled: !!user?.companyId, queryKey: getGetEmployeesQueryKey({ companyId: user?.companyId || 0 }) } },
+  );
+  const createMutation = useCreateLeave();
+  const updateMutation = useUpdateLeave();
+  const deleteMutation = useDeleteLeave();
+  const leaves = data?.leaves || [];
+
+  const balances = useMemo(
+    () =>
+      leaveTypes.map((item) => {
+        const used = leaves
+          .filter((leave) => leave.type === item.type && leave.status === 'approved')
+          .reduce((total, leave) => total + (leave.daysCount || 0), 0);
+        const total = item.type === 'maternity' ? 90 : item.type === 'paternity' ? 30 : item.type === 'sick' ? 10 : item.type === 'emergency' ? 5 : 21;
+        return { ...item, used, total };
+      }),
+    [leaves],
+  );
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: getGetLeavesQueryKey() });
+
+  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const startDate = String(form.get('startDate') || '');
+    const endDate = String(form.get('endDate') || '');
+    try {
+      await createMutation.mutateAsync({
+        data: {
+          employeeId: Number(form.get('employeeId') || user?.id || 0),
+          type: String(form.get('type') || 'annual') as LeaveInputType,
+          startDate,
+          endDate,
+          daysCount: dayCount(startDate, endDate),
+          reason: String(form.get('reason') || ''),
+        },
+      });
+      toast({ title: t('savedSuccessfully') });
+      setShowForm(false);
+      refresh();
+    } catch {
+      toast({ variant: 'destructive', title: t('actions'), description: 'Could not create the leave request.' });
+    }
+  };
+
+  const updateStatus = async (leave: Leave, status: 'approved' | 'rejected') => {
+    if (!leave.id) return;
+    try {
+      await updateMutation.mutateAsync({ id: leave.id, data: { status, approvedBy: user?.id || undefined } });
+      toast({ title: t(status) });
+      refresh();
+    } catch {
+      toast({ variant: 'destructive', title: t('actions'), description: 'Could not update this request.' });
+    }
+  };
+
+  const remove = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteMutation.mutateAsync({ id: deleteId });
+      toast({ title: t('delete') });
+      setDeleteId(null);
+      refresh();
+    } catch {
+      toast({ variant: 'destructive', title: t('actions'), description: 'Could not delete this request.' });
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t('leaves')}</h1>
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>Manage leave requests and balances</p>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>{t('manageLeavesDesc')}</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          {t('leaveRequest')}
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium text-sm">
+          <Plus className="w-4 h-4" /> {t('leaveRequest')}
         </button>
       </div>
 
-      {/* Leave Balance Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {leaveTypes.map((leave, i) => (
-          <div key={i} className="p-5 rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${leave.color} flex items-center justify-center text-2xl mb-3`}>
-              {leave.icon}
-            </div>
-            <div className="text-sm font-medium mb-1 capitalize">{leave.type}</div>
-            <div className="text-2xl font-bold">
-              {leave.total - leave.used}
-              <span className="text-sm font-normal" style={{ color: 'var(--muted)' }}>/{leave.total}</span>
-            </div>
-            <div className="mt-3 h-2 rounded-full" style={{ background: 'var(--background)' }}>
-              <div
-                className={`h-full rounded-full bg-gradient-to-r ${leave.color}`}
-                style={{ width: `${(leave.used / leave.total) * 100}%` }}
-              />
-            </div>
-            <div className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{leave.used} used</div>
-          </div>
+        {balances.map((leave) => (
+          <button key={leave.type} onClick={() => setSelected(leaves.find((item) => item.type === leave.type) || null)} className="text-left p-5 rounded-2xl transition hover:-translate-y-0.5 hover:shadow-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div className={`w-12 h-2 rounded-full bg-gradient-to-r ${leave.color} mb-4`} />
+            <div className="text-sm font-medium mb-1">{t(leave.type as any)}</div>
+            <div className="text-2xl font-bold">{Math.max(0, leave.total - leave.used)}<span className="text-sm font-normal" style={{ color: 'var(--muted)' }}>/{leave.total}</span></div>
+            <div className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{leave.used} {t('used')}</div>
+          </button>
         ))}
       </div>
 
-      {/* Leave Table */}
       <div className="p-6 rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <h3 className="text-lg font-bold mb-4">Leave Requests</h3>
-        <table className="w-full min-w-[750px]">
-          <thead>
-            <tr className="text-sm" style={{ color: 'var(--muted)' }}>
-              {['Employee', 'Type', 'From', 'To', 'Days', 'Reason', 'Status', 'Actions'].map(h => (
-                <th key={h} className="text-left py-3 px-2 font-medium">{h}</th>
-              ))}
-            </tr>
-          </thead>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold">{t('leaveRequests')}</h3>
+          <span className="text-sm text-muted-foreground">{leaves.length} {t('total').toLowerCase()}</span>
+        </div>
+        <table className="w-full min-w-[850px]">
+          <thead><tr className="text-sm" style={{ color: 'var(--muted)' }}>{[t('employee'), t('leaveType'), t('from'), t('to'), t('days'), t('reason'), t('status'), t('actions')].map((head) => <th key={head} className="text-left py-3 px-2 font-medium">{head}</th>)}</tr></thead>
           <tbody>
-            {demoLeaves.map((leave) => (
-              <tr key={leave.id} className="text-sm border-t" style={{ borderColor: 'var(--border)' }}>
-                <td className="py-3 px-2 font-medium">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {leave.employee.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    {leave.employee}
+            {isLoading ? <tr><td colSpan={8} className="text-center py-10 text-muted-foreground">{t('loading')}</td></tr> : !leaves.length ? <tr><td colSpan={8} className="text-center py-10 text-muted-foreground">{t('noData')}</td></tr> : leaves.map((leave) => (
+              <tr key={leave.id} onClick={() => setSelected(leave)} className="text-sm border-t cursor-pointer hover:bg-muted/30" style={{ borderColor: 'var(--border)' }}>
+                <td className="py-3 px-2 font-medium">{leave.employeeName || `#${leave.employeeId}`}</td>
+                <td className="py-3 px-2">{t((leave.type || 'annual') as any)}</td>
+                <td className="py-3 px-2">{leave.startDate || '—'}</td>
+                <td className="py-3 px-2">{leave.endDate || '—'}</td>
+                <td className="py-3 px-2 font-medium">{leave.daysCount || 0}</td>
+                <td className="py-3 px-2 max-w-[180px] truncate" style={{ color: 'var(--muted)' }}>{leave.reason || '—'}</td>
+                <td className="py-3 px-2"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor(leave.status)}`}>{leave.status === 'approved' ? <CheckCircle2 className="w-3 h-3 inline me-1" /> : leave.status === 'rejected' ? <XCircle className="w-3 h-3 inline me-1" /> : <Clock className="w-3 h-3 inline me-1" />}{t((leave.status || 'pending') as any)}</span></td>
+                <td className="py-3 px-2" onClick={(event) => event.stopPropagation()}>
+                  <div className="flex gap-1">
+                    {leave.status === 'pending' && <><button aria-label={t('approved')} onClick={() => updateStatus(leave, 'approved')} className="p-1.5 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20"><CheckCircle2 className="w-4 h-4" /></button><button aria-label={t('rejected')} onClick={() => updateStatus(leave, 'rejected')} className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20"><XCircle className="w-4 h-4" /></button></>}
+                    <button aria-label={t('delete')} onClick={() => setDeleteId(leave.id || null)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500"><Trash2 className="w-4 h-4" /></button>
+                    <button aria-label={t('viewProfile')} onClick={() => setSelected(leave)} className="p-1.5 rounded-lg hover:bg-muted"><FileText className="w-4 h-4" /></button>
                   </div>
-                </td>
-                <td className="py-3 px-2 capitalize">{leave.type}</td>
-                <td className="py-3 px-2">{leave.from}</td>
-                <td className="py-3 px-2">{leave.to}</td>
-                <td className="py-3 px-2 font-medium">{leave.days}</td>
-                <td className="py-3 px-2" style={{ color: 'var(--muted)' }}>{leave.reason}</td>
-                <td className="py-3 px-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor(leave.status)}`}>
-                    <StatusIcon status={leave.status} />
-                    {leave.status}
-                  </span>
-                </td>
-                <td className="py-3 px-2">
-                  {leave.status === 'pending' ? (
-                    <div className="flex gap-1">
-                      <button className="p-1.5 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 transition">
-                        <CheckCircle2 className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition">
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                      <FileText className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-                    </button>
-                  )}
                 </td>
               </tr>
             ))}
@@ -130,44 +176,21 @@ export default function Leaves() {
         </table>
       </div>
 
-      {/* Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="rounded-2xl p-6 w-full max-w-md shadow-2xl" style={{ background: 'var(--card)' }} onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-6">New Leave Request</h2>
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Leave Type</label>
-                <select className="w-full rounded-xl px-4 py-2.5 text-sm" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
-                  {leaveTypes.map(l => <option key={l.type} value={l.type} className="capitalize">{l.type}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Start Date</label>
-                  <input type="date" className="w-full rounded-xl px-4 py-2.5 text-sm" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">End Date</label>
-                  <input type="date" className="w-full rounded-xl px-4 py-2.5 text-sm" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }} />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Reason</label>
-                <textarea rows={3} className="w-full rounded-xl px-4 py-2.5 text-sm resize-none" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }} />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 rounded-xl font-medium transition hover:opacity-80" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium">
-                  Submit
-                </button>
-              </div>
-            </form>
-          </div>
+      {showForm && <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
+        <div className="rounded-2xl p-6 w-full max-w-md shadow-2xl" style={{ background: 'var(--card)' }} onClick={(event) => event.stopPropagation()}>
+          <h2 className="text-xl font-bold mb-6">{t('newLeaveRequest')}</h2>
+          <form onSubmit={handleCreate} className="space-y-4">
+            {employeesData?.employees?.length ? <label className="block text-sm font-medium">{t('employee')}<select name="employeeId" defaultValue={String(user?.id || employeesData.employees[0].id || '')} className="mt-2 w-full rounded-xl px-4 py-2.5 text-sm" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>{employeesData.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.fullName}</option>)}</select></label> : null}
+            <label className="block text-sm font-medium">{t('leaveType')}<select name="type" defaultValue="annual" className="mt-2 w-full rounded-xl px-4 py-2.5 text-sm" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>{leaveTypes.map((leave) => <option key={leave.type} value={leave.type}>{t(leave.type as any)}</option>)}</select></label>
+            <div className="grid grid-cols-2 gap-4"><label className="block text-sm font-medium">{t('startDate')}<input required name="startDate" type="date" className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }} /></label><label className="block text-sm font-medium">{t('endDate')}<input required name="endDate" type="date" className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }} /></label></div>
+            <label className="block text-sm font-medium">{t('reason')}<textarea name="reason" rows={3} className="mt-2 w-full rounded-xl px-4 py-2.5 text-sm resize-none" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }} /></label>
+            <div className="flex gap-3 pt-2"><button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 rounded-xl font-medium" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>{t('cancel')}</button><button disabled={createMutation.isPending} type="submit" className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium">{createMutation.isPending ? t('loading') : t('submit')}</button></div>
+          </form>
         </div>
-      )}
+      </div>}
+
+      <DetailDialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)} title={selected ? `${t('leaveRequest')} #${selected.id}` : t('leaveRequest')} items={selected ? [{ label: t('employee'), value: selected.employeeName || selected.employeeId }, { label: t('leaveType'), value: t((selected.type || 'annual') as any) }, { label: t('from'), value: selected.startDate }, { label: t('to'), value: selected.endDate }, { label: t('days'), value: selected.daysCount }, { label: t('reason'), value: selected.reason }, { label: t('status'), value: t((selected.status || 'pending') as any) }] : []} />
+      {deleteId && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><div className="rounded-2xl p-6 max-w-sm w-full" style={{ background: 'var(--card)' }}><h2 className="text-lg font-bold">{t('confirmDelete')}</h2><p className="text-sm text-muted-foreground mt-2">{t('confirmDeleteDesc')}</p><div className="flex gap-3 mt-6"><button onClick={() => setDeleteId(null)} className="flex-1 rounded-xl px-4 py-2" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>{t('cancel')}</button><button disabled={deleteMutation.isPending} onClick={remove} className="flex-1 rounded-xl px-4 py-2 bg-red-500 text-white">{t('delete')}</button></div></div></div>}
     </div>
   );
 }
