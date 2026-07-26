@@ -141,14 +141,6 @@ export default function Locations() {
                       <MapPin className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  {/* Delete Button */}
-                  <button
-                    type="button"
-                    onClick={() => setDeleteId(loc.id ?? null)}
-                    className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl p-1.5 bg-white/20 hover:bg-red-500/80 text-white"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
 
                 {/* Body */}
@@ -162,9 +154,19 @@ export default function Locations() {
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{loc.address}</p>
                     )}
                   </div>
-                  <div className={`mt-auto flex items-center gap-2 px-3 py-2 rounded-xl ${color.light} border ${color.border}`}>
-                    <Navigation className={`h-3.5 w-3.5 ${color.text}`} />
-                    <span className={`text-xs font-bold ${color.text}`}>موقع نشط</span>
+                  <div className={`mt-auto flex items-center justify-between px-3 py-2 rounded-xl ${color.light} border ${color.border}`}>
+                    <div className="flex items-center gap-2">
+                      <Navigation className={`h-3.5 w-3.5 ${color.text}`} />
+                      <span className={`text-xs font-bold ${color.text}`}>موقع نشط</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteId(loc.id ?? null)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      حذف
+                    </button>
                   </div>
                 </div>
               </div>
