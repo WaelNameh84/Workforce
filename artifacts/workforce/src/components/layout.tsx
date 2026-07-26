@@ -583,17 +583,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
 
                     {/* Footer */}
-                    {lateToday.length > 0 || pendingReqs.length > 0 || pendingLeaves.length > 0 ? (
-                      <div className="flex items-center justify-between px-4 py-2.5 border-t border-white/10 text-[11px] text-muted-foreground">
-                        <span>{lateToday.length} متأخر · {pendingReqs.length} طلب · {pendingLeaves.length} إجازة</span>
-                        <button
-                          onClick={() => setNotificationsOpen(false)}
-                          className="text-indigo-400 font-bold hover:text-indigo-300 transition"
-                        >
-                          إغلاق
-                        </button>
-                      </div>
-                    ) : null}
+                    <div className="border-t border-white/10">
+                      {(lateToday.length > 0 || pendingReqs.length > 0 || pendingLeaves.length > 0) && (
+                        <div className="flex items-center justify-between px-4 py-2 text-[11px] text-muted-foreground">
+                          <span>{lateToday.length} متأخر · {pendingReqs.length} طلب · {pendingLeaves.length} إجازة</span>
+                          <button
+                            onClick={() => setNotificationsOpen(false)}
+                            className="text-indigo-400 font-bold hover:text-indigo-300 transition"
+                          >
+                            إغلاق
+                          </button>
+                        </div>
+                      )}
+                      {isAdmin && (
+                        <div className="px-3 pb-3 pt-2">
+                          <button
+                            onClick={() => { setNotificationsOpen(false); setLocation('/dashboard/action-center'); }}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs
+                              bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400
+                              text-white shadow-md transition-all"
+                          >
+                            <Zap className="w-3.5 h-3.5" />
+                            فتح مركز إجراءات المدير
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
