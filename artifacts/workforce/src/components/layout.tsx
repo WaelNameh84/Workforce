@@ -185,9 +185,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main */}
       <div
-        className="flex-1 flex flex-col min-h-screen min-w-0"
-        style={{ [dir === 'ltr' ? 'marginLeft' : 'marginRight']: '16rem' }}
-        // Remove desktop offset on mobile via CSS; we rely on lg: class for the sidebar being hidden
+        className="flex-1 flex flex-col min-h-screen min-w-0 lg:ms-64"
       >
         {/* Topbar */}
         <header
