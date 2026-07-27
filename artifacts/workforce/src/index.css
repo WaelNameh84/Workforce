@@ -37,7 +37,10 @@ input, textarea, [contenteditable="true"], [contenteditable] {
 /* ─── Momentum scrolling on iOS ───────────────────────────── */
 .overflow-y-auto, .overflow-y-scroll {
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: auto;
+}
+.native-scroll {
+  touch-action: pan-y;
 }
 @plugin "@tailwindcss/typography";
 
