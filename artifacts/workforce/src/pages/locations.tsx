@@ -180,7 +180,7 @@ export default function Locations() {
 
       {/* Add Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="rounded-3xl border-0 card-3d max-w-md">
+        <DialogContent className="rounded-3xl border-0 card-3d max-w-md overflow-y-auto max-h-[90dvh]">
           <DialogHeader>
             <DialogTitle className="font-display text-xl flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
