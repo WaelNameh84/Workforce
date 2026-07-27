@@ -42,97 +42,29 @@ function useLoginSettings() {
   };
 }
 
-// ── Compact analog + digital clock for login page ─────────────────────────────
-function LoginClock({ now, locale, color, show12h, showSec, showDate }: {
+// ── Digital-only clock for login page ─────────────────────────────────────────
+function LoginDigitalClock({ now, locale, color, show12h, showSec, showDate }: {
   now: Date; locale: string; color: string; show12h: boolean; showSec: boolean; showDate: boolean;
 }) {
-  const sec  = now.getSeconds();
-  const min  = now.getMinutes();
-  const hr12 = now.getHours() % 12;
-  const secAngle  = sec * 6;
-  const minAngle  = min * 6 + sec * 0.1;
-  const hourAngle = hr12 * 30 + min * 0.5;
-
-  const hand = (angle: number, len: number, width: number, stroke: string) => {
-    const rad = ((angle - 90) * Math.PI) / 180;
-    return (
-      <line
-        x1="50" y1="50"
-        x2={50 + len * Math.cos(rad)}
-        y2={50 + len * Math.sin(rad)}
-        strokeWidth={width} stroke={stroke} strokeLinecap="round"
-      />
-    );
-  };
-
   const intl = locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US';
   const timeStr = now.toLocaleTimeString(intl, {
     hour: '2-digit', minute: '2-digit',
     second: showSec ? '2-digit' : undefined,
     hour12: show12h,
   });
-  const dateStr = now.toLocaleDateString(intl, { weekday: 'short', day: 'numeric', month: 'short' });
+  const dateStr = now.toLocaleDateString(intl, { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative">
-        <svg viewBox="0 0 100 100" className="w-28 h-28 drop-shadow-xl">
-          <defs>
-            <radialGradient id="lf" cx="50%" cy="40%" r="60%">
-              <stop offset="0%" stopColor="rgba(30,27,75,0.97)" />
-              <stop offset="100%" stopColor="rgba(10,9,40,0.99)" />
-            </radialGradient>
-          </defs>
-          {/* Outer glow ring */}
-          <circle cx="50" cy="50" r="48" fill="none" stroke={color} strokeWidth="1" strokeOpacity="0.3" />
-          <circle cx="50" cy="50" r="47" fill="url(#lf)" />
-          {/* Hour ticks */}
-          {Array.from({ length: 12 }, (_, i) => {
-            const a = ((i * 30 - 90) * Math.PI) / 180;
-            return (
-              <line key={i}
-                x1={50 + 40 * Math.cos(a)} y1={50 + 40 * Math.sin(a)}
-                x2={50 + 44 * Math.cos(a)} y2={50 + 44 * Math.sin(a)}
-                stroke={color} strokeWidth="2" strokeLinecap="round" strokeOpacity="0.7"
-              />
-            );
-          })}
-          {/* Minute ticks */}
-          {Array.from({ length: 60 }, (_, i) => {
-            if (i % 5 === 0) return null;
-            const a = ((i * 6 - 90) * Math.PI) / 180;
-            return (
-              <line key={i}
-                x1={50 + 42 * Math.cos(a)} y1={50 + 42 * Math.sin(a)}
-                x2={50 + 44 * Math.cos(a)} y2={50 + 44 * Math.sin(a)}
-                stroke={color} strokeWidth="0.7" strokeLinecap="round" strokeOpacity="0.25"
-              />
-            );
-          })}
-          {hand(hourAngle, 25, 3.5, color)}
-          {hand(minAngle,  34, 2.5, '#a5b4fc')}
-          {hand(secAngle,  38, 1.2, '#f43f5e')}
-          <circle cx="50" cy="50" r="3.5" fill={color} />
-          <circle cx="50" cy="50" r="1.5" fill="#fff" />
-        </svg>
-        {/* LIVE dot */}
-        <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
-          <span className="relative h-2 w-2 rounded-full bg-emerald-400" />
-        </span>
+    <div className="text-center leading-none">
+      <div
+        className="font-mono text-3xl font-black tracking-widest"
+        style={{ color, fontVariantNumeric: 'tabular-nums' }}
+      >
+        {timeStr}
       </div>
-      {/* Digital readout */}
-      <div className="text-center leading-none">
-        <div
-          className="font-mono text-2xl font-black tracking-widest"
-          style={{ color, fontVariantNumeric: 'tabular-nums' }}
-        >
-          {timeStr}
-        </div>
-        {showDate && (
-          <div className="text-xs font-bold text-muted-foreground mt-1">{dateStr}</div>
-        )}
-      </div>
+      {showDate && (
+        <div className="text-sm font-semibold text-muted-foreground mt-1">{dateStr}</div>
+      )}
     </div>
   );
 }
@@ -255,39 +187,45 @@ export default function Login() {
     setLocale(order[(order.indexOf(locale) + 1) % order.length]);
   };
 
-  // Shared logo node
-  const LogoArea = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
-    const dim = size === 'lg' ? 'h-16 w-16' : size === 'md' ? 'h-12 w-12' : 'h-10 w-10';
-    return (
-      <>
-        <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-        <button
-          type="button"
-          onClick={() => logoInputRef.current?.click()}
-          title="اضغط لرفع الشعار"
-          className="relative group shrink-0"
-        >
-          {settings.logoUrl ? (
-            <img
-              src={settings.logoUrl}
-              alt={settings.appName}
-              className={`${dim} rounded-2xl object-contain border border-white/10 bg-white/5 p-1 shadow-lg group-hover:opacity-75 transition-opacity`}
-            />
-          ) : (
-            <div className={`${dim} rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center gap-0.5 shadow-lg group-hover:opacity-80 transition-opacity`}>
-              <ImagePlus className="h-5 w-5 text-white/70" />
-              <span className="text-[8px] font-black text-white/50 leading-none">شعار</span>
-            </div>
-          )}
-          {settings.logoUrl && (
-            <span className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-              <ImagePlus className="h-4 w-4 text-white" />
-            </span>
-          )}
-        </button>
-      </>
-    );
-  };
+  // Large logo for header
+  const BigLogoArea = () => (
+    <>
+      <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+      <button
+        type="button"
+        onClick={() => logoInputRef.current?.click()}
+        title="اضغط لرفع الشعار"
+        className="relative group"
+      >
+        {settings.logoUrl ? (
+          <img
+            src={settings.logoUrl}
+            alt={settings.appName}
+            className="h-28 w-28 rounded-3xl object-contain border border-white/10 bg-white/5 p-2 shadow-2xl group-hover:opacity-75 transition-opacity"
+          />
+        ) : (
+          <div className="h-28 w-28 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center gap-1 shadow-2xl group-hover:opacity-80 transition-opacity">
+            <ImagePlus className="h-9 w-9 text-white/70" />
+            <span className="text-[11px] font-black text-white/60 leading-none">شعار</span>
+          </div>
+        )}
+        {settings.logoUrl && (
+          <span className="absolute inset-0 rounded-3xl bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+            <ImagePlus className="h-6 w-6 text-white" />
+          </span>
+        )}
+      </button>
+    </>
+  );
+
+  // Small logo used in desktop panel
+  const SmallLogo = () => settings.logoUrl ? (
+    <img src={settings.logoUrl} alt="logo" className="h-12 w-12 rounded-xl object-contain bg-white/10 p-1 shadow-lg" />
+  ) : (
+    <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg">
+      <ShieldCheck className="h-6 w-6 text-indigo-600" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background relative overflow-hidden" dir={dir}>
@@ -316,13 +254,7 @@ export default function Login() {
         {/* Top: logo + name */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
-            {settings.logoUrl ? (
-              <img src={settings.logoUrl} alt="logo" className="h-12 w-12 rounded-xl object-contain bg-white/10 p-1 shadow-lg" />
-            ) : (
-              <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                <ShieldCheck className="h-6 w-6 text-indigo-600" />
-              </div>
-            )}
+            <SmallLogo />
             <span className="text-3xl font-display font-bold tracking-tight">{settings.appName}</span>
           </div>
           <h1 className="text-5xl font-display font-bold leading-tight mb-6 max-w-lg">{t('heroTitle')}</h1>
@@ -360,16 +292,16 @@ export default function Login() {
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-[420px] glass p-8 sm:p-10 rounded-[2rem]">
 
-            {/* ── Logo + Clock header (mobile-first) ── */}
-            <div className="flex flex-col items-center gap-4 mb-8">
-              {/* Logo row */}
-              <div className="flex items-center gap-3">
-                <LogoArea size="md" />
-                <span className="text-2xl font-display font-bold">{settings.appName}</span>
-              </div>
+            {/* ── Logo + Digital Clock header ── */}
+            <div className="flex flex-col items-center gap-3 mb-8">
+              {/* Big logo */}
+              <BigLogoArea />
 
-              {/* Live clock */}
-              <LoginClock
+              {/* App name */}
+              <span className="text-xl font-display font-bold">{settings.appName}</span>
+
+              {/* Digital clock below logo */}
+              <LoginDigitalClock
                 now={now}
                 locale={locale}
                 color={settings.clockColor}
