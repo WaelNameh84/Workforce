@@ -19,6 +19,7 @@ import Integrations from '@/pages/integrations';
 import Security from '@/pages/security';
 import Developers from '@/pages/developers';
 import Documentation from '@/pages/documentation';
+import Notifications from '@/pages/notifications';
 
 export {
   ActionCenter,
@@ -42,4 +43,5 @@ export {
   Security,
   Developers,
   Documentation,
+  Notifications,
 };

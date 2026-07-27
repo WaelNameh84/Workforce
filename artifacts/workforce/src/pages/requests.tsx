@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
@@ -11,7 +12,7 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import DetailDialog from '@/components/detail-dialog';
+import { saveDetailAndNavigate } from '@/pages/detail';
 import { CheckCircle2, XCircle, Clock, Plus, DollarSign, Calendar, TrendingUp, Briefcase, Wrench, Inbox } from 'lucide-react';
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = { 
@@ -29,14 +30,28 @@ export default function Requests() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [showNew, setShowNew] = useState(false);
-  const [selected, setSelected] = useState<WorkRequest | null>(null);
   const params = { companyId: user?.companyId || 0 };
   const { data, isLoading } = useGetRequests(params, { query: { enabled: !!user?.companyId, queryKey: getGetRequestsQueryKey(params) } });
   const createMutation = useCreateRequest();
   const updateMutation = useUpdateRequest();
   const requests = data?.requests || [];
   const refresh = () => queryClient.invalidateQueries({ queryKey: getGetRequestsQueryKey() });
+  const openRequest = (request: WorkRequest | undefined) => {
+    if (!request) return;
+    saveDetailAndNavigate(setLocation, '/dashboard/detail', {
+      title: request.title || t('requests'),
+      badge: t('requests'),
+      items: [
+        { label: t('employee'), value: request.employeeName || request.employeeId },
+        { label: t('requestType'), value: request.type },
+        { label: t('description'), value: request.description },
+        { label: t('status'), value: request.status },
+        { label: t('date'), value: request.createdAt ? new Date(request.createdAt).toLocaleString() : '—' },
+      ],
+    });
+  };
 
   const updateStatus = async (request: WorkRequest, status: 'approved' | 'rejected', paymentStatus?: 'paid' | 'unpaid') => {
     if (!request.id) return;
@@ -86,8 +101,8 @@ export default function Requests() {
             'from-rose-500 to-red-600',
           ];
           const clr = colors[i % colors.length];
-          return (
-            <button key={stat.label} onClick={() => setSelected((stat.key ? requests.find((item) => item.status === stat.key) : requests[0]) || null)} className={`relative overflow-hidden rounded-2xl transition pressable animate-fadeIn stagger-${i + 1} text-left`} style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            return (
+            <button key={stat.label} onClick={() => openRequest(stat.key ? requests.find((item) => item.status === stat.key) : requests[0])} className={`relative overflow-hidden rounded-2xl transition pressable animate-fadeIn stagger-${i + 1} text-left`} style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
               {/* Coloured header */}
               <div className={`h-12 bg-gradient-to-br ${clr} relative overflow-hidden flex items-center px-4`}>
                 <div className="nav-card-wave" style={{ animationDelay: `${i * 0.8}s` }} />
@@ -113,7 +128,7 @@ export default function Requests() {
         ) : requests.map((request, index) => {
           const config = typeConfig[request.type || 'equipment'];
           return (
-            <div key={request.id} onClick={() => setSelected(request)} className={`overflow-hidden rounded-2xl cursor-pointer pressable animate-fadeIn stagger-${(index % 6) + 1}`} style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div key={request.id} onClick={() => openRequest(request)} className={`overflow-hidden rounded-2xl cursor-pointer pressable animate-fadeIn stagger-${(index % 6) + 1}`} style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
               {/* Coloured banner */}
               <div className={`h-12 bg-gradient-to-br ${config.color} relative overflow-hidden flex items-center px-4 gap-3`}>
                 <div className="nav-card-wave" />
@@ -199,7 +214,6 @@ export default function Requests() {
         </div>
       )}
 
-      <DetailDialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)} title={selected?.title || t('requests')} items={selected ? [{ label: t('employee'), value: selected.employeeName || selected.employeeId }, { label: t('requestType'), value: selected.type }, { label: t('description'), value: selected.description }, { label: t('status'), value: selected.status }, { label: t('date'), value: selected.createdAt ? new Date(selected.createdAt).toLocaleString() : '—' }] : []} />
     </div>
   );
 }

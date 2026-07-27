@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { useLocation } from 'wouter';
+import { saveDetailAndNavigate } from '@/pages/detail';
 import {
   useGetPayroll, useUpdatePayroll, getGetPayrollQueryKey,
   useGetEmployees, getGetEmployeesQueryKey,
@@ -461,6 +463,7 @@ function PayslipModal({ emp, onClose, currency, cfg }: { emp: EmployeePaySummary
 export default function PayrollPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const appSettings = useAppSettings();
@@ -865,7 +868,22 @@ export default function PayrollPage() {
               currency="SAR"
               dailyHours={dailyHours}
               colorIdx={idx}
-              onView={() => setViewPayslip(emp)}
+              onView={() => saveDetailAndNavigate(setLocation, '/dashboard/detail', {
+                title: `كشف الراتب — ${emp.employeeName}`,
+                subtitle: emp.position,
+                badge: 'تفاصيل الراتب',
+                items: [
+                  { label: 'الموظف', value: emp.employeeName },
+                  { label: 'الوظيفة', value: emp.position },
+                  { label: 'الراتب الأساسي', value: fmt(emp.basicSalary, 'SAR') },
+                  { label: 'الإضافات', value: fmt(emp.overtimePay + emp.bonus + emp.additions, 'SAR') },
+                  { label: 'الخصومات', value: fmt(emp.totalDeductions, 'SAR') },
+                  { label: 'صافي الراتب', value: fmt(emp.netSalary, 'SAR') },
+                  { label: 'أيام العمل', value: emp.workedDays },
+                  { label: 'ساعات العمل', value: emp.workedHours.toFixed(1) },
+                  { label: 'الحالة', value: emp.status === 'paid' ? 'مدفوع' : 'معلق' },
+                ],
+              })}
               onMarkPaid={() => markPaid(emp)}
             />
           ))}
@@ -892,9 +910,6 @@ export default function PayrollPage() {
       </div>
 
       {/* ── Modals ────────────────────────────────────────────────── */}
-      {viewPayslip && (
-        <PayslipModal emp={viewPayslip} onClose={() => setViewPayslip(null)} currency="SAR" cfg={cfg} />
-      )}
       {showClockOutPopup && (
         <ClockOutPopup onClose={() => setShowClockOutPopup(false)} />
       )}

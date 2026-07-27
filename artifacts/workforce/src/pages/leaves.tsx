@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
@@ -14,7 +15,7 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import DetailDialog from '@/components/detail-dialog';
+import { saveDetailAndNavigate } from '@/pages/detail';
 import { CheckCircle2, XCircle, FileText, Plus, Trash2, CalendarHeart, Upload, Image, X, Paperclip } from 'lucide-react';
 
 const ATTACHMENT_KEY = (id: number) => `leave-attachment-${id}`;
@@ -60,7 +61,7 @@ export default function Leaves() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [selected, setSelected] = useState<Leave | null>(null);
+  const [, setLocation] = useLocation();
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
@@ -191,7 +192,23 @@ export default function Leaves() {
           const remaining = Math.max(0, leave.total - leave.used);
           const percent = Math.min(100, Math.round((leave.used / leave.total) * 100));
           return (
-            <button key={leave.type} onClick={() => setSelected(leaves.find((item) => item.type === leave.type) || null)} className={`relative overflow-hidden rounded-2xl transition pressable animate-fadeIn stagger-${i + 1} flex flex-col justify-between items-center text-center`} style={{ background: `linear-gradient(135deg, color-mix(in srgb,${leave.hex} 18%, var(--card)), var(--card))`, border: `1px solid color-mix(in srgb,${leave.hex} 30%, transparent)` }}>
+           <button key={leave.type} onClick={() => {
+             const item = leaves.find((entry) => entry.type === leave.type);
+             if (!item) return;
+             saveDetailAndNavigate(setLocation, '/dashboard/detail', {
+               title: `${t('leaveRequest')} #${item.id}`,
+               badge: t('leaves'),
+               items: [
+                 { label: t('employee'), value: item.employeeName || item.employeeId },
+                 { label: t('leaveType'), value: t((item.type || 'annual') as any) },
+                 { label: t('from'), value: item.startDate },
+                 { label: t('to'), value: item.endDate },
+                 { label: t('days'), value: item.daysCount },
+                 { label: t('reason'), value: item.reason },
+                 { label: t('status'), value: t((item.status || 'pending') as any) },
+               ],
+             });
+           }} className={`relative overflow-hidden rounded-2xl transition pressable animate-fadeIn stagger-${i + 1} flex flex-col justify-between items-center text-center`} style={{ background: `linear-gradient(135deg, color-mix(in srgb,${leave.hex} 18%, var(--card)), var(--card))`, border: `1px solid color-mix(in srgb,${leave.hex} 30%, transparent)` }}>
               {/* Wave */}
               <div className="nav-card-wave" style={{ animationDelay: `${i * 0.9}s` }} />
               <div className="card-orb w-16 h-16 absolute -right-3 -top-3" style={{ background: `color-mix(in srgb, ${leave.hex} 25%, transparent)` }} />
@@ -227,7 +244,7 @@ export default function Leaves() {
             {leaves.map((leave, index) => {
               const config = leaveTypes.find((item) => item.type === leave.type) || leaveTypes[0];
               return (
-                <div key={leave.id} data-testid={`card-leave-${leave.id}`} onClick={() => setSelected(leave)} className={`rounded-xl overflow-hidden cursor-pointer pressable animate-fadeIn stagger-${(index % 4) + 1}`} style={{ background: 'var(--card)', border: `1px solid color-mix(in srgb, ${config.hex} 30%, var(--border))` }}>
+                <div key={leave.id} data-testid={`card-leave-${leave.id}`} onClick={() => saveDetailAndNavigate(setLocation, '/dashboard/detail', { title: `${t('leaveRequest')} #${leave.id}`, badge: t('leaves'), items: [{ label: t('employee'), value: leave.employeeName || leave.employeeId }, { label: t('leaveType'), value: t((leave.type || 'annual') as any) }, { label: t('from'), value: leave.startDate }, { label: t('to'), value: leave.endDate }, { label: t('days'), value: leave.daysCount }, { label: t('reason'), value: leave.reason }, { label: t('status'), value: t((leave.status || 'pending') as any) }] })} className={`rounded-xl overflow-hidden cursor-pointer pressable animate-fadeIn stagger-${(index % 4) + 1}`} style={{ background: 'var(--card)', border: `1px solid color-mix(in srgb, ${config.hex} 30%, var(--border))` }}>
                   {/* Coloured top banner */}
                   <div className={`h-12 bg-gradient-to-r ${config.color} relative overflow-hidden flex items-center px-4 gap-3`}>
                     <div className="nav-card-wave" />
@@ -401,7 +418,6 @@ export default function Leaves() {
         </div>
       )}
 
-      <DetailDialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)} title={selected ? `${t('leaveRequest')} #${selected.id}` : t('leaveRequest')} items={selected ? [{ label: t('employee'), value: selected.employeeName || selected.employeeId }, { label: t('leaveType'), value: t((selected.type || 'annual') as any) }, { label: t('from'), value: selected.startDate }, { label: t('to'), value: selected.endDate }, { label: t('days'), value: selected.daysCount }, { label: t('reason'), value: selected.reason }, { label: t('status'), value: t((selected.status || 'pending') as any) }] : []} />
       
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

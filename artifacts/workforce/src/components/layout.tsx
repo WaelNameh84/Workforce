@@ -332,12 +332,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [selectedNotifIdx, setSelectedNotifIdx] = useState<number | null>(null);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine);
-  const formatText = useCallback((key: Parameters<typeof t>[0], values: Record<string, string | number> = {}) => {
-    return Object.entries(values).reduce((result, [name, value]) => result.replaceAll(`{${name}}`, String(value)), t(key));
-  }, [t]);
   const drawerStartX = useRef<number | null>(null);
   const todayStr = new Date().toISOString().split('T')[0];
   const cid = user?.companyId || 0;
@@ -353,52 +348,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { companyId: cid },
     { query: { enabled: !!cid, queryKey: getGetLeavesQueryKey({ companyId: cid }) } }
   );
-  const nAtt: any[]    = (nAttData as any)?.attendance || [];
-  const nReqs: any[]   = (nReqData as any)?.requests   || [];
-  const nLeaves: any[] = nLeaveData?.leaves             || [];
-  const lateToday    = nAtt.filter((a: any) => a.isLate);
-  const pendingReqs  = nReqs.filter((r: any) => r.status === 'pending');
-  const pendingLeaves= nLeaves.filter((l: any) => l.status === 'pending');
-  const notifItems = [
-    ...lateToday.map((a: any) => ({
-      icon: Timer, color: 'text-violet-400 bg-violet-500/15',
-       title: `${a.employeeName || t('employee')} — ${t('lateArrival')}`,
-       time: a.clockIn ? new Date(a.clockIn).toLocaleTimeString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : t('today'),
-      details: [
-         { label: t('employee'), value: a.employeeName || '—' },
-         { label: t('timeIn'), value: a.clockIn ? new Date(a.clockIn).toLocaleTimeString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '—' },
-         { label: t('date'), value: a.date ? new Date(a.date).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : t('today') },
-         { label: t('location'), value: a.location || '—' },
-         { label: t('method'), value: a.method || '—' },
-      ],
-    })),
-    ...pendingReqs.map((r: any) => ({
-      icon: AlertCircle, color: 'text-amber-400 bg-amber-500/15',
-       title: r.title || `${t('newRequest')} — ${t('pending')}`,
-       time: r.createdAt ? new Date(r.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : t('today'),
-      details: [
-         { label: t('requestType'), value: r.type || r.title || '—' },
-         { label: t('employee'), value: r.employeeName || '—' },
-         { label: t('status'), value: r.status === 'pending' ? t('pending') : r.status },
-         { label: t('date'), value: r.createdAt ? new Date(r.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : '—' },
-         { label: t('description'), value: r.description || r.notes || '—' },
-      ],
-    })),
-    ...pendingLeaves.map((l: any) => ({
-      icon: CalendarX, color: 'text-blue-400 bg-blue-500/15',
-       title: `${t('leaveRequest')} — ${l.employeeName || t('employee')} (${l.daysCount || '—'} ${t('days')})`,
-       time: l.startDate ? new Date(l.startDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : t('today'),
-      details: [
-         { label: t('employee'), value: l.employeeName || '—' },
-         { label: t('leaveType'), value: l.type || '—' },
-         { label: t('from'), value: l.startDate ? new Date(l.startDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : '—' },
-         { label: t('to'), value: l.endDate ? new Date(l.endDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : '—' },
-         { label: t('days'), value: l.daysCount ? `${l.daysCount} ${t('days')}` : '—' },
-         { label: t('reason'), value: l.reason || '—' },
-      ],
-    })),
-  ];
-  const totalNotifs = notifItems.length;
+  const nAtt: any[] = (nAttData as any)?.attendance || [];
+  const nReqs: any[] = (nReqData as any)?.requests || [];
+  const nLeaves: any[] = nLeaveData?.leaves || [];
+  const totalNotifs = nAtt.filter((item: any) => item.isLate).length
+    + nReqs.filter((item: any) => item.status === 'pending').length
+    + nLeaves.filter((item: any) => item.status === 'pending').length;
 
   const isEmployee = user?.role === 'employee';
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
@@ -758,7 +713,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
             <div className="relative">
               <button
-                onClick={() => { setNotificationsOpen(!notificationsOpen); setUserMenuOpen(false); }}
+                onClick={() => { setUserMenuOpen(false); setLocation('/dashboard/notifications'); }}
                 className="topbar-icon-button relative p-2 rounded-lg transition"
               >
                 <Bell className="w-4 h-4" />
@@ -769,124 +724,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </button>
 
-              {notificationsOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setNotificationsOpen(false)} />
-                  <div
-                    dir={dir}
-                    className="fixed top-[3.5rem] left-2 right-2 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 z-20 rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
-                    style={{ background: 'var(--card)' }}
-                  >
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                      <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-amber-400" />
-                        <span className="font-bold text-sm">{t('notifications')}</span>
-                        {totalNotifs > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-black border border-red-500/30">
-                            {totalNotifs}
-                          </span>
-                        )}
-                      </div>
-                      <button onClick={() => setNotificationsOpen(false)} className="p-1 rounded-lg hover:bg-white/10 transition">
-                        <X className="w-3.5 h-3.5 text-muted-foreground" />
-                      </button>
-                    </div>
-
-                    {/* Items */}
-                    <div className="max-h-96 overflow-y-auto">
-                      {notifItems.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 gap-2">
-                          <CheckCircle2 className="w-8 h-8 text-green-400" />
-                          <p className="text-sm font-bold text-muted-foreground">{t('noNewNotifications')}</p>
-                        </div>
-                      ) : selectedNotifIdx !== null ? (
-                        /* ── Detail view ── */
-                        <div className="p-3">
-                          <button
-                            onClick={() => setSelectedNotifIdx(null)}
-                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-3"
-                          >
-                             <span className="text-base leading-none">{dir === 'rtl' ? '→' : '←'}</span> {t('backToNotifications')}
-                          </button>
-                          {(() => {
-                            const n = notifItems[selectedNotifIdx];
-                            return (
-                              <div className="rounded-xl border border-white/10 overflow-hidden">
-                                <div className={`flex items-center gap-3 px-4 py-3 ${n.color.replace('text-', 'border-b border-').split(' ')[0]}/20 border-b border-white/10`}>
-                                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${n.color}`}>
-                                    <n.icon className="w-4 h-4" />
-                                  </span>
-                                  <div>
-                                    <p className="text-xs font-bold leading-snug">{n.title}</p>
-                                    <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
-                                  </div>
-                                </div>
-                                <div className="divide-y divide-white/5">
-                                  {n.details.map((d, di) => (
-                                    <div key={di} className="flex items-start justify-between gap-3 px-4 py-2.5">
-                                      <span className="text-[11px] text-muted-foreground shrink-0">{d.label}</span>
-                                      <span className="text-[11px] font-semibold text-right">{d.value}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      ) : (
-                        /* ── List view ── */
-                        <div className="p-2 space-y-1">
-                          {notifItems.map((n, i) => (
-                            <div
-                              key={i}
-                              onClick={() => setSelectedNotifIdx(i)}
-                              className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 active:bg-white/10 transition cursor-pointer"
-                            >
-                              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${n.color}`}>
-                                <n.icon className="w-3.5 h-3.5" />
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-bold leading-snug">{n.title}</p>
-                                <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
-                              </div>
-                              <span className="text-muted-foreground/50 text-lg leading-none mt-0.5">‹</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="border-t border-white/10">
-                      {(lateToday.length > 0 || pendingReqs.length > 0 || pendingLeaves.length > 0) && (
-                        <div className="flex items-center justify-between px-4 py-2 text-[11px] text-muted-foreground">
-                           <span>{formatText('lateCount', { count: lateToday.length })} · {formatText('requestCount', { count: pendingReqs.length })} · {formatText('leaveCount', { count: pendingLeaves.length })}</span>
-                          <button
-                            onClick={() => setNotificationsOpen(false)}
-                            className="text-indigo-400 font-bold hover:text-indigo-300 transition"
-                          >
-                             {t('close')}
-                          </button>
-                        </div>
-                      )}
-                      {isAdmin && (
-                        <div className="px-3 pb-3 pt-2">
-                          <button
-                            onClick={() => { setNotificationsOpen(false); setLocation('/dashboard/action-center'); }}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs
-                              bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400
-                              text-white shadow-md transition-all"
-                          >
-                            <Zap className="w-3.5 h-3.5" />
-                             {t('openManagerActionCenter')}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
 
             {/* User menu */}
@@ -912,6 +749,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {roleBadge.label}
                       </span>
                     </div>
+                    <Link
+                      href="/dashboard/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                    >
+                      <User className="w-4 h-4" />
+                      {locale === 'ar' ? 'الملف الشخصي' : locale === 'sv' ? 'Profil' : 'Profile'}
+                    </Link>
                     <Link
                       href="/dashboard/settings"
                       onClick={() => setUserMenuOpen(false)}

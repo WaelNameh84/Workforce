@@ -8,9 +8,10 @@ import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Bot, MessageSquare, TrendingUp,
   Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, AlertCircle,
-  ChevronDown, UserRound, UserX, Stethoscope, Timer, X, ChevronLeft,
+  ChevronDown, UserRound, UserX, Stethoscope, Timer, ChevronLeft,
   BarChart3, Banknote, TimerReset, Calendar, Activity, ArrowUpRight, ImagePlus,
 } from 'lucide-react';
+import { saveDetailAndNavigate } from '@/pages/detail';
 
 // ── Analog + Digital live clock ──────────────────────────────────────────────
 function LiveClockWidget({ now, locale }: { now: Date; locale: string }) {
@@ -111,7 +112,6 @@ function AdminDashboard() {
   const companyId = user?.companyId || 0;
   const todayStr = new Date().toISOString().split('T')[0];
   const [now, setNow] = useState(() => new Date());
-  const [selectedCard, setSelectedCard] = useState<AdminDetailCard | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -339,24 +339,30 @@ function AdminDashboard() {
     })),
   ].slice(0, 6);
 
+  const openCardDetails = (card: AdminDetailCard) => {
+    saveDetailAndNavigate(setLocation, '/dashboard/detail', {
+      title: card.title,
+      subtitle: card.subtitle,
+      badge: translateText('تفاصيل البطاقة'),
+      items: card.items.map((item) => ({
+        label: item.name,
+        value: item.status ? `${item.meta} · ${item.status}` : item.meta,
+      })),
+    });
+  };
+
   const openAttendanceDetails = (record: any) => {
-    setSelectedCard({
-      id: `attendance-${record.id}`,
-       title: record.employeeName || translateText('سجل الحضور'),
-       value: record.isLate ? t('lateArrival') : translateText('حاضر'),
-       subtitle: `${translateText('سجل بتاريخ')} ${record.date || todayStr}`,
-      icon: Clock,
-      tone: record.isLate
-        ? 'from-violet-500/20 to-purple-950/80 border-violet-400/30'
-        : 'from-cyan-500/20 to-blue-950/80 border-cyan-400/30',
-      iconTone: record.isLate
-        ? 'bg-violet-500 text-white shadow-violet-500/40'
-        : 'bg-cyan-500 text-white shadow-cyan-500/40',
-      items: [{
-         name: record.employeeName || t('employee'),
-         meta: `${translateText('الحضور')}: ${record.clockIn ? formatTime(record.clockIn) : '—'} • ${translateText('الانصراف')}: ${record.clockOut ? formatTime(record.clockOut) : translateText('لم يسجل')}`,
-         status: record.isLate ? t('lateArrival') : translateText('في الموعد'),
-      }],
+    saveDetailAndNavigate(setLocation, '/dashboard/detail', {
+      title: record.employeeName || translateText('سجل الحضور'),
+      subtitle: `${translateText('سجل بتاريخ')} ${record.date || todayStr}`,
+      badge: translateText('تفاصيل الحضور'),
+      items: [
+        { label: t('employee'), value: record.employeeName || '—' },
+        { label: translateText('الحضور'), value: record.clockIn ? formatTime(record.clockIn) : '—' },
+        { label: translateText('الانصراف'), value: record.clockOut ? formatTime(record.clockOut) : translateText('لم يسجل') },
+        { label: t('status'), value: record.isLate ? t('lateArrival') : translateText('في الموعد') },
+        { label: t('location'), value: record.location || '—' },
+      ],
     });
   };
 
@@ -408,9 +414,14 @@ function AdminDashboard() {
           </div>
         </div>
 
-        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
+        <button
+          type="button"
+          aria-label="فتح الملف الشخصي"
+          onClick={() => setLocation('/dashboard/profile')}
+          className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0"
+        >
           <span className="text-white font-bold text-base">{user?.fullName?.charAt(0) || 'U'}</span>
-        </div>
+        </button>
       </div>
 
       {/* Live Clock Widget */}
@@ -425,7 +436,7 @@ function AdminDashboard() {
             <button
               key={card.id}
               type="button"
-              onClick={() => setSelectedCard(card)}
+              onClick={() => openCardDetails(card)}
               className={`mobile-dashboard-card group relative overflow-hidden rounded-3xl border bg-gradient-to-br ${card.tone} p-4 text-right shadow-lg`}
             >
               <span className="absolute -left-5 -top-6 h-20 w-20 rounded-full bg-white/5 blur-2xl" />
@@ -574,52 +585,6 @@ function AdminDashboard() {
         )}
       </div>
 
-      {selectedCard && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/75 p-3 backdrop-blur-sm sm:items-center" onClick={() => setSelectedCard(null)}>
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={selectedCard.title}
-            className="w-full max-w-md rounded-[2rem] border border-white/15 bg-[#101021] p-5 shadow-2xl animate-scale-in"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-5 flex items-start justify-between">
-              <div>
-                 <p className="text-xs font-bold text-indigo-300">{translateText('تفاصيل البطاقة')}</p>
-                <h3 className="mt-1 font-display text-xl font-extrabold text-white">{selectedCard.title}</h3>
-              </div>
-              <button type="button" onClick={() => setSelectedCard(null)} aria-label="إغلاق" className="rounded-xl p-2 text-slate-400 hover:bg-white/10 hover:text-white">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className={`mb-4 flex items-center justify-between rounded-2xl border bg-gradient-to-br ${selectedCard.tone} p-4`}>
-              <span className="flex items-center gap-3">
-                <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${selectedCard.iconTone}`}>
-                  <selectedCard.icon className="h-5 w-5" />
-                </span>
-                <span className="text-sm font-bold text-slate-200">{selectedCard.subtitle}</span>
-              </span>
-              <span className="font-data text-2xl font-black text-white">{selectedCard.value}</span>
-            </div>
-            <div className="max-h-64 space-y-2 overflow-y-auto">
-              {selectedCard.items.map((item, index) => (
-                <div key={`${item.name}-${index}`} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[.04] p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-extrabold text-white">{item.name}</p>
-                    <p className="mt-1 text-[11px] font-bold text-slate-400">{item.meta}</p>
-                  </div>
-                  {item.status && <span className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-black text-indigo-200">{item.status}</span>}
-                </div>
-              ))}
-            </div>
-            {selectedCard.id === 'clock' && (
-               <button type="button" onClick={() => { setSelectedCard(null); setLocation('/dashboard/attendance'); }} className="mt-4 w-full rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-400">
-                 {translateText('فتح صفحة الحضور')}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -629,6 +594,7 @@ function EmployeeDashboard() {
   const { user } = useAuth();
   const { s } = useSettings();
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
 
   const empId = (user as any)?.employeeId;
   const companyId = user?.companyId || 0;
@@ -672,9 +638,14 @@ function EmployeeDashboard() {
           )}
           <p className="text-muted-foreground text-sm">{new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+        <button
+          type="button"
+          aria-label="فتح الملف الشخصي"
+          onClick={() => setLocation('/dashboard/profile')}
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg"
+        >
           <span className="text-white font-bold text-lg">{user?.fullName?.charAt(0) || 'U'}</span>
-        </div>
+        </button>
       </div>
 
       {/* Today Attendance Status */}

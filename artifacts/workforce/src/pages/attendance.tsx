@@ -17,12 +17,13 @@ import {
 import { format, differenceInMinutes } from 'date-fns';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { useHaptic } from '@/hooks/use-haptic';
+import { saveDetailAndNavigate } from '@/pages/detail';
+import { useLocation } from 'wouter';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 
 /* ─── helpers ─────────────────────────────────────────────── */
@@ -78,7 +79,7 @@ export default function Attendance() {
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number; accuracy: number | null } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsAddress, setGpsAddress] = useState<string | null>(null);
-  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
+  const [, setLocation] = useLocation();
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
@@ -349,9 +350,6 @@ export default function Attendance() {
     bluetooth: ar ? 'بلوتوث' : 'Bluetooth',
     qr: ar ? 'رمز QR' : 'QR code',
   }[method || ''] || method || (ar ? 'غير محدد' : 'Not specified'));
-  const recordMapUrl = selectedRecord?.gpsLatitude != null && selectedRecord?.gpsLongitude != null
-    ? `https://www.google.com/maps?q=${selectedRecord.gpsLatitude},${selectedRecord.gpsLongitude}`
-    : null;
 
   const stats = [
     { label: ar ? 'إجمالي الساعات'  : 'Total Hours',   value: `${totalH.toFixed(1)}h`, gradient: 'from-blue-500 to-cyan-500',      icon: Timer        },
@@ -784,11 +782,38 @@ export default function Attendance() {
                        data-testid={`card-attendance-${rec.id}`}
                         role="button"
                         tabIndex={0}
-                        onClick={() => setSelectedRecord(rec)}
+                         onClick={() => saveDetailAndNavigate(setLocation, '/dashboard/detail', {
+                           title: rec.employeeName || (ar ? 'سجل الحضور' : 'Attendance record'),
+                           subtitle: rec.date || '',
+                           badge: ar ? 'تفاصيل تسجيل الحضور' : 'Attendance details',
+                           items: [
+                             { label: ar ? 'الموظف' : 'Employee', value: rec.employeeName || '—' },
+                             { label: ar ? 'رقم الموظف' : 'Employee ID', value: rec.employeeId ?? '—' },
+                             { label: ar ? 'التاريخ' : 'Date', value: rec.date || '—' },
+                             { label: ar ? 'وقت تسجيل الدخول' : 'Clock-in time', value: formatRecordDateTime(rec.clockIn) },
+                             { label: ar ? 'وقت تسجيل الخروج' : 'Clock-out time', value: formatRecordDateTime(rec.clockOut) },
+                             { label: ar ? 'إجمالي الساعات' : 'Total hours', value: rec.totalHours ? hoursLabel(rec.totalHours, locale) : '—' },
+                             { label: ar ? 'الحالة' : 'Status', value: rec.status || '—' },
+                             { label: ar ? 'الموقع' : 'Location', value: rec.location || '—' },
+                             { label: ar ? 'طريقة التسجيل' : 'Method', value: methodLabel(rec.method) },
+                             { label: ar ? 'الملاحظات' : 'Notes', value: rec.notes || '—' },
+                           ],
+                         })}
                         onKeyDown={event => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
-                            setSelectedRecord(rec);
+                             saveDetailAndNavigate(setLocation, '/dashboard/detail', {
+                               title: rec.employeeName || (ar ? 'سجل الحضور' : 'Attendance record'),
+                               subtitle: rec.date || '',
+                               badge: ar ? 'تفاصيل تسجيل الحضور' : 'Attendance details',
+                               items: [
+                                 { label: ar ? 'الموظف' : 'Employee', value: rec.employeeName || '—' },
+                                 { label: ar ? 'التاريخ' : 'Date', value: rec.date || '—' },
+                                 { label: ar ? 'وقت الدخول' : 'Clock-in time', value: formatRecordDateTime(rec.clockIn) },
+                                 { label: ar ? 'وقت الخروج' : 'Clock-out time', value: formatRecordDateTime(rec.clockOut) },
+                                 { label: ar ? 'الحالة' : 'Status', value: rec.status || '—' },
+                               ],
+                             });
                           }
                         }}
                         className={`rounded-xl border-l-4 p-4 flex flex-col sm:flex-row sm:items-center gap-3 animate-fadeIn stagger-${(idx % 4) + 1} ${col.row} cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400/70`}
@@ -866,89 +891,6 @@ export default function Attendance() {
           )}
         </div>
       </div>
-
-      <Dialog open={!!selectedRecord} onOpenChange={open => { if (!open) setSelectedRecord(null); }}>
-        <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-xl" dir={ar ? 'rtl' : 'ltr'}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3 text-xl">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-500">
-                <Clock className="h-5 w-5" />
-              </span>
-              {ar ? 'تفاصيل تسجيل الحضور' : 'Attendance registration details'}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedRecord?.employeeName || (ar ? 'سجل الحضور' : 'Attendance record')}
-              {selectedRecord?.date ? ` · ${selectedRecord.date}` : ''}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedRecord && (
-            <div className="grid gap-3">
-              <div className="rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-indigo-500">
-                  <MapPin className="h-4 w-4" />
-                  {ar ? 'الموقع والتسجيل' : 'Location & registration'}
-                </div>
-                <div className="grid gap-2 text-sm sm:grid-cols-2">
-                  <div><span className="text-muted-foreground">{ar ? 'موقع العمل' : 'Work location'}:</span> <strong>{selectedRecord.location || '—'}</strong></div>
-                  <div><span className="text-muted-foreground">{ar ? 'طريقة التسجيل' : 'Method'}:</span> <strong>{methodLabel(selectedRecord.method)}</strong></div>
-                  <div className="sm:col-span-2">
-                    <span className="text-muted-foreground">{ar ? 'الموقع الجغرافي' : 'GPS coordinates'}:</span>{' '}
-                    <strong>
-                      {selectedRecord.gpsLatitude != null && selectedRecord.gpsLongitude != null
-                        ? `${selectedRecord.gpsLatitude}, ${selectedRecord.gpsLongitude}`
-                        : (ar ? 'لم يتم حفظ إحداثيات' : 'No GPS coordinates saved')}
-                    </strong>
-                  </div>
-                  {selectedRecord.gpsAccuracy != null && (
-                    <div><span className="text-muted-foreground">{ar ? 'دقة الموقع' : 'GPS accuracy'}:</span> <strong>{selectedRecord.gpsAccuracy} m</strong></div>
-                  )}
-                </div>
-                {recordMapUrl && (
-                  <a
-                    href={recordMapUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={event => event.stopPropagation()}
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-indigo-600"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    {ar ? 'فتح الموقع على الخريطة' : 'Open location in Maps'}
-                  </a>
-                )}
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                {[
-                  [ar ? 'الموظف' : 'Employee', selectedRecord.employeeName || '—'],
-                  [ar ? 'رقم الموظف' : 'Employee ID', selectedRecord.employeeId ?? '—'],
-                  [ar ? 'التاريخ' : 'Date', selectedRecord.date || '—'],
-                  [ar ? 'وقت تسجيل الدخول' : 'Clock-in time', formatRecordDateTime(selectedRecord.clockIn)],
-                  [ar ? 'وقت تسجيل الخروج' : 'Clock-out time', formatRecordDateTime(selectedRecord.clockOut)],
-                  [ar ? 'إجمالي الساعات' : 'Total hours', selectedRecord.totalHours ? hoursLabel(selectedRecord.totalHours, locale) : '—'],
-                  [ar ? 'الحالة' : 'Status', selectedRecord.status || '—'],
-                  [ar ? 'متأخر' : 'Late', selectedRecord.isLate ? (ar ? 'نعم' : 'Yes') : (ar ? 'لا' : 'No')],
-                  [ar ? 'حالة التبرير' : 'Justification', selectedRecord.justificationStatus || '—'],
-                  [ar ? 'حالة الدفع' : 'Payment status', selectedRecord.paymentStatus || '—'],
-                  [ar ? 'نوع التبرير' : 'Justification type', selectedRecord.justificationType || '—'],
-                  [ar ? 'أنشئ في' : 'Created at', formatRecordDateTime(selectedRecord.createdAt)],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-xl border bg-muted/30 px-3 py-2.5">
-                    <div className="text-[11px] text-muted-foreground">{label}</div>
-                    <div className="mt-1 break-words text-sm font-semibold">{value}</div>
-                  </div>
-                ))}
-              </div>
-              {selectedRecord.notes && (
-                <div className="rounded-xl border bg-muted/30 px-3 py-3">
-                  <div className="text-[11px] text-muted-foreground">{ar ? 'الملاحظات' : 'Notes'}</div>
-                  <div className="mt-1 text-sm font-medium">{selectedRecord.notes}</div>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* ════ BOTTOM SHEET — Late Arrival ════ */}
       <BottomSheet

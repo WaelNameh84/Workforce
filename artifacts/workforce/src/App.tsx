@@ -36,7 +36,10 @@ import {
   Security,
   Developers,
   Documentation,
+  Notifications,
 } from '@/pages';
+import Profile from '@/pages/profile';
+import DetailPage from '@/pages/detail';
 
 const queryClient = new QueryClient();
 
@@ -80,6 +83,9 @@ function Router() {
       <ProtectedRoute path="/dashboard/payroll" component={Payroll} />
       <ProtectedRoute path="/dashboard/requests" component={Requests} />
       <ProtectedRoute path="/dashboard/settings" component={Settings} />
+      <ProtectedRoute path="/dashboard/profile" component={Profile} />
+      <ProtectedRoute path="/dashboard/notifications" component={Notifications} />
+      <ProtectedRoute path="/dashboard/detail" component={DetailPage} />
 
       {/* Admin / Manager only routes */}
       <ProtectedRoute path="/dashboard/action-center" component={ActionCenter} adminOnly />
