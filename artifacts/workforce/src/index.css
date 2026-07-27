@@ -217,6 +217,32 @@ input, textarea, [contenteditable="true"], [contenteditable] {
   touch-action: pan-y;
 }
 
+/* ─── Native-feeling button press ───────────────────────────── */
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  transform-origin: center;
+  transition: transform .14s cubic-bezier(.22, 1, .36, 1), filter .14s ease, box-shadow .14s ease;
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]) {
+  transform: translateY(1px) scale(.975);
+  filter: brightness(.94);
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active:not(:disabled),
+  [role="button"]:active:not([aria-disabled="true"]) {
+    transform: none;
+  }
+}
+
 /* ─── Living top bar ─────────────────────────────────────────── */
 .app-topbar {
   position: relative;

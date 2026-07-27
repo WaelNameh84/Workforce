@@ -426,6 +426,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
   }, []);
 
+  // Add a tiny native-feeling haptic response to every actionable button.
+  // Browsers that do not expose Vibration API simply keep the visual press state.
+  useEffect(() => {
+    let lastHapticAt = 0;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target instanceof Element
+        ? event.target.closest('button, [role="button"]')
+        : null;
+      if (!(target instanceof HTMLElement) || target.hasAttribute('disabled') || target.getAttribute('aria-disabled') === 'true') return;
+
+      const now = performance.now();
+      if (now - lastHapticAt < 45) return;
+      lastHapticAt = now;
+      if ('vibrate' in navigator) navigator.vibrate(8);
+    };
+
+    document.addEventListener('pointerdown', onPointerDown, { passive: true });
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, []);
+
   useEffect(() => {
     if (!sidebarOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
