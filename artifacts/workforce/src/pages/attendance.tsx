@@ -391,7 +391,27 @@ export default function Attendance() {
                   {ar ? 'لا توجد مواقع مضافة. اطلب من المدير إضافة موقع من قسم مواقع العمل.' : 'No work locations are configured yet. Ask an administrator to add one.'}
                 </p>
               )}
-              {/* GPS status */}
+              {/* GPS detect button — always visible when GPS method is selected */}
+              {checkMethod === 'gps' && (
+                <button
+                  type="button"
+                  onClick={detectGPS}
+                  disabled={gpsLoading}
+                  className={`mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border font-semibold text-sm transition-all
+                    ${gpsCoords
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
+                      : 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {gpsLoading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />{ar ? 'جارٍ تحديد الموقع…' : 'Detecting…'}</>
+                    : gpsCoords
+                      ? <><Navigation className="w-4 h-4" />{ar ? 'تم تحديد الموقع ✓' : 'Location detected ✓'}</>
+                      : <><Navigation className="w-4 h-4" />{ar ? 'تحديد الموقع الجغرافي' : 'Detect GPS Location'}</>
+                  }
+                </button>
+              )}
+              {/* GPS status detail row */}
               {checkMethod === 'gps' && (
                 <div className="mt-2 rounded-xl bg-white/5 border border-white/10 text-xs overflow-hidden">
                   <div className="px-3 py-2 flex items-center gap-2 flex-wrap">
