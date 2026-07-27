@@ -78,13 +78,28 @@ export default function Requests() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <button key={stat.label} onClick={() => setSelected((stat.key ? requests.find((item) => item.status === stat.key) : requests[0]) || null)} className={`text-left p-5 rounded-2xl transition pressable card-3d animate-fadeIn stagger-${i + 1}`}>
-            <div className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>{stat.label}</div>
-            <div className="text-4xl font-bold mt-2 font-data">{stat.value}</div>
-            <div className={`h-1.5 rounded-full mt-4 bg-gradient-to-r ${stat.key === 'approved' ? 'from-green-400 to-emerald-500' : stat.key === 'rejected' ? 'from-red-400 to-rose-500' : stat.key === 'pending' ? 'from-amber-400 to-orange-500' : 'from-indigo-400 to-purple-500'}`} />
-          </button>
-        ))}
+        {stats.map((stat, i) => {
+          const colors = [
+            'from-indigo-500 to-purple-600',
+            'from-amber-500 to-orange-600',
+            'from-emerald-500 to-teal-600',
+            'from-rose-500 to-red-600',
+          ];
+          const clr = colors[i % colors.length];
+          return (
+            <button key={stat.label} onClick={() => setSelected((stat.key ? requests.find((item) => item.status === stat.key) : requests[0]) || null)} className={`relative overflow-hidden rounded-2xl transition pressable animate-fadeIn stagger-${i + 1} text-left`} style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              {/* Coloured header */}
+              <div className={`h-12 bg-gradient-to-br ${clr} relative overflow-hidden flex items-center px-4`}>
+                <div className="nav-card-wave" style={{ animationDelay: `${i * 0.8}s` }} />
+                <div className="card-orb w-14 h-14 absolute -right-3 -top-3" />
+              </div>
+              <div className="p-4">
+                <div className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>{stat.label}</div>
+                <div className="text-4xl font-bold mt-1 font-data">{stat.value}</div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <div className="space-y-4">
@@ -98,9 +113,19 @@ export default function Requests() {
         ) : requests.map((request, index) => {
           const config = typeConfig[request.type || 'equipment'];
           return (
-            <div key={request.id} onClick={() => setSelected(request)} className={`p-5 rounded-2xl cursor-pointer pressable card-3d animate-fadeIn stagger-${(index % 6) + 1}`}>
+            <div key={request.id} onClick={() => setSelected(request)} className={`overflow-hidden rounded-2xl cursor-pointer pressable animate-fadeIn stagger-${(index % 6) + 1}`} style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              {/* Coloured banner */}
+              <div className={`h-12 bg-gradient-to-br ${config.color} relative overflow-hidden flex items-center px-4 gap-3`}>
+                <div className="nav-card-wave" />
+                <div className="card-orb w-14 h-14 absolute -right-3 -top-3" />
+                <div className="relative z-10 w-8 h-8 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-white card-icon-float">
+                  {config.icon}
+                </div>
+                <span className="relative z-10 text-white font-bold text-sm truncate">{request.title}</span>
+              </div>
+              <div className="p-5">
               <div className="flex flex-col md:flex-row md:items-center gap-5">
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${config.color} flex items-center justify-center text-white shadow-lg flex-shrink-0`}>
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${config.color} flex items-center justify-center text-white shadow-lg flex-shrink-0`}>
                   {config.icon}
                 </div>
                 
@@ -139,6 +164,7 @@ export default function Requests() {
                   )}
                 </div>
               </div>
+              </div>{/* /p-5 */}
             </div>
           )
         })}

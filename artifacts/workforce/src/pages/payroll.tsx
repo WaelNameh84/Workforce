@@ -194,36 +194,53 @@ function ClockOutPopup({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Payroll Card colour palette ──────────────────────────────────────────────
+const payCardColors = [
+  { from: 'from-indigo-500', to: 'to-purple-600',  glow: 'shadow-indigo-500/30' },
+  { from: 'from-emerald-500', to: 'to-teal-600',   glow: 'shadow-emerald-500/30' },
+  { from: 'from-rose-500',   to: 'to-red-600',     glow: 'shadow-rose-500/30' },
+  { from: 'from-amber-500',  to: 'to-orange-600',  glow: 'shadow-amber-500/30' },
+  { from: 'from-violet-500', to: 'to-fuchsia-600', glow: 'shadow-violet-500/30' },
+  { from: 'from-cyan-500',   to: 'to-sky-600',     glow: 'shadow-cyan-500/30' },
+];
+
 // ─── Payroll Card ─────────────────────────────────────────────────────────────
-function PayrollCard({ emp, onView, onMarkPaid, currency, dailyHours }: { emp: EmployeePaySummary; onView: () => void; onMarkPaid: () => void; currency: string; dailyHours: number }) {
-  const netPositive = emp.netSalary > 0;
+function PayrollCard({ emp, onView, onMarkPaid, currency, dailyHours, colorIdx = 0 }: { emp: EmployeePaySummary; onView: () => void; onMarkPaid: () => void; currency: string; dailyHours: number; colorIdx?: number }) {
+  const clr = payCardColors[colorIdx % payCardColors.length];
   return (
     <div
       onClick={onView}
-      className="rounded-2xl border border-border p-5 cursor-pointer pressable hover:border-indigo-500/40 transition-all group animate-fadeIn"
+      className="rounded-2xl overflow-hidden cursor-pointer pressable transition-all group animate-fadeIn border border-border"
       style={{ background: 'var(--card)' }}
     >
-      {/* Header */}
-      <div className="flex items-start gap-4 mb-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-lg shadow-indigo-500/20">
+      {/* ── Coloured gradient header with wave ── */}
+      <div className={`h-16 bg-gradient-to-br ${clr.from} ${clr.to} relative overflow-hidden flex items-center px-5 gap-4`}>
+        <div className="nav-card-wave" />
+        <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
+        <div className="card-orb card-orb-sm w-14 h-14 absolute -left-2 -bottom-2" />
+        <div className={`relative z-10 w-11 h-11 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white font-bold text-xl shadow-lg ${clr.glow} card-icon-pulse`}>
           {emp.employeeName.charAt(0)}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-base truncate">{emp.employeeName}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">{emp.position}</div>
-          <div className="flex items-center gap-2 mt-1">
+        <div className="relative z-10 flex-1 min-w-0">
+          <div className="font-bold text-white truncate">{emp.employeeName}</div>
+          <div className="text-white/65 text-xs truncate">{emp.position}</div>
+        </div>
+        <div className="relative z-10 text-right shrink-0">
+          <div className="font-bold font-data text-white text-lg leading-tight">{fmt(emp.netSalary, currency)}</div>
+          <div className="text-white/65 text-[10px]">صافي الراتب</div>
+        </div>
+      </div>
+
+      {/* ── Body ── */}
+      <div className="p-5">
+      {/* Contract + status badges */}
+      <div className="flex items-center gap-2 mb-4">
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               {emp.contractType === 'daily' ? 'عقد يومي' : 'موظف دائم'}
             </span>
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${emp.status === 'paid' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
               {emp.status === 'paid' ? 'مدفوع' : 'معلق'}
             </span>
-          </div>
-        </div>
-        <div className="text-right shrink-0">
-          <div className="font-bold font-data text-xl">{fmt(emp.netSalary, currency)}</div>
-          <div className="text-xs text-muted-foreground">صافي الراتب</div>
-        </div>
       </div>
 
       {/* Mini stats grid */}
@@ -283,6 +300,7 @@ function PayrollCard({ emp, onView, onMarkPaid, currency, dailyHours }: { emp: E
           </button>
         )}
       </div>
+      </div>{/* /body */}
     </div>
   );
 }
@@ -754,18 +772,25 @@ export default function PayrollPage() {
       {/* ── Summary Stats ───────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'إجمالي الرواتب الصافية', value: fmt(totals.net, 'SAR'), icon: Banknote, color: 'from-green-500 to-emerald-500', sub: `${totals.headcount} موظف` },
-          { label: 'إجمالي الإيرادات', value: fmt(totals.gross, 'SAR'), icon: TrendingUp, color: 'from-blue-500 to-cyan-500', sub: 'قبل الخصومات' },
-          { label: 'إجمالي الخصومات', value: fmt(totals.deductions, 'SAR'), icon: TrendingDown, color: 'from-red-500 to-rose-500', sub: 'خصومات وسلف' },
-          { label: 'بدل الإضافي', value: fmt(totals.overtime, 'SAR'), icon: Clock, color: 'from-amber-500 to-orange-500', sub: `${summaries.reduce((a, s) => a + s.overtimeHours, 0).toFixed(1)} ساعة` },
+          { label: 'إجمالي الرواتب الصافية', value: fmt(totals.net, 'SAR'), icon: Banknote, color: 'from-green-500 to-emerald-600', sub: `${totals.headcount} موظف` },
+          { label: 'إجمالي الإيرادات', value: fmt(totals.gross, 'SAR'), icon: TrendingUp, color: 'from-blue-500 to-cyan-600', sub: 'قبل الخصومات' },
+          { label: 'إجمالي الخصومات', value: fmt(totals.deductions, 'SAR'), icon: TrendingDown, color: 'from-rose-500 to-red-600', sub: 'خصومات وسلف' },
+          { label: 'بدل الإضافي', value: fmt(totals.overtime, 'SAR'), icon: Clock, color: 'from-amber-500 to-orange-600', sub: `${summaries.reduce((a, s) => a + s.overtimeHours, 0).toFixed(1)} ساعة` },
         ].map((stat, i) => (
-          <div key={stat.label} className={`rounded-2xl p-5 border border-border animate-fadeIn stagger-${i + 1}`} style={{ background: 'var(--card)' }}>
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3 shadow-md`}>
-              <stat.icon className="w-5 h-5 text-white" />
+          <div key={stat.label} className={`rounded-2xl overflow-hidden border border-border animate-fadeIn stagger-${i + 1}`} style={{ background: 'var(--card)' }}>
+            {/* Coloured header strip */}
+            <div className={`h-14 bg-gradient-to-br ${stat.color} relative overflow-hidden flex items-center px-4 gap-3`}>
+              <div className="nav-card-wave" />
+              <div className="card-orb w-16 h-16 absolute -right-3 -top-3" />
+              <div className={`relative z-10 w-9 h-9 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center shadow-md card-icon-float`}>
+                <stat.icon className="w-4.5 h-4.5 text-white" />
+              </div>
+              <div className="relative z-10 text-white/80 text-xs font-bold uppercase tracking-wider leading-tight">{stat.label}</div>
             </div>
-            <div className="font-data font-bold text-xl mb-0.5">{stat.value}</div>
-            <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider">{stat.label}</div>
-            <div className="text-xs text-muted-foreground mt-1">{stat.sub}</div>
+            <div className="p-4">
+              <div className="font-data font-bold text-xl mb-0.5">{stat.value}</div>
+              <div className="text-xs text-muted-foreground mt-1">{stat.sub}</div>
+            </div>
           </div>
         ))}
       </div>
@@ -833,12 +858,13 @@ export default function PayrollPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {visibleSummaries.map(emp => (
+          {visibleSummaries.map((emp, idx) => (
             <PayrollCard
               key={emp.employeeId}
               emp={emp}
               currency="SAR"
               dailyHours={dailyHours}
+              colorIdx={idx}
               onView={() => setViewPayslip(emp)}
               onMarkPaid={() => markPaid(emp)}
             />

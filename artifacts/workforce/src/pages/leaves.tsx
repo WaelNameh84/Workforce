@@ -191,12 +191,17 @@ export default function Leaves() {
           const remaining = Math.max(0, leave.total - leave.used);
           const percent = Math.min(100, Math.round((leave.used / leave.total) * 100));
           return (
-            <button key={leave.type} onClick={() => setSelected(leaves.find((item) => item.type === leave.type) || null)} className={`text-left p-5 rounded-2xl transition pressable card-3d animate-fadeIn stagger-${i + 1} flex flex-col justify-between items-center text-center`}>
-              <div className="w-16 h-16 rounded-full relative flex items-center justify-center mb-3" style={{ background: `conic-gradient(${leave.hex} ${percent}%, var(--muted-bg) ${percent}%)` }}>
-                <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center font-display font-bold text-lg">{remaining}</div>
+            <button key={leave.type} onClick={() => setSelected(leaves.find((item) => item.type === leave.type) || null)} className={`relative overflow-hidden rounded-2xl transition pressable animate-fadeIn stagger-${i + 1} flex flex-col justify-between items-center text-center`} style={{ background: `linear-gradient(135deg, color-mix(in srgb,${leave.hex} 18%, var(--card)), var(--card))`, border: `1px solid color-mix(in srgb,${leave.hex} 30%, transparent)` }}>
+              {/* Wave */}
+              <div className="nav-card-wave" style={{ animationDelay: `${i * 0.9}s` }} />
+              <div className="card-orb w-16 h-16 absolute -right-3 -top-3" style={{ background: `color-mix(in srgb, ${leave.hex} 25%, transparent)` }} />
+              <div className="relative z-10 pt-5 pb-4 px-3 flex flex-col items-center gap-2 w-full">
+                <div className="w-16 h-16 rounded-full relative flex items-center justify-center card-icon-float" style={{ background: `conic-gradient(${leave.hex} ${percent}%, color-mix(in srgb,${leave.hex} 15%,var(--muted-bg)) ${percent}%)` }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-display font-bold text-lg" style={{ background: 'var(--card)', color: leave.hex }}>{remaining}</div>
+                </div>
+                <div className="text-sm font-bold uppercase tracking-widest">{t(leave.type as any)}</div>
+                <div className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: `color-mix(in srgb,${leave.hex} 12%,var(--muted-bg))`, color: leave.hex }}>{leave.used} / {leave.total} {t('used')}</div>
               </div>
-              <div className="text-sm font-bold uppercase tracking-widest">{t(leave.type as any)}</div>
-              <div className="text-[10px] mt-1 font-medium bg-muted-bg px-2 py-0.5 rounded" style={{ color: 'var(--muted)' }}>{leave.used} / {leave.total} {t('used')}</div>
             </button>
           )
         })}
@@ -222,11 +227,22 @@ export default function Leaves() {
             {leaves.map((leave, index) => {
               const config = leaveTypes.find((item) => item.type === leave.type) || leaveTypes[0];
               return (
-                <div key={leave.id} data-testid={`card-leave-${leave.id}`} onClick={() => setSelected(leave)} className={`rounded-xl p-5 cursor-pointer pressable animate-fadeIn stagger-${(index % 4) + 1} card-3d !border-0 border-l-[6px]`} style={{ borderLeftColor: config.hex, background: 'var(--card)' }}>
+                <div key={leave.id} data-testid={`card-leave-${leave.id}`} onClick={() => setSelected(leave)} className={`rounded-xl overflow-hidden cursor-pointer pressable animate-fadeIn stagger-${(index % 4) + 1}`} style={{ background: 'var(--card)', border: `1px solid color-mix(in srgb, ${config.hex} 30%, var(--border))` }}>
+                  {/* Coloured top banner */}
+                  <div className={`h-12 bg-gradient-to-r ${config.color} relative overflow-hidden flex items-center px-4 gap-3`}>
+                    <div className="nav-card-wave" />
+                    <div className="card-orb w-14 h-14 absolute -right-3 -top-3" />
+                    <div className="relative z-10 w-8 h-8 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center card-icon-pulse">
+                      <FileText className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="relative z-10 text-white font-bold text-sm truncate">{leave.employeeName || `#${leave.employeeId}`}</span>
+                    <span className={`relative z-10 ml-auto px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${leave.status === 'approved' ? 'bg-green-400/30 text-green-100' : leave.status === 'rejected' ? 'bg-red-400/30 text-red-100' : 'bg-amber-400/30 text-amber-100'}`}>{t((leave.status || 'pending') as any)}</span>
+                  </div>
+                  <div className="p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}>
-                        <FileText className="w-5 h-5" />
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}>
+                        <FileText className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold text-lg truncate">{leave.employeeName || `#${leave.employeeId}`}</div>
@@ -272,6 +288,7 @@ export default function Leaves() {
                       </div>
                     </div>
                   </div>
+                  </div>{/* /p-4 */}
                 </div>
               );
             })}

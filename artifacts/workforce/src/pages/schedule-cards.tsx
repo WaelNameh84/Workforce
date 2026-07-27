@@ -170,20 +170,32 @@ export default function ScheduleCards() {
           {employees.map((employee, employeeIndex) => (
             <section
               key={employee.id}
-              className={`card-3d p-5 animate-fadeIn stagger-${(employeeIndex % 4) + 1}`}
+              className={`overflow-hidden rounded-2xl animate-fadeIn stagger-${(employeeIndex % 4) + 1}`}
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
             >
-              <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 font-bold text-foreground text-lg shadow-sm">
-                  {employee.fullName?.split(' ').map((name) => name[0]).join('').slice(0, 2) || <UserRound className="h-6 w-6" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="truncate font-bold text-lg">{employee.fullName}</h2>
-                  <p className="truncate text-xs font-medium text-muted-foreground mt-0.5">{employee.position || employee.departmentName || t('employee')}</p>
-                </div>
-                <span className="rounded-lg bg-teal-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400">
-                  {schedules.filter((item) => item.employeeId === employee.id).length} {t('total')}
-                </span>
-              </div>
+              {/* Coloured gradient header */}
+              {(() => {
+                const scheduleCardColors = ['from-indigo-500 to-violet-600', 'from-emerald-500 to-teal-600', 'from-amber-500 to-orange-600', 'from-rose-500 to-red-600', 'from-cyan-500 to-sky-600', 'from-fuchsia-500 to-purple-600'];
+                const clr = scheduleCardColors[employeeIndex % scheduleCardColors.length];
+                return (
+                  <div className={`h-16 bg-gradient-to-br ${clr} relative overflow-hidden flex items-center px-5 gap-4`}>
+                    <div className="nav-card-wave" />
+                    <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
+                    <div className="relative z-10 flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 border border-white/30 font-bold text-white text-lg shadow-sm card-icon-pulse">
+                      {employee.fullName?.split(' ').map((name) => name[0]).join('').slice(0, 2) || <UserRound className="h-6 w-6" />}
+                    </div>
+                    <div className="relative z-10 min-w-0 flex-1">
+                      <h2 className="truncate font-bold text-white text-base">{employee.fullName}</h2>
+                      <p className="truncate text-xs font-medium text-white/65">{employee.position || employee.departmentName || t('employee')}</p>
+                    </div>
+                    <span className="relative z-10 rounded-lg bg-white/20 border border-white/25 px-3 py-1 text-[10px] font-bold text-white tracking-widest">
+                      {schedules.filter((item) => item.employeeId === employee.id).length} {t('total')}
+                    </span>
+                  </div>
+                );
+              })()}
+              <div className="p-5">
+              <div className="mb-6" />
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {days.map((day) => {
@@ -236,6 +248,7 @@ export default function ScheduleCards() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              </div>{/* /p-5 */}
             </section>
           ))}
         </div>

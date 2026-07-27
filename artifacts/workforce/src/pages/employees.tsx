@@ -431,18 +431,20 @@ export default function Employees() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: locale === 'ar' ? 'الكل' : locale === 'sv' ? 'Totalt' : 'Total', value: total, color: 'from-violet-500 to-purple-600', bg: 'bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800', icon: Users },
-          { label: t('active'), value: activeCount, color: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800', icon: UserCheck },
-          { label: t('onLeaveStatus'), value: onLeaveCount, color: 'from-amber-500 to-orange-600', bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800', icon: CalendarDays },
-          { label: t('inactive'), value: inactiveCount, color: 'from-slate-500 to-gray-600', bg: 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-700', icon: Shield },
+          { label: locale === 'ar' ? 'الكل' : locale === 'sv' ? 'Totalt' : 'Total', value: total,        color: 'from-violet-500 to-purple-600',  icon: Users,       delay: 0   },
+          { label: t('active'),        value: activeCount,   color: 'from-emerald-500 to-teal-600',    icon: UserCheck,   delay: 1.5 },
+          { label: t('onLeaveStatus'), value: onLeaveCount,  color: 'from-amber-500 to-orange-600',   icon: CalendarDays, delay: 3   },
+          { label: t('inactive'),      value: inactiveCount, color: 'from-slate-500 to-gray-600',     icon: Shield,      delay: 4.5 },
         ].map(stat => (
-          <div key={stat.label} className={`card-3d p-4 border ${stat.bg} flex items-center gap-3`}>
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center flex-shrink-0`}>
+          <div key={stat.label} className="stat-card-dark p-4 flex items-center gap-3">
+            <span className="stat-wave" aria-hidden="true" style={{ animationDelay: `${-stat.delay}s` } as React.CSSProperties} />
+            <span className={`absolute -right-3 -top-3 h-14 w-14 rounded-full blur-2xl opacity-25 bg-gradient-to-br ${stat.color}`} aria-hidden="true" />
+            <div className={`relative z-10 w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
               <stat.icon className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <div className="text-2xl font-bold font-display">{stat.value}</div>
-              <div className="text-xs text-muted-foreground font-medium">{stat.label}</div>
+            <div className="relative z-10">
+              <div className="text-2xl font-bold font-display text-white">{stat.value}</div>
+              <div className="text-xs text-slate-400 font-medium">{stat.label}</div>
             </div>
           </div>
         ))}
@@ -525,10 +527,9 @@ export default function Employees() {
             >
               {/* Gradient Banner */}
               <div className={`h-20 w-full bg-gradient-to-br ${color.from} ${color.to} relative overflow-hidden flex-shrink-0`}>
-                <div className="absolute inset-0 opacity-20">
-                  <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/20" />
-                  <div className="absolute -left-2 bottom-0 w-16 h-16 rounded-full bg-white/10" />
-                </div>
+                <div className="nav-card-wave" />
+                <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
+                <div className="card-orb card-orb-sm w-14 h-14 absolute -left-2 -bottom-2" />
                 {/* Status Badge */}
                 <Badge
                   variant={statusVariant}
