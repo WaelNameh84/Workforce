@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { useLocation } from 'wouter';
-import { saveDetailAndNavigate } from '@/pages/detail';
 import {
   useGetPayroll, useUpdatePayroll, getGetPayrollQueryKey,
   useGetEmployees, getGetEmployeesQueryKey,
@@ -308,8 +306,28 @@ function PayrollCard({ emp, onView, onMarkPaid, currency, dailyHours, colorIdx =
 }
 
 // ─── Detailed Payslip Modal ───────────────────────────────────────────────────
-function PayslipModal({ emp, onClose, currency, cfg }: { emp: EmployeePaySummary; onClose: () => void; currency: string; cfg: ScheduleConfig }) {
-  const handlePrint = () => window.print();
+function PayslipModal({
+  emp,
+  onClose,
+  currency,
+  cfg,
+  dateFrom,
+  dateTo,
+  onEmail,
+}: {
+  emp: EmployeePaySummary;
+  onClose: () => void;
+  currency: string;
+  cfg: ScheduleConfig;
+  dateFrom: string;
+  dateTo: string;
+  onEmail: () => void;
+}) {
+  const handlePrint = () => {
+    document.body.classList.add('printing-payslip');
+    window.print();
+    window.setTimeout(() => document.body.classList.remove('printing-payslip'), 500);
+  };
   const handleShare = async () => {
     const text = `كشف راتب - ${emp.employeeName}\nالراتب الأساسي: ${fmt(emp.basicSalary, currency)}\nالصافي: ${fmt(emp.netSalary, currency)}`;
     if (navigator.share) await navigator.share({ title: 'كشف راتب', text });
@@ -343,10 +361,13 @@ function PayslipModal({ emp, onClose, currency, cfg }: { emp: EmployeePaySummary
             <p className="text-xs text-muted-foreground">{emp.employeeName} — {emp.position}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleShare} className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
+            <button onClick={onEmail} title="إرسال بالبريد الإلكتروني" className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
+              <Mail className="w-4 h-4" />
+            </button>
+            <button onClick={handleShare} title="مشاركة" className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
               <Share2 className="w-4 h-4" />
             </button>
-            <button onClick={handlePrint} className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
+            <button onClick={handlePrint} title="تصدير PDF أو طباعة" className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
               <Printer className="w-4 h-4" />
             </button>
             <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
@@ -361,6 +382,8 @@ function PayslipModal({ emp, onClose, currency, cfg }: { emp: EmployeePaySummary
             <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">الراتب الصافي</p>
             <p className="font-data font-bold text-4xl text-white">{fmt(emp.netSalary, currency)}</p>
             <div className="flex items-center justify-center gap-4 mt-3">
+              <span className="text-xs text-muted-foreground">{dateFrom} — {dateTo}</span>
+              <span className="text-xs text-muted-foreground">•</span>
               <span className="text-xs text-muted-foreground">{emp.workedDays} يوم عمل</span>
               <span className="text-xs text-muted-foreground">•</span>
               <span className="text-xs text-muted-foreground">{emp.workedHours.toFixed(1)} ساعة</span>
@@ -453,6 +476,18 @@ function PayslipModal({ emp, onClose, currency, cfg }: { emp: EmployeePaySummary
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-1 print:hidden">
+            <button onClick={handlePrint} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
+              <Printer className="h-3.5 w-3.5" /> PDF / طباعة
+            </button>
+            <button onClick={onEmail} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
+              <Mail className="h-3.5 w-3.5" /> إيميل
+            </button>
+            <button onClick={handleShare} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
+              <Share2 className="h-3.5 w-3.5" /> مشاركة
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -463,7 +498,6 @@ function PayslipModal({ emp, onClose, currency, cfg }: { emp: EmployeePaySummary
 export default function PayrollPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const appSettings = useAppSettings();
@@ -666,13 +700,30 @@ export default function PayrollPage() {
   };
 
   const exportPDF = () => {
-    toast({ title: 'جار تصدير PDF...' });
+    if (viewPayslip) {
+      document.body.classList.add('printing-payslip');
+      toast({ title: 'جار تجهيز كشف الراتب PDF...' });
+      setTimeout(() => window.print(), 300);
+      return;
+    }
+    toast({ title: 'جار تصدير تقرير الرواتب...' });
     setTimeout(() => window.print(), 300);
   };
 
-  const exportEmail = () => {
-    const subject = `تقرير الرواتب — ${dateFrom} إلى ${dateTo}`;
-    const body = summaries.map(s => `${s.employeeName}: ${fmt(s.netSalary, 'SAR')}`).join('\n');
+  const exportEmail = (employee?: EmployeePaySummary) => {
+    const subject = employee
+      ? `كشف راتب — ${employee.employeeName} — ${period}`
+      : `تقرير الرواتب — ${dateFrom} إلى ${dateTo}`;
+    const body = employee
+      ? [
+          `كشف راتب الموظف: ${employee.employeeName}`,
+          `الفترة: ${dateFrom} إلى ${dateTo}`,
+          `الراتب الأساسي: ${fmt(employee.basicSalary, 'SAR')}`,
+          `الإضافات: ${fmt(employee.overtimePay + employee.bonus + employee.additions, 'SAR')}`,
+          `الخصومات: ${fmt(employee.totalDeductions, 'SAR')}`,
+          `صافي الراتب: ${fmt(employee.netSalary, 'SAR')}`,
+        ].join('\n')
+      : summaries.map(s => `${s.employeeName}: ${fmt(s.netSalary, 'SAR')}`).join('\n');
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
@@ -707,7 +758,7 @@ export default function PayrollPage() {
           <button onClick={exportPDF} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-white/5 transition">
             <Printer className="w-4 h-4" /> PDF
           </button>
-          <button onClick={exportEmail} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-white/5 transition">
+          <button onClick={() => exportEmail()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-white/5 transition">
             <Mail className="w-4 h-4" /> إيميل
           </button>
           <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-white/5 transition">
@@ -868,22 +919,7 @@ export default function PayrollPage() {
               currency="SAR"
               dailyHours={dailyHours}
               colorIdx={idx}
-              onView={() => saveDetailAndNavigate(setLocation, '/dashboard/detail', {
-                title: `كشف الراتب — ${emp.employeeName}`,
-                subtitle: emp.position,
-                badge: 'تفاصيل الراتب',
-                items: [
-                  { label: 'الموظف', value: emp.employeeName },
-                  { label: 'الوظيفة', value: emp.position },
-                  { label: 'الراتب الأساسي', value: fmt(emp.basicSalary, 'SAR') },
-                  { label: 'الإضافات', value: fmt(emp.overtimePay + emp.bonus + emp.additions, 'SAR') },
-                  { label: 'الخصومات', value: fmt(emp.totalDeductions, 'SAR') },
-                  { label: 'صافي الراتب', value: fmt(emp.netSalary, 'SAR') },
-                  { label: 'أيام العمل', value: emp.workedDays },
-                  { label: 'ساعات العمل', value: emp.workedHours.toFixed(1) },
-                  { label: 'الحالة', value: emp.status === 'paid' ? 'مدفوع' : 'معلق' },
-                ],
-              })}
+              onView={() => setViewPayslip(emp)}
               onMarkPaid={() => markPaid(emp)}
             />
           ))}
@@ -913,6 +949,17 @@ export default function PayrollPage() {
       {showClockOutPopup && (
         <ClockOutPopup onClose={() => setShowClockOutPopup(false)} />
       )}
+      {viewPayslip && (
+        <PayslipModal
+          emp={viewPayslip}
+          currency="SAR"
+          cfg={cfg}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onClose={() => setViewPayslip(null)}
+          onEmail={() => exportEmail(viewPayslip)}
+        />
+      )}
 
       {/* Print styles */}
       <style>{`
@@ -920,6 +967,13 @@ export default function PayrollPage() {
           .bottom-nav, header, aside, nav, button { display: none !important; }
           body { background: white; color: black; }
           .rounded-2xl { border: 1px solid #ddd !important; page-break-inside: avoid; }
+        }
+        @media print {
+          body.printing-payslip > *:not(#root) { display: none !important; }
+          body.printing-payslip #root > *:not(:has(.fixed.inset-0)) { display: none !important; }
+          body.printing-payslip .fixed.inset-0 { position: static !important; display: block !important; background: white !important; padding: 0 !important; }
+          body.printing-payslip .fixed.inset-0 > div { max-height: none !important; max-width: none !important; border: 0 !important; box-shadow: none !important; }
+          body.printing-payslip .fixed.inset-0 [class*="print:hidden"] { display: none !important; }
         }
       `}</style>
     </div>
