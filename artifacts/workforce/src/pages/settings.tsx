@@ -1284,6 +1284,7 @@ export default function Settings() {
                       <option value="SEK">كرون سويدي (SEK)</option>
                       <option value="LOY">نقاط الولاء (LOY)</option>
                       <option value="EUR">يورو (EUR)</option>
+                      <option value="USD">دولار أمريكي (USD)</option>
                     </Sel>
                   </Field>
 
