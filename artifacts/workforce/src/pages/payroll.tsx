@@ -900,125 +900,138 @@ export default function PayrollPage() {
 
   return (
     <div className="space-y-6 animate-fadeIn" dir={useLanguage().locale === 'ar' ? 'rtl' : 'ltr'}>
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <div>
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">إدارة الرواتب</h1>
-          <p className="text-sm mt-1 text-muted-foreground">تقارير تفصيلية شاملة للرواتب والخصومات والإضافات</p>
-        </div>
-      </div>
 
-      {/* ── Monthly reports card ───────────────────────────────── */}
-      <div className="rounded-2xl border border-indigo-500/25 p-4 sm:p-5" style={{ background: 'var(--card)' }}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/15 border border-indigo-500/25">
-            <Mail className="h-6 w-6 text-indigo-400" />
+      {/* ══════════════════════════════════════════════════════════
+          HERO: إنشاء تقرير الراتب  — القسم الرئيسي
+      ══════════════════════════════════════════════════════════ */}
+      <div className="rounded-3xl overflow-hidden border border-indigo-500/30 shadow-xl shadow-indigo-500/10" style={{ background: 'var(--card)' }}>
+        {/* Gradient banner */}
+        <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 px-6 py-5 relative overflow-hidden">
+          <div className="nav-card-wave" />
+          <div className="card-orb w-40 h-40 absolute -left-8 -top-8 opacity-30" />
+          <div className="card-orb w-28 h-28 absolute -right-4 -bottom-6 opacity-20" />
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg shrink-0">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="font-display text-xl font-bold text-white">إنشاء تقرير الراتب</h1>
+              <p className="text-white/70 text-xs mt-0.5">اختر الموظف والفترة ثم أنشئ كشف راتب احترافي كامل</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-base">إرسال التقارير الشهرية للموظفين</h2>
-            <p className="mt-1 text-xs text-muted-foreground">إرسال تقرير حضور وراتب شامل عبر البريد الإلكتروني</p>
-          </div>
-          <button
-            onClick={sendMonthlyReports}
-            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-600 shrink-0"
-          >
-            <Mail className="h-4 w-4" /> إرسال الآن
-          </button>
         </div>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label className="relative block">
-            <span className="mb-1.5 block text-xs font-bold text-muted-foreground">الشهر</span>
-            <CalendarRange className="pointer-events-none absolute right-3 bottom-3 h-4 w-4 text-muted-foreground" />
-            <input
-              type="month"
-              value={period}
-              onChange={(event) => {
-                const nextPeriod = event.target.value;
-                if (!nextPeriod) return;
-                setDateFrom(`${nextPeriod}-01`);
-                const [year, month] = nextPeriod.split('-').map(Number);
-                setDateTo(`${nextPeriod}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`);
-              }}
-              className="w-full rounded-xl border border-border px-4 py-2.5 pr-10 text-sm font-data"
-              style={{ background: 'var(--muted-bg)' }}
-            />
-          </label>
-          <label className="relative block">
-            <span className="mb-1.5 block text-xs font-bold text-muted-foreground">المستلمون</span>
-            <Users className="pointer-events-none absolute right-3 bottom-3 h-4 w-4 text-muted-foreground" />
-            <select
-              value={reportRecipient}
-              onChange={(event) => setReportRecipient(event.target.value === 'all' ? 'all' : Number(event.target.value))}
-              className="w-full appearance-none rounded-xl border border-border px-4 py-2.5 pr-10 text-sm font-medium"
-              style={{ background: 'var(--muted-bg)' }}
-            >
-              <option value="all">جميع الموظفين</option>
-              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.fullName}</option>)}
-            </select>
-          </label>
-        </div>
-      </div>
 
-      {/* ── Report filters card ────────────────────────────────── */}
-      <div className="rounded-2xl border border-border p-4 sm:p-5" style={{ background: 'var(--card)' }}>
-        <div className="space-y-4">
-          <label className="relative block">
-            <span className="mb-1.5 block text-xs font-bold text-muted-foreground">الموظف</span>
-            <Users className="pointer-events-none absolute right-3 bottom-3 h-4 w-4 text-muted-foreground" />
-            <select
-              value={selectedEmpId}
-              onChange={e => setSelectedEmpId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              className="w-full appearance-none rounded-xl border border-border px-4 py-2.5 pr-10 text-sm font-medium"
-              style={{ background: 'var(--muted-bg)' }}
-            >
-              <option value="all">اختر موظفًا / جميع الموظفين</option>
-              {employees.map(e => (
-                <option key={e.id} value={e.id}>{e.fullName}</option>
+        {/* Form fields */}
+        <div className="p-5 space-y-4">
+          {/* Step 1 — Employee */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[10px] font-bold flex items-center justify-center">١</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">اختر الموظف</span>
+            </div>
+            <div className="relative">
+              <Users className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <select
+                value={selectedEmpId}
+                onChange={e => setSelectedEmpId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                className="w-full appearance-none rounded-xl border border-border px-4 py-3 pr-10 text-sm font-medium transition focus:border-indigo-500/50 focus:outline-none"
+                style={{ background: 'var(--muted-bg)' }}
+              >
+                <option value="all">— اختر موظفاً —</option>
+                {employees.map(e => (
+                  <option key={e.id} value={e.id}>{e.fullName}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Step 2 — Period */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[10px] font-bold flex items-center justify-center">٢</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">حدد الفترة</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] text-muted-foreground">من تاريخ</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={e => setDateFrom(e.target.value)}
+                  className="w-full rounded-xl border border-border px-3 py-2.5 text-sm font-data transition focus:border-indigo-500/50 focus:outline-none"
+                  style={{ background: 'var(--muted-bg)' }}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] text-muted-foreground">إلى تاريخ</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={e => setDateTo(e.target.value)}
+                  className="w-full rounded-xl border border-border px-3 py-2.5 text-sm font-data transition focus:border-indigo-500/50 focus:outline-none"
+                  style={{ background: 'var(--muted-bg)' }}
+                />
+              </label>
+            </div>
+            {/* Quick month shortcuts */}
+            <div className="flex gap-2 mt-2 flex-wrap">
+              {[
+                { label: 'هذا الشهر', offset: 0 },
+                { label: 'الشهر الماضي', offset: -1 },
+                { label: 'شهرين', offset: -2 },
+              ].map(({ label, offset }) => (
+                <button
+                  key={offset}
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() + offset);
+                    const y = d.getFullYear();
+                    const m = d.getMonth();
+                    const from = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+                    const to = `${y}-${String(m + 1).padStart(2, '0')}-${String(new Date(y, m + 1, 0).getDate()).padStart(2, '0')}`;
+                    setDateFrom(from); setDateTo(to);
+                  }}
+                  className="px-3 py-1 rounded-lg text-[11px] font-bold border border-border hover:border-indigo-500/40 hover:text-indigo-400 transition"
+                  style={{ background: 'var(--muted-bg)' }}
+                >
+                  {label}
+                </button>
               ))}
-            </select>
-          </label>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-bold text-muted-foreground">من تاريخ</span>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={e => setDateFrom(e.target.value)}
-                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-data"
-                style={{ background: 'var(--muted-bg)' }}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-bold text-muted-foreground">إلى تاريخ</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={e => setDateTo(e.target.value)}
-                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-data"
-                style={{ background: 'var(--muted-bg)' }}
-              />
-            </label>
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
+          {/* Step 3 — Generate */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[10px] font-bold flex items-center justify-center">٣</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">إنشاء التقرير</span>
+            </div>
             <button
               onClick={generateReport}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5"
+              disabled={selectedEmpId === 'all'}
+              className="w-full flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/30 transition hover:opacity-90 hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0 pressable"
             >
-              <FileText className="w-4 h-4" /> احسب
+              <FileText className="w-5 h-5" />
+              إنشاء تقرير الراتب
+              <ChevronRight className="w-4 h-4 opacity-70" />
             </button>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={exportPDF} className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold hover:bg-white/5 transition">
-                <Printer className="w-4 h-4" /> PDF
-              </button>
-              <button onClick={() => exportEmail()} className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold hover:bg-white/5 transition">
-                <Mail className="w-4 h-4" /> إيميل
-              </button>
-              <button onClick={handleShare} className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold hover:bg-white/5 transition">
-                <Share2 className="w-4 h-4" /> مشاركة
-              </button>
-            </div>
+            {selectedEmpId === 'all' && (
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">اختر موظفاً من الخطوة الأولى لتفعيل الزر</p>
+            )}
+          </div>
+
+          {/* Quick actions */}
+          <div className="flex gap-2 pt-1 border-t border-border">
+            <button onClick={exportPDF} className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-bold hover:bg-white/5 transition">
+              <Printer className="w-3.5 h-3.5" /> طباعة
+            </button>
+            <button onClick={() => exportEmail()} className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-bold hover:bg-white/5 transition">
+              <Mail className="w-3.5 h-3.5" /> إيميل للكل
+            </button>
+            <button onClick={handleShare} className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-bold hover:bg-white/5 transition">
+              <Share2 className="w-3.5 h-3.5" /> مشاركة
+            </button>
           </div>
         </div>
       </div>
