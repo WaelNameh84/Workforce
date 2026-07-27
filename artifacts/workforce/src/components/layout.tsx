@@ -548,7 +548,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className={`min-h-screen flex ${dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'}`} style={{ background: 'var(--background)' }}>
+    <div className={`h-screen flex ${dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'}`} style={{ background: 'var(--background)', height: '100dvh' }}>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-60 shrink-0 border-r border-white/5 h-screen sticky top-0 overflow-hidden" style={{ background: 'var(--sidebar-bg)' }}>
         <SidebarContent />
@@ -582,7 +582,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
         {/* Header */}
         <header className="sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 border-b border-white/5"
           style={{ background: 'var(--background)', backdropFilter: 'blur(10px)', paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}>

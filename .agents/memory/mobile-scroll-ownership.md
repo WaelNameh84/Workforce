@@ -1,16 +1,21 @@
 ---
 name: Mobile scroll ownership
-description: The main mobile scroll container must preserve native vertical scrolling while pull-to-refresh observes only the top edge
+description: The main mobile scroll container must be viewport-constrained so it is the actual scroll element, not the window
 ---
 
-The main mobile scroll container owns vertical touch scrolling; pull-to-refresh may intercept only a downward gesture that begins at scrollTop zero, and must not rebind touch listeners during the gesture.
+## Root cause
 
-**Why:** Rebinding listeners while pull state changes (useCallback with [refreshing] dep + useEffect with callback deps) removes and re-adds the passive:false touchmove listener mid-gesture, which can leave the browser in an inconsistent scroll-blocked state. Upward scrolling sticks until a scroll-to-top control fires.
+The outer layout wrapper must use `h-screen` / `h-[100dvh]` (not `min-h-screen`).  
+The inner main column must use `min-h-0` (not `min-h-screen`).
 
-**Root cause pattern:** `useCallback(..., [refreshing])` + `useEffect(..., [onTouchMove])` = listener rebuilt every time `refreshing` flips. During momentum or mid-gesture, the old listener disappears and the browser loses track of whether to allow scrolling.
+**Why:** `min-h-screen` lets the wrapper grow beyond the viewport. When it does, the *window* scrolls instead of the `PullToRefresh` scroll container. The scroll container's `scrollTop` stays 0, so `canPull()` always returns `true`. Then when the user tries to scroll **up** (finger moves down = dy > 0), pull-to-refresh treats it as a pull gesture and calls `e.preventDefault()`, blocking the window scroll entirely. Result: downward scroll works, upward scroll is frozen.
 
-**Fix:** Register all touch listeners ONCE in a single `useEffect(fn, [])` with an empty dependency array. Store mutable values in refs (startYRef, pulling, pullYRef, refreshingRef). Callbacks close over refs, not state. Only call `e.preventDefault()` when `pulling.current === true` and `pullYRef.current > 0`. On upward movement (dy <= 0), null startYRef and return without preventDefault so native scroll-up is never blocked.
+**Fix applied:**
+- Outer flex wrapper: `class="h-screen flex ..."` + `style={{ height: '100dvh' }}` (dvh handles mobile address-bar shrink/grow)
+- Inner main column: `class="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden"` (no min-h-screen)
 
-Also change `overscrollBehaviorY: 'auto'` → `'contain'` to prevent scroll chaining to the window.
+## Pull-to-refresh listener stability
 
-**How to apply:** Any scroll container with a custom pull-to-refresh or drag gesture must use empty-dep useEffect + refs for callbacks. Never let reactive state (refreshing, isLoading, etc.) appear in the useEffect dependency array that registers passive:false touch listeners.
+Touch listeners must be registered **once** in `useEffect(fn, [])` with an empty dependency array. Storing mutable values in refs (startYRef, pulling, pullYRef, refreshingRef) keeps callbacks stable. Never let reactive state (refreshing, isLoading, etc.) appear in the useEffect dependency array that registers passive:false touch listeners — rebinding mid-gesture breaks scroll.
+
+**How to apply:** Any scroll container + pull-to-refresh must use `h-screen`/`h-[100dvh]` on the layout wrapper, and `flex-1 min-h-0 overflow-y-auto` on the scroll container, so the element's own `scrollTop` is the scroll authority.
