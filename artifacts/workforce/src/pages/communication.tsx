@@ -361,11 +361,12 @@ export default function Communication() {
             <button
               key={contact.id}
               onClick={() => setSelected(contact)}
-              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border text-right transition hover:border-indigo-500/30 hover:bg-indigo-500/5 active:scale-[0.99]"
-              style={{ background: 'var(--card)' }}
+              className="living-card w-full flex items-center gap-4 p-4 text-right active:scale-[0.99]"
+              style={{ '--card-accent': contact.id === 'all' ? '#6366f1' : contact.color.includes('emerald') ? '#10b981' : contact.color.includes('amber') ? '#f59e0b' : contact.color.includes('rose') ? '#f43f5e' : '#06b6d4' } as React.CSSProperties}
             >
+              <span className="living-card-orb living-card-orb--small -left-2 -bottom-2" />
               {/* Avatar */}
-              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${contact.color} flex items-center justify-center text-white font-bold text-sm shrink-0 relative`}>
+              <div className={`living-icon w-12 h-12 rounded-full bg-gradient-to-br ${contact.color} flex items-center justify-center text-white font-bold text-sm shrink-0 relative shadow-lg`}>
                 {contact.isGroup ? <Users className="h-5 w-5" /> : contact.avatar}
                 {/* Online dot */}
                 <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-background" />

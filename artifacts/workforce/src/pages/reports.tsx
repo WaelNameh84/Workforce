@@ -598,8 +598,9 @@ export default function Reports() {
       {/* ── Summary stats ──────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryStats.map((s, i) => (
-          <div key={s.label} className={`rounded-2xl border border-border p-5 animate-fadeIn stagger-${i + 1}`} style={{ background: 'var(--card)' }}>
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3 shadow-md`}>
+          <div key={s.label} className={`living-card p-5 animate-fadeIn stagger-${i + 1}`} style={{ '--card-accent': s.color.includes('green') ? '#10b981' : s.color.includes('blue') ? '#3b82f6' : s.color.includes('amber') ? '#f59e0b' : '#14b8a6' } as React.CSSProperties}>
+            <span className="living-card-orb -right-5 -top-5" />
+            <div className={`living-icon w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3 shadow-md`}>
               <s.icon className="w-5 h-5 text-white" />
             </div>
             <div className="font-data font-bold text-xl mb-0.5">{s.value}</div>
@@ -620,12 +621,13 @@ export default function Reports() {
         {sections.map((sec, i) => (
           <div
             key={sec.key}
-            className={`rounded-2xl border border-border p-5 animate-fadeIn stagger-${(i % 4) + 1} hover:border-indigo-500/30 transition-all`}
-            style={{ background: 'var(--card)' }}
+            className={`living-card p-5 animate-fadeIn stagger-${(i % 4) + 1}`}
+            style={{ '--card-accent': sec.color.includes('green') ? '#10b981' : sec.color.includes('blue') ? '#3b82f6' : sec.color.includes('teal') ? '#14b8a6' : sec.color.includes('purple') ? '#a855f7' : '#f59e0b' } as React.CSSProperties}
           >
+            <span className="living-card-orb -right-6 -top-6" />
             {/* section header */}
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${sec.color} flex items-center justify-center shadow-md shrink-0`}>
+              <div className={`living-icon w-10 h-10 rounded-xl bg-gradient-to-br ${sec.color} flex items-center justify-center shadow-md shrink-0`}>
                 <sec.icon className="w-5 h-5 text-white" />
               </div>
               <h3 className="font-bold text-base">{sec.title}</h3>

@@ -57,9 +57,10 @@ export default function Performance() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
-          <Card key={i} className="border-border/50">
+          <Card key={i} className="living-card border-0" style={{ '--card-accent': card.color.includes('blue') ? '#3b82f6' : card.color.includes('emerald') ? '#10b981' : card.color.includes('purple') ? '#a855f7' : '#f59e0b' } as React.CSSProperties}>
             <CardContent className="p-6 flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${card.color}`}>
+              <span className="living-card-orb -right-5 -top-5" />
+              <div className={`living-icon h-12 w-12 rounded-xl flex items-center justify-center ${card.color} shadow-lg`}>
                 <card.icon className="h-6 w-6" />
               </div>
               <div>
@@ -72,7 +73,8 @@ export default function Performance() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-border/50">
+        <Card className="living-card lg:col-span-2 border-0" style={{ '--card-accent': '#3b82f6' } as React.CSSProperties}>
+          <span className="living-card-orb -right-6 -top-6" />
           <CardHeader>
             <CardTitle>{t('companyPerformanceTrend')}</CardTitle>
           </CardHeader>
@@ -94,7 +96,8 @@ export default function Performance() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm">
+        <Card className="living-card border-0" style={{ '--card-accent': '#a855f7' } as React.CSSProperties}>
+          <span className="living-card-orb -right-6 -top-6" />
           <CardHeader>
             <CardTitle>{t('recentReviews')}</CardTitle>
           </CardHeader>

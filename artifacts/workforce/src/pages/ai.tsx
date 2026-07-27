@@ -22,6 +22,15 @@ const predictions = [
 
 const quickQuestions = ['Analyze attendance', 'Predict turnover', 'Generate report', 'Detect anomalies'];
 
+function insightAccent(color: string) {
+  if (color.includes('green')) return '#10b981';
+  if (color.includes('red')) return '#ef4444';
+  if (color.includes('blue')) return '#3b82f6';
+  if (color.includes('amber')) return '#f59e0b';
+  if (color.includes('purple')) return '#a855f7';
+  return '#6366f1';
+}
+
 export default function AI() {
   const { t, translateText, formatDate } = useLanguage();
   const s = useAppSettings();
@@ -59,8 +68,9 @@ export default function AI() {
       {/* Insights Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {insights.map((ins, i) => (
-          <div key={i} className="p-6 rounded-2xl cursor-pointer transition hover:shadow-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div className={`w-10 h-10 rounded-xl ${ins.color} flex items-center justify-center mb-3`}>
+          <div key={i} className="living-card p-6 cursor-pointer animate-fadeIn" style={{ '--card-accent': insightAccent(ins.color) } as React.CSSProperties}>
+            <span className="living-card-orb -right-5 -top-5" />
+            <div className={`living-icon w-10 h-10 rounded-xl ${ins.color} flex items-center justify-center mb-3 shadow-lg`}>
               <ins.icon className="w-5 h-5 text-white" />
             </div>
              <h3 className="font-bold mb-2">{translateText(ins.title)}</h3>
@@ -71,7 +81,8 @@ export default function AI() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Chat */}
-        <div className="p-6 rounded-2xl flex flex-col" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div className="living-card p-6 flex flex-col" style={{ '--card-accent': '#a855f7' } as React.CSSProperties}>
+          <span className="living-card-orb -right-8 -top-8" />
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-purple-500" />
              <h3 className="font-bold">{translateText('AI Chat')}</h3>
@@ -120,7 +131,8 @@ export default function AI() {
         </div>
 
         {/* Predictions Chart */}
-        <div className="p-6 rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div className="living-card p-6" style={{ '--card-accent': '#6366f1' } as React.CSSProperties}>
+          <span className="living-card-orb -right-8 -top-8" />
            <h3 className="font-bold mb-1">{translateText('AI Predictions')}</h3>
            <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{translateText('Forecasted attendance for next 4 months')}</p>
           <ResponsiveContainer width="100%" height={260}>

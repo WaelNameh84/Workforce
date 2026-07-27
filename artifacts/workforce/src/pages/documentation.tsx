@@ -220,8 +220,10 @@ export default function Documentation() {
                 key={dept.id}
                 type="button"
                 onClick={() => setFilterDept(filterDept === String(dept.id) ? 'all' : String(dept.id))}
-                className={`card-3d p-4 text-right transition-all hover:-translate-y-0.5 cursor-pointer ${filterDept === String(dept.id) ? `ring-2 ring-offset-2 ring-offset-background ${color.border}` : ''}`}
+                className={`living-card p-4 text-right transition-all cursor-pointer ${filterDept === String(dept.id) ? `ring-2 ring-offset-2 ring-offset-background ${color.border}` : ''}`}
+                style={{ '--card-accent': color.icon.replace('bg-', '').includes('blue') ? '#3b82f6' : color.icon.replace('bg-', '').includes('violet') ? '#8b5cf6' : color.icon.replace('bg-', '').includes('emerald') ? '#10b981' : color.icon.replace('bg-', '').includes('amber') ? '#f59e0b' : color.icon.replace('bg-', '').includes('rose') ? '#f43f5e' : '#06b6d4' } as React.CSSProperties}
               >
+                <span className="living-card-orb -right-5 -top-5" />
                 <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${color.bg} flex items-center justify-center mb-2`}>
                   <Building2 className="w-4 h-4 text-white" />
                 </div>
@@ -260,8 +262,10 @@ export default function Documentation() {
             return (
               <div
                 key={doc.id}
-                className={`card-3d flex flex-col overflow-hidden animate-fadeIn stagger-${(index % 6) + 1} group`}
+                className={`living-card flex flex-col overflow-hidden animate-fadeIn stagger-${(index % 6) + 1} group`}
+                style={{ '--card-accent': color.icon.replace('bg-', '').includes('blue') ? '#3b82f6' : color.icon.replace('bg-', '').includes('violet') ? '#8b5cf6' : color.icon.replace('bg-', '').includes('emerald') ? '#10b981' : color.icon.replace('bg-', '').includes('amber') ? '#f59e0b' : color.icon.replace('bg-', '').includes('rose') ? '#f43f5e' : '#06b6d4' } as React.CSSProperties}
               >
+                <span className="living-card-orb living-card-orb--small -right-3 -bottom-3" />
                 {/* Preview area */}
                 <div
                   className={`relative h-36 bg-gradient-to-br ${color.bg} overflow-hidden cursor-pointer`}
