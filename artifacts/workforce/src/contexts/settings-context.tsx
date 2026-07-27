@@ -82,6 +82,44 @@ export interface AppSettings {
   annualLeave: string;
   holidays: string[];
   leavePolicy: string;
+
+  // Language
+  language: 'ar' | 'en' | 'sv';
+  calendarType: 'gregorian' | 'hijri' | 'both';
+  currencyCode: string;
+  timezone: string;
+  dateFormat: string;
+  numberFormat: 'western' | 'arabic';
+
+  // Location / Geofence
+  locationMode: 'gps' | 'manual' | 'both';
+  locationRadius: string;
+  locationLat: string;
+  locationLng: string;
+  locationAddress: string;
+  locationProvider: string;
+  requireLocationOnClock: boolean;
+  showMapOnAttendance: boolean;
+
+  // Splash / Welcome Screen
+  splashDuration: string;
+  splashEffect: 'fade' | 'slide' | 'zoom' | 'none';
+  splashShowLogo: boolean;
+  splashShowName: boolean;
+  splashShowProgress: boolean;
+  splashBgColor: string;
+
+  // Dashboard / Home layout
+  dashboardLayout: 'default' | 'compact' | 'detailed';
+  dashboardWidgets: string[];
+  dashboardGreeting: boolean;
+  dashboardClock: boolean;
+  dashboardQuickActions: boolean;
+
+  // Font extras
+  fontWeight: 'normal' | 'medium' | 'bold';
+  lineHeight: 'tight' | 'normal' | 'relaxed';
+  letterSpacing: 'tight' | 'normal' | 'wide';
 }
 
 const DEFAULTS: AppSettings = {
@@ -153,6 +191,39 @@ const DEFAULTS: AppSettings = {
   annualLeave: '21',
   holidays: ['الجمعة', 'السبت'],
   leavePolicy: 'carryover',
+
+  language: 'ar',
+  calendarType: 'gregorian',
+  currencyCode: 'SAR',
+  timezone: 'Asia/Riyadh',
+  dateFormat: 'DD/MM/YYYY',
+  numberFormat: 'western',
+
+  locationMode: 'gps',
+  locationRadius: '200',
+  locationLat: '',
+  locationLng: '',
+  locationAddress: '',
+  locationProvider: 'google',
+  requireLocationOnClock: true,
+  showMapOnAttendance: true,
+
+  splashDuration: '2500',
+  splashEffect: 'fade',
+  splashShowLogo: true,
+  splashShowName: true,
+  splashShowProgress: true,
+  splashBgColor: '#0f172a',
+
+  dashboardLayout: 'default',
+  dashboardWidgets: ['stats', 'clock', 'attendance', 'leaves', 'payroll', 'activity'],
+  dashboardGreeting: true,
+  dashboardClock: true,
+  dashboardQuickActions: true,
+
+  fontWeight: 'normal',
+  lineHeight: 'normal',
+  letterSpacing: 'normal',
 };
 
 // ─── Helper: parse hex → rgb string ──────────────────────────────────────────

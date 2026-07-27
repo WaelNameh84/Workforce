@@ -1,43 +1,53 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/components/ui/use-toast';
 import { useSettings } from '@/contexts/settings-context';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
-  Settings2, Palette, Clock4, Bot, Key, Bell, Shield, CalendarClock,
-  Sun, Moon, Upload, Eye, EyeOff, Save, Check,
-  Fingerprint, Database, RefreshCw, Download,
-  Building2, Phone, Mail, MapPin, Image, Type, Layers,
-  Zap, Lock, AlarmClock, Clock, Timer, Plus, Trash2, X,
+  Image, Building2, Palette, Clock4, Key, Globe, Bell, AlarmClock,
+  Sparkles, Bot, Database, Shield, Trash2, Type, Mail, Lock,
+  LayoutDashboard, Sun, Moon, Upload, Eye, EyeOff, Save, Check,
+  Fingerprint, Download, RefreshCw, Phone, MapPin, Plus, X,
+  Timer, Zap, Monitor, Smartphone, Layers, ChevronLeft,
+  AlertTriangle, CheckCircle2, Info, Map, Navigation,
+  RotateCcw, Settings2, FileText, Activity, Users, Wallet,
+  LogOut, Camera, Mic, Volume2, VolumeX, Play, Pause,
+  ToggleLeft, ToggleRight, Sliders, Grid3X3, List, Square,
+  Circle, Triangle, Star, Heart, Bookmark, Tag, Search,
+  Filter, SortAsc, Layout, Columns, Rows, BarChart3,
+  TrendingUp, Clock, Calendar, Package, Cpu, Wifi, Battery,
 } from 'lucide-react';
 
-// ─── Shared primitives ────────────────────────────────────────────────────────
-function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+// ─── Primitives ────────────────────────────────────────────────────────────────
+function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void; disabled?: boolean }) {
   return (
     <button
-      onClick={onToggle}
-      className={`relative w-11 h-6 rounded-full transition-all shrink-0 ${on ? 'bg-indigo-500' : 'bg-slate-600'}`}
+      onClick={disabled ? undefined : onToggle}
+      disabled={disabled}
+      className={`relative w-12 h-6 rounded-full transition-all shrink-0 ${on ? 'bg-indigo-500' : 'bg-slate-600'} ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
-      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${on ? 'right-1' : 'right-6'}`} />
+      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-300 ${on ? 'right-1' : 'right-6'}`} />
     </button>
   );
 }
 
-function Field({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
+function Field({ label, sub, children, required }: { label: string; sub?: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-bold">{label}</label>
+      <label className="block text-sm font-bold">
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
       {sub && <p className="text-[11px] text-muted-foreground -mt-1">{sub}</p>}
       {children}
     </div>
   );
 }
 
-function Input({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+function Inp({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition"
+      className={`w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition ${props.className || ''}`}
     />
   );
 }
@@ -54,19 +64,22 @@ function Sel({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectElemen
   );
 }
 
-function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+function SCard({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-border p-5 ${className}`} style={{ background: 'var(--card)' }}>
+    <div
+      className={`rounded-2xl border border-border p-5 transition-all hover:border-indigo-500/20 ${className || ''}`}
+      style={{ background: 'var(--card)' }}
+    >
       {children}
     </div>
   );
 }
 
-function CardHeader({ icon: Icon, color, title, sub }: { icon: React.ElementType; color: string; title: string; sub?: string }) {
+function CardHead({ icon: Icon, color, title, sub }: { icon: React.ElementType; color: string; title: string; sub?: string }) {
   return (
     <div className="flex items-center gap-3 mb-5">
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color}`}>
-        <Icon className="w-[18px] h-[18px] text-white" />
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} shadow-lg`}>
+        <Icon className="w-5 h-5 text-white" />
       </div>
       <div>
         <h3 className="font-bold text-base leading-tight">{title}</h3>
@@ -76,29 +89,28 @@ function CardHeader({ icon: Icon, color, title, sub }: { icon: React.ElementType
   );
 }
 
-function ToggleRow({ label, sub, on, onToggle }: { label: string; sub?: string; on: boolean; onToggle: () => void }) {
+function TRow({ label, sub, on, onToggle, disabled }: { label: string; sub?: string; on: boolean; onToggle: () => void; disabled?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-border last:border-0">
+    <div className={`flex items-center justify-between gap-4 py-3 border-b border-border last:border-0 ${disabled ? 'opacity-50' : ''}`}>
       <div className="min-w-0">
         <p className="text-sm font-bold">{label}</p>
         {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
       </div>
-      <Toggle on={on} onToggle={onToggle} />
+      <Toggle on={on} onToggle={onToggle} disabled={disabled} />
     </div>
   );
 }
 
-function ColorSwatch({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) {
+function ColorDot({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`w-8 h-8 rounded-full border-2 transition-all ${selected ? 'border-white scale-110 shadow-lg' : 'border-transparent hover:scale-105'}`}
+      className={`w-8 h-8 rounded-full border-2 transition-all ${selected ? 'border-white scale-125 shadow-lg' : 'border-transparent hover:scale-110'}`}
       style={{ background: color }}
     />
   );
 }
 
-// Image upload helper: reads file as base64
 function readAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -108,82 +120,149 @@ function readAsBase64(file: File): Promise<string> {
   });
 }
 
-// Reusable image upload zone
-function ImageUploadZone({
-  label, sub, icon: Icon, value, onUpload, accept = 'image/*',
-}: {
+function ImgZone({ label, sub, icon: Icon, value, onUpload, accept = 'image/*', size = 'md' }: {
   label: string; sub?: string; icon: React.ElementType; value?: string;
-  onUpload: (base64: string) => void; accept?: string;
+  onUpload: (b: string) => void; accept?: string; size?: 'sm' | 'md' | 'lg';
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  const h = size === 'sm' ? 'h-16' : size === 'lg' ? 'h-40' : 'h-24';
   return (
     <Field label={label} sub={sub}>
-      <label
-        className="flex items-center justify-center gap-3 w-full h-24 rounded-xl border-2 border-dashed border-border hover:border-indigo-500/50 cursor-pointer transition group relative overflow-hidden"
+      <div
+        className={`flex items-center justify-center gap-3 w-full ${h} rounded-xl border-2 border-dashed border-border hover:border-indigo-500/50 cursor-pointer transition group relative overflow-hidden`}
         onClick={() => ref.current?.click()}
       >
         {value ? (
-          <img src={value} alt="preview" className="absolute inset-0 w-full h-full object-contain p-2" />
+          <>
+            <img src={value} alt="preview" className="absolute inset-0 w-full h-full object-contain p-2" />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+              <Upload className="w-5 h-5 text-white" />
+            </div>
+          </>
         ) : (
           <div className="text-center">
             <Icon className="w-6 h-6 text-muted-foreground group-hover:text-indigo-400 mx-auto mb-1 transition" />
             <p className="text-xs text-muted-foreground">انقر للرفع</p>
           </div>
         )}
-        <input
-          ref={ref}
-          type="file"
-          className="hidden"
-          accept={accept}
+        <input ref={ref} type="file" className="hidden" accept={accept}
           onChange={async e => {
             const file = e.target.files?.[0];
             if (!file) return;
             const b64 = await readAsBase64(file);
             onUpload(b64);
-          }}
-        />
-      </label>
+          }} />
+      </div>
     </Field>
   );
 }
 
-const TABS = [
-  { id: 'general',    label: 'عام',             icon: Settings2,     color: 'bg-indigo-500' },
-  { id: 'appearance', label: 'المظهر',           icon: Palette,       color: 'bg-purple-500' },
-  { id: 'clock',      label: 'الساعة',           icon: Clock4,        color: 'bg-sky-500' },
-  { id: 'assistant',  label: 'المساعد',          icon: Bot,           color: 'bg-pink-500' },
-  { id: 'apikeys',    label: 'API Keys',         icon: Key,           color: 'bg-amber-500' },
-  { id: 'notif',      label: 'الإشعارات',        icon: Bell,          color: 'bg-orange-500' },
-  { id: 'security',   label: 'الأمان',           icon: Shield,        color: 'bg-rose-500' },
-  { id: 'attendance', label: 'إعدادات الحضور',  icon: CalendarClock, color: 'bg-teal-500' },
+function BtnPicker({ options, value, onChange, color = 'indigo' }: {
+  options: { v: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  color?: string;
+}) {
+  return (
+    <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${Math.min(options.length, 4)}, 1fr)` }}>
+      {options.map(({ v, label }) => (
+        <button key={v} onClick={() => onChange(v)}
+          className={`py-2.5 rounded-xl border font-bold text-xs transition ${value === v ? `border-${color}-500 bg-${color}-500/10 text-${color}-300` : 'border-border hover:border-indigo-500/30 text-muted-foreground'}`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function InfoBox({ text, type = 'info' }: { text: string; type?: 'info' | 'warning' | 'success' }) {
+  const styles = {
+    info: 'border-blue-500/20 bg-blue-500/5 text-blue-400',
+    warning: 'border-amber-500/20 bg-amber-500/5 text-amber-400',
+    success: 'border-green-500/20 bg-green-500/5 text-green-400',
+  };
+  const icons = { info: Info, warning: AlertTriangle, success: CheckCircle2 };
+  const Icon = icons[type];
+  return (
+    <div className={`rounded-xl border px-3 py-2.5 flex items-start gap-2 ${styles[type]}`}>
+      <Icon className="w-4 h-4 shrink-0 mt-0.5" />
+      <p className="text-xs">{text}</p>
+    </div>
+  );
+}
+
+function SaveBtn({ onClick, label = 'حفظ التغييرات', color = 'indigo', icon: Icon = Save }: {
+  onClick: () => void; label?: string; color?: string; icon?: React.ElementType;
+}) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button onClick={() => { onClick(); setOk(true); setTimeout(() => setOk(false), 2000); }}
+      className={`w-full py-2.5 rounded-xl font-bold text-sm text-white transition flex items-center justify-center gap-2 hover:-translate-y-0.5 ${ok ? 'bg-green-500 shadow-green-500/20' : `bg-${color}-500 hover:bg-${color}-600 shadow-${color}-500/20`} shadow-lg`}>
+      {ok ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+      {ok ? 'تم الحفظ ✓' : label}
+    </button>
+  );
+}
+
+// ─── Section nav config ────────────────────────────────────────────────────────
+const SECTIONS = [
+  { id: 'logo',        label: 'اللوغو والاسم',       icon: Image,          color: 'bg-indigo-500',  desc: 'شعار وهوية التطبيق' },
+  { id: 'background',  label: 'الخلفية والكروت',      icon: Palette,        color: 'bg-purple-500',  desc: 'المظهر العام والألوان' },
+  { id: 'clock',       label: 'الساعة',               icon: Clock4,         color: 'bg-sky-500',     desc: 'عرض الوقت والتاريخ' },
+  { id: 'apikeys',     label: 'مفاتيح البرنامج',      icon: Key,            color: 'bg-amber-500',   desc: 'API Keys والخدمات' },
+  { id: 'language',    label: 'اللغة',                icon: Globe,          color: 'bg-teal-500',    desc: 'اللغة والتنسيق' },
+  { id: 'alarm',       label: 'المنبه',               icon: AlarmClock,     color: 'bg-orange-500',  desc: 'التنبيهات والإشعارات' },
+  { id: 'splash',      label: 'شاشة الترحيب',        icon: Sparkles,       color: 'bg-pink-500',    desc: 'شاشة البداية' },
+  { id: 'location',    label: 'الموقع',               icon: MapPin,         color: 'bg-green-500',   desc: 'GPS والجيوفنس' },
+  { id: 'assistant',   label: 'المساعد الذكي',        icon: Bot,            color: 'bg-rose-500',    desc: 'إعدادات الذكاء الاصطناعي' },
+  { id: 'backup',      label: 'النسخ الاحتياطية',    icon: Database,       color: 'bg-emerald-500', desc: 'حفظ واستعادة البيانات' },
+  { id: 'auth',        label: 'التوثيق',              icon: Shield,         color: 'bg-violet-500',  desc: 'الأمان والبيومتري' },
+  { id: 'clearlogs',   label: 'مسح السجلات',          icon: Trash2,         color: 'bg-red-500',     desc: 'حذف البيانات' },
+  { id: 'font',        label: 'الخط',                 icon: Type,           color: 'bg-cyan-500',    desc: 'الخط وحجمه وشكله' },
+  { id: 'credentials', label: 'الإيميل وكلمة السر',  icon: Lock,           color: 'bg-slate-500',   desc: 'بيانات الدخول' },
+  { id: 'dashboard',   label: 'لوحة البداية',         icon: LayoutDashboard, color: 'bg-blue-500',  desc: 'تخصيص الصفحة الرئيسية' },
 ];
 
-const APP_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f97316','#10b981','#06b6d4','#f59e0b','#ef4444','#64748b'];
+const APP_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f97316','#10b981','#06b6d4','#f59e0b','#ef4444','#64748b','#0ea5e9','#a855f7','#14b8a6'];
+const DASH_WIDGETS = [
+  { id: 'stats',        label: 'إحصائيات الحضور' },
+  { id: 'clock',        label: 'ساعة مباشرة' },
+  { id: 'attendance',   label: 'جدول الحضور اليوم' },
+  { id: 'leaves',       label: 'طلبات الإجازات' },
+  { id: 'payroll',      label: 'ملخص الراتب' },
+  { id: 'activity',     label: 'آخر النشاطات' },
+  { id: 'alerts',       label: 'التنبيهات' },
+  { id: 'weather',      label: 'الطقس' },
+  { id: 'tasks',        label: 'المهام السريعة' },
+  { id: 'performance',  label: 'الأداء الشهري' },
+];
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main ──────────────────────────────────────────────────────────────────────
 export default function Settings() {
-  const { theme, setTheme } = useTheme();
-  const { locale, t } = useLanguage();
-  const { toast }           = useToast();
-  const { s, update, save } = useSettings();
-  const [tab, setTab]       = useState('general');
-  const [saved, setSaved]   = useState(false);
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const { theme, setTheme }   = useTheme();
+  const { locale, setLocale } = useLanguage();
+  const { toast }             = useToast();
+  const { s, update, save }   = useSettings();
 
-  // Security form state (local, not persisted — just for validation/UI)
-  const [secEmail, setSecEmail]           = useState('');
-  const [secCurrentPw, setSecCurrentPw]   = useState('');
-  const [secNewPw, setSecNewPw]           = useState('');
-  const [secConfirmPw, setSecConfirmPw]   = useState('');
+  const [activeSection, setActiveSection] = useState('logo');
+  const [showKeys, setShowKeys]           = useState<Record<string, boolean>>({});
   const [showPw, setShowPw]               = useState<Record<string, boolean>>({});
   const [pinDialog, setPinDialog]         = useState(false);
   const [pinValue, setPinValue]           = useState('');
+  const [clearDialog, setClearDialog]     = useState<string | null>(null);
+
+  // Credential form
+  const [secEmail, setSecEmail]       = useState('');
+  const [curPw, setCurPw]             = useState('');
+  const [newPw, setNewPw]             = useState('');
+  const [confirmPw, setConfirmPw]     = useState('');
+
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
+  const sec = SECTIONS.find(s => s.id === activeSection)!;
 
   const handleSave = () => {
     save();
-    setSaved(true);
-    toast({ title: t('settingsSaved') });
-    setTimeout(() => setSaved(false), 2500);
+    toast({ title: 'تم حفظ الإعدادات بنجاح' });
   };
 
   const toggleNotif = (k: keyof typeof s.notif) =>
@@ -193,26 +272,23 @@ export default function Settings() {
     update({ biometric: { ...s.biometric, [k]: !s.biometric[k] } });
 
   const createBackup = () => {
-    const content = JSON.stringify(s, null, 2);
-    const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
-    const a = document.createElement('a'); a.href = url; a.download = 'workforce-backup.json'; a.click();
+    const url = URL.createObjectURL(new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' }));
+    Object.assign(document.createElement('a'), { href: url, download: 'workforceos-backup.json' }).click();
     URL.revokeObjectURL(url);
-    toast({ title: t('settingsBackupSaved') });
+    toast({ title: 'تم تنزيل النسخة الاحتياطية' });
   };
 
   const restoreBackup = () => {
-    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
+    const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.json' });
     inp.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       file.text().then(text => {
         try {
-          const parsed = JSON.parse(text);
-          update(parsed);
-          save();
-          toast({ title: t('settingsBackupRestored') });
+          update(JSON.parse(text)); save();
+          toast({ title: 'تم استعادة الإعدادات' });
         } catch {
-          toast({ title: t('settingsBackupError'), description: 'تأكد أن الملف صحيح', variant: 'destructive' });
+          toast({ title: 'ملف غير صالح', variant: 'destructive' });
         }
       });
     };
@@ -220,783 +296,1436 @@ export default function Settings() {
   };
 
   const handleUpdateCredentials = () => {
-    if (!secCurrentPw) {
-      toast({ title: t('settingsCurrentPwRequired'), variant: 'destructive' }); return;
-    }
-    if (secNewPw && secNewPw !== secConfirmPw) {
-      toast({ title: t('settingsNewPwMismatch'), variant: 'destructive' }); return;
-    }
-    if (secNewPw && secNewPw.length < 8) {
-      toast({ title: t('settingsNewPwTooShort'), variant: 'destructive' }); return;
-    }
-    // In a real app: call API here. For now show success.
-    toast({ title: t('settingsCredentialsUpdated') });
-    setSecCurrentPw(''); setSecNewPw(''); setSecConfirmPw(''); setSecEmail('');
+    if (!curPw) { toast({ title: 'أدخل كلمة المرور الحالية', variant: 'destructive' }); return; }
+    if (newPw && newPw !== confirmPw) { toast({ title: 'كلمة المرور الجديدة غير متطابقة', variant: 'destructive' }); return; }
+    if (newPw && newPw.length < 8) { toast({ title: 'كلمة المرور يجب أن تكون 8 أحرف أو أكثر', variant: 'destructive' }); return; }
+    toast({ title: 'تم تحديث بيانات الدخول بنجاح' });
+    setCurPw(''); setNewPw(''); setConfirmPw(''); setSecEmail('');
   };
 
   const handlePinSave = () => {
-    if (pinValue.length !== 6 || !/^\d{6}$/.test(pinValue)) {
-      toast({ title: locale === 'sv' ? 'PIN-koden måste vara 6 siffror' : locale === 'en' ? 'PIN must be 6 digits' : 'يجب أن يكون الرمز 6 أرقام', variant: 'destructive' }); return;
-    }
-    // Store hashed or just flag it (not storing raw PIN for security)
-    update({ biometric: { ...s.biometric, pin: true } });
-    save();
-    toast({ title: t('settingsPinActivated') });
-    setPinDialog(false);
-    setPinValue('');
+    if (!/^\d{6}$/.test(pinValue)) { toast({ title: 'يجب أن يكون الرمز 6 أرقام', variant: 'destructive' }); return; }
+    update({ biometric: { ...s.biometric, pin: true } }); save();
+    toast({ title: 'تم تفعيل رمز PIN' }); setPinDialog(false); setPinValue('');
   };
 
-  const updateCustomKey = (i: number, field: 'name' | 'value', val: string) => {
-    const next = s.customKeys.map((k, idx) => idx === i ? { ...k, [field]: val } : k);
-    update({ customKeys: next });
+  const updateCustomKey = (i: number, field: 'name' | 'value', val: string) =>
+    update({ customKeys: s.customKeys.map((k, idx) => idx === i ? { ...k, [field]: val } : k) });
+
+  const toggleWidget = (id: string) => {
+    const curr = s.dashboardWidgets;
+    update({ dashboardWidgets: curr.includes(id) ? curr.filter(w => w !== id) : [...curr, id] });
   };
 
-  const addCustomKey = () => {
-    update({ customKeys: [...s.customKeys, { name: '', value: '' }] });
+  const clearLogs = (type: string) => {
+    const key = `workforce-cleared-${type}`;
+    localStorage.setItem(key, new Date().toISOString());
+    toast({ title: `تم مسح ${type === 'attendance' ? 'سجلات الحضور' : type === 'payroll' ? 'سجلات الرواتب' : type === 'leaves' ? 'سجلات الإجازات' : type === 'all' ? 'جميع السجلات' : 'السجلات'} بنجاح` });
+    setClearDialog(null);
   };
 
-  const removeCustomKey = (i: number) => {
-    update({ customKeys: s.customKeys.filter((_, idx) => idx !== i) });
-  };
+  // Live clock preview
+  const [liveTime, setLiveTime] = useState(new Date());
+  useEffect(() => { const t = setInterval(() => setLiveTime(new Date()), 1000); return () => clearInterval(t); }, []);
 
   return (
-    <div className="space-y-6 animate-fadeIn" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="h-full flex flex-col animate-fadeIn" dir={dir}>
+
+      {/* Page header */}
+      <div className="flex items-center justify-between gap-3 mb-6 shrink-0">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">الإعدادات</h1>
-          <p className="text-sm text-muted-foreground mt-1">إدارة إعدادات التطبيق والشركة</p>
+          <h1 className="font-display text-2xl font-black tracking-tight">الإعدادات</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">تحكم شامل في كل تفاصيل النظام</p>
         </div>
-        <button
-          onClick={handleSave}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all shadow-lg ${saved ? 'bg-green-500 shadow-green-500/25' : 'bg-gradient-to-r from-indigo-500 to-purple-600 shadow-indigo-500/25 hover:-translate-y-0.5'}`}
-        >
-          {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-          {saved ? 'تم الحفظ' : 'حفظ الإعدادات'}
+        <button onClick={handleSave}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25 hover:-translate-y-0.5 transition">
+          <Save className="w-4 h-4" /> حفظ الكل
         </button>
       </div>
 
-      {/* Tab strip */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
-              tab === t.id ? 'text-white border-transparent shadow-lg' : 'border-border text-muted-foreground hover:text-foreground hover:border-indigo-500/30 hover:bg-indigo-500/5'
-            }`}
-            style={tab === t.id ? { background: `linear-gradient(135deg, ${s.appColor}, ${s.appColor}cc)` } : {}}
-          >
-            <t.icon className="w-4 h-4 shrink-0" />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── General ───────────────────────────────────────────── */}
-      {tab === 'general' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card>
-            <CardHeader icon={Settings2} color="bg-indigo-500" title="هوية التطبيق" sub="اسم وصور التطبيق" />
-            <div className="space-y-4">
-              <Field label="اسم التطبيق">
-                <Input value={s.appName} onChange={e => update({ appName: e.target.value })} />
-              </Field>
-              <Field label="الرسالة الترحيبية">
-                <Input value={s.welcomeMsg} onChange={e => update({ welcomeMsg: e.target.value })} />
-              </Field>
-              <ImageUploadZone
-                label="شعار التطبيق"
-                sub="PNG أو SVG — حجم موصى به 512×512"
-                icon={Image}
-                value={s.logoUrl}
-                onUpload={b64 => update({ logoUrl: b64 })}
-              />
-              <ImageUploadZone
-                label="أيقونة التطبيق"
-                sub="PNG مربع — 192×192"
-                icon={Upload}
-                value={s.iconUrl}
-                onUpload={b64 => update({ iconUrl: b64 })}
-              />
-              <ImageUploadZone
-                label="شاشة البداية"
-                icon={Layers}
-                value={s.splashUrl}
-                onUpload={b64 => update({ splashUrl: b64 })}
-              />
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader icon={Building2} color="bg-blue-500" title="معلومات الشركة" sub="بيانات الشركة الأساسية" />
-            <div className="space-y-4">
-              <Field label="اسم الشركة">
-                <Input value={s.companyName} onChange={e => update({ companyName: e.target.value })} placeholder="اسم شركتك" />
-              </Field>
-              <Field label="عنوان الشركة">
-                <div className="relative">
-                  <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input value={s.companyAddr} onChange={e => update({ companyAddr: e.target.value })} placeholder="المدينة، الدولة"
-                    className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
-                </div>
-              </Field>
-              <Field label="رقم الهاتف">
-                <div className="relative">
-                  <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input value={s.companyPhone} onChange={e => update({ companyPhone: e.target.value })} placeholder="+966 5x xxx xxxx" type="tel"
-                    className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
-                </div>
-              </Field>
-              <Field label="البريد الإلكتروني">
-                <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input value={s.companyEmail} onChange={e => update({ companyEmail: e.target.value })} placeholder="info@company.com" type="email"
-                    className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
-                </div>
-              </Field>
-
-              {s.companyName && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-indigo-500/30 bg-indigo-500/5">
-                  <Building2 className="w-4 h-4 text-indigo-400 shrink-0" />
-                  <span className="text-sm font-bold text-indigo-300">{s.companyName}</span>
-                  <span className="text-[11px] text-muted-foreground mr-auto">سيظهر في كل أقسام النظام</span>
-                </div>
-              )}
-            </div>
-          </Card>
+      <div className="flex gap-5 flex-1 min-h-0">
+        {/* ── Sidebar ── */}
+        <div className="w-52 shrink-0 flex flex-col gap-1 overflow-y-auto pb-4 scrollbar-none hidden md:flex">
+          {SECTIONS.map(sec => (
+            <button key={sec.id} onClick={() => setActiveSection(sec.id)}
+              className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-right text-sm transition-all ${
+                activeSection === sec.id
+                  ? 'text-white shadow-lg'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+              }`}
+              style={activeSection === sec.id ? { background: `linear-gradient(135deg, ${s.appColor}ee, ${s.appColor}99)` } : {}}>
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${activeSection === sec.id ? 'bg-white/20' : sec.color}`}>
+                <sec.icon className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div className="text-right min-w-0">
+                <p className="font-bold text-[13px] leading-tight truncate">{sec.label}</p>
+                <p className={`text-[10px] truncate ${activeSection === sec.id ? 'text-white/70' : 'text-muted-foreground'}`}>{sec.desc}</p>
+              </div>
+            </button>
+          ))}
         </div>
-      )}
 
-      {/* ── Appearance ──────────────────────────────────────────── */}
-      {tab === 'appearance' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card>
-            <CardHeader icon={Palette} color="bg-purple-500" title="الوضع والألوان" sub="تخصيص الشكل العام للتطبيق" />
-            <div className="space-y-5">
-              <Field label="وضع العرض">
-                <div className="grid grid-cols-2 gap-2">
-                  {[{ v: 'light', icon: Sun, label: 'فاتح' }, { v: 'dark', icon: Moon, label: 'داكن' }].map(({ v, icon: Icon, label }) => (
-                    <button key={v} onClick={() => setTheme(v as 'light' | 'dark')}
-                      className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm transition ${theme === v ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300' : 'border-border hover:border-indigo-500/30'}`}>
-                      <Icon className="w-4 h-4" /> {label}
-                      {theme === v && <Check className="w-3.5 h-3.5" />}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-
-              <Field label="لون التطبيق الرئيسي" sub="يطبق فوراً على كامل التطبيق">
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {APP_COLORS.map(c => (
-                    <ColorSwatch key={c} color={c} selected={s.appColor === c} onClick={() => update({ appColor: c })} />
-                  ))}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">مخصص:</span>
-                  <input type="color" value={s.appColor} onChange={e => update({ appColor: e.target.value })}
-                    className="w-8 h-8 rounded cursor-pointer border border-border" />
-                  <span className="font-mono text-xs text-muted-foreground">{s.appColor}</span>
-                </div>
-              </Field>
-
-              <Field label="ألوان الكروت">
-                <Sel value={s.cardColors} onChange={e => update({ cardColors: e.target.value })}>
-                  <option value="auto">تلقائي (من الثيم)</option>
-                  <option value="glass">شفاف زجاجي</option>
-                  <option value="solid-dark">داكن صلب</option>
-                  <option value="solid-light">فاتح صلب</option>
-                </Sel>
-              </Field>
-
-              <Field label="لون الأزرار">
-                <Sel value={s.buttonColor} onChange={e => update({ buttonColor: e.target.value })}>
-                  <option value="auto">تلقائي (لون التطبيق)</option>
-                  <option value="gradient">متدرج بنفسجي</option>
-                  <option value="green">أخضر</option>
-                  <option value="blue">أزرق</option>
-                </Sel>
-              </Field>
-
-              <Field label="الخلفية">
-                <Sel value={s.background} onChange={e => update({ background: e.target.value })}>
-                  <option value="default">افتراضي</option>
-                  <option value="gradient">تدرج لوني</option>
-                  <option value="dotted">نقطي ناعم</option>
-                  <option value="grid">شبكي</option>
-                </Sel>
-              </Field>
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader icon={Type} color="bg-violet-500" title="الخط والأيقونات" sub="شكل وحجم العناصر" />
-            <div className="space-y-5">
-              <Field label="نوع الخط">
-                <Sel value={s.fontFamily} onChange={e => update({ fontFamily: e.target.value })}>
-                  <option value="system">System Default</option>
-                  <option value="inter">Inter</option>
-                  <option value="cairo">Cairo (عربي)</option>
-                  <option value="tajawal">Tajawal (عربي)</option>
-                  <option value="poppins">Poppins</option>
-                  <option value="mono">Monospace</option>
-                </Sel>
-              </Field>
-
-              <Field label="حجم الخط">
-                <div className="grid grid-cols-3 gap-2">
-                  {[{ v: 'small', label: 'صغير' }, { v: 'medium', label: 'متوسط' }, { v: 'large', label: 'كبير' }].map(({ v, label }) => (
-                    <button key={v} onClick={() => update({ fontSize: v as any })}
-                      className={`py-2.5 rounded-xl border font-bold text-xs transition ${s.fontSize === v ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300' : 'border-border hover:border-indigo-500/30'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-
-              <Field label="شكل الخط">
-                <Sel value={s.fontShape} onChange={e => update({ fontShape: e.target.value })}>
-                  <option value="normal">عادي</option>
-                  <option value="bold">عريض</option>
-                  <option value="italic">مائل</option>
-                </Sel>
-              </Field>
-
-              <Field label="شكل الأيقونات">
-                <div className="grid grid-cols-3 gap-2">
-                  {[{ v: 'rounded', label: 'مدور' }, { v: 'square', label: 'مربع' }, { v: 'circle', label: 'دائري' }].map(({ v, label }) => (
-                    <button key={v} onClick={() => update({ iconStyle: v as any })}
-                      className={`py-2.5 rounded-xl border font-bold text-xs transition ${s.iconStyle === v ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300' : 'border-border hover:border-indigo-500/30'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-
-              <Field label="شكل الساعة في التطبيق">
-                <div className="grid grid-cols-3 gap-2">
-                  {[{ v: 'digital', label: 'رقمي' }, { v: 'analog', label: 'تناظري' }, { v: 'minimal', label: 'مبسط' }].map(({ v, label }) => (
-                    <button key={v} onClick={() => update({ clockStyle: v as any })}
-                      className={`py-2.5 rounded-xl border font-bold text-xs transition ${s.clockStyle === v ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300' : 'border-border hover:border-indigo-500/30'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-            </div>
-          </Card>
+        {/* ── Mobile top nav ── */}
+        <div className="md:hidden flex gap-2 overflow-x-auto pb-1 scrollbar-none mb-4 shrink-0">
+          {SECTIONS.map(sec => (
+            <button key={sec.id} onClick={() => setActiveSection(sec.id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
+                activeSection === sec.id ? 'text-white border-transparent' : 'border-border text-muted-foreground'
+              }`}
+              style={activeSection === sec.id ? { background: `linear-gradient(135deg, ${s.appColor}, ${s.appColor}99)` } : {}}>
+              <sec.icon className="w-3.5 h-3.5 shrink-0" />
+              {sec.label}
+            </button>
+          ))}
         </div>
-      )}
 
-      {/* ── Live Clock ──────────────────────────────────────────── */}
-      {tab === 'clock' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card>
-            <CardHeader icon={Clock4} color="bg-sky-500" title="شكل الساعة المباشرة" sub="تخصيص ساعة الوقت الفعلي" />
-            <div className="space-y-5">
-              <Field label="نوع العرض">
-                <div className="grid grid-cols-3 gap-2">
-                  {[{ v: 'digital', label: 'رقمي' }, { v: 'analog', label: 'تناظري' }, { v: 'flip', label: 'انقلاب' }].map(({ v, label }) => (
-                    <button key={v} onClick={() => update({ clockType: v as any })}
-                      className={`py-3 rounded-xl border font-bold text-sm transition ${s.clockType === v ? 'border-sky-500 bg-sky-500/10 text-sky-300' : 'border-border hover:border-sky-500/30'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </Field>
+        {/* ── Content ── */}
+        <div className="flex-1 overflow-y-auto pb-6 scrollbar-none">
 
-              <Field label="لون الساعة">
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {APP_COLORS.map(c => (
-                    <ColorSwatch key={c} color={c} selected={s.clockColor === c} onClick={() => update({ clockColor: c })} />
-                  ))}
-                </div>
-                <input type="color" value={s.clockColor} onChange={e => update({ clockColor: e.target.value })}
-                  className="mt-2 w-8 h-8 rounded cursor-pointer border border-border" />
-              </Field>
-
-              <Field label="حجم الساعة">
-                <div className="grid grid-cols-3 gap-2">
-                  {[{ v: 'small', label: 'صغير' }, { v: 'medium', label: 'متوسط' }, { v: 'large', label: 'كبير' }].map(({ v, label }) => (
-                    <button key={v} onClick={() => update({ clockSize: v as any })}
-                      className={`py-2.5 rounded-xl border font-bold text-sm transition ${s.clockSize === v ? 'border-sky-500 bg-sky-500/10 text-sky-300' : 'border-border hover:border-sky-500/30'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-
-              <Field label="مكان الساعة">
-                <Sel value={s.clockPos} onChange={e => update({ clockPos: e.target.value as any })}>
-                  <option value="header">الهيدر العلوي</option>
-                  <option value="sidebar">القائمة الجانبية</option>
-                  <option value="dashboard">لوحة التحكم</option>
-                  <option value="floating">عائمة</option>
-                  <option value="hidden">مخفية</option>
-                </Sel>
-              </Field>
+          {/* Section title badge */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${sec.color} shadow-lg`}>
+              <sec.icon className="w-4 h-4 text-white" />
             </div>
-          </Card>
-
-          <Card>
-            <CardHeader icon={Timer} color="bg-cyan-500" title="خيارات العرض" sub="ما يظهر مع الساعة" />
             <div>
-              <ToggleRow label="إظهار التاريخ" sub="يوم / شهر / سنة تحت الوقت" on={s.showDate} onToggle={() => update({ showDate: !s.showDate })} />
-              <ToggleRow label="إظهار الثواني" sub="hh:mm:ss بدل hh:mm" on={s.showSeconds} onToggle={() => update({ showSeconds: !s.showSeconds })} />
-              <ToggleRow label="اليوم بالعربي" sub="الإثنين، الثلاثاء..." on={s.showArabicDay} onToggle={() => update({ showArabicDay: !s.showArabicDay })} />
-              <ToggleRow label="الوقت بصيغة 12h" sub="AM / PM بدل 24 ساعة" on={s.show12h} onToggle={() => update({ show12h: !s.show12h })} />
-              <ToggleRow label="ساعة الحضور" sub="وقت تسجيل الدخول بجانب الساعة" on={s.showShiftClock} onToggle={() => update({ showShiftClock: !s.showShiftClock })} />
+              <h2 className="font-black text-lg leading-tight">{sec.label}</h2>
+              <p className="text-[11px] text-muted-foreground">{sec.desc}</p>
             </div>
+          </div>
 
-            <div className="mt-5 rounded-xl border border-border bg-white/5 p-4 text-center">
-              <p className="text-[10px] text-muted-foreground mb-2 font-bold uppercase tracking-wider">معاينة مباشرة</p>
-              <div className={`font-mono font-black ${s.clockSize === 'small' ? 'text-2xl' : s.clockSize === 'large' ? 'text-5xl' : 'text-4xl'}`} style={{ color: s.clockColor }}>
-                {new Date().toLocaleTimeString(s.showArabicDay ? 'ar-SA' : 'en-US', {
-                  hour: '2-digit', minute: '2-digit',
-                  second: s.showSeconds ? '2-digit' : undefined,
-                  hour12: s.show12h,
-                })}
-              </div>
-              {s.showDate && (
-                <div className="text-sm text-muted-foreground mt-1">
-                  {new Date().toLocaleDateString(s.showArabicDay ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ── Smart Assistant ──────────────────────────────────────── */}
-      {tab === 'assistant' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card>
-            <CardHeader icon={Bot} color="bg-pink-500" title="المساعد الذكي" sub="تخصيص مساعد الذكاء الاصطناعي" />
-            <div className="space-y-5">
-              <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-border">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center overflow-hidden">
-                    {s.assistantAvatarUrl
-                      ? <img src={s.assistantAvatarUrl} alt="" className="w-full h-full object-cover" />
-                      : <Bot className="w-5 h-5 text-white" />}
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">تشغيل المساعد الذكي</p>
-                    <p className="text-[11px] text-muted-foreground">يظهر في صفحة المساعد وكزر عائم</p>
-                  </div>
-                </div>
-                <Toggle on={s.assistantOn} onToggle={() => update({ assistantOn: !s.assistantOn })} />
-              </div>
-
-              <Field label="اسم المساعد">
-                <Input value={s.assistantName} onChange={e => update({ assistantName: e.target.value })} placeholder="WorkBot" />
-              </Field>
-
-              <Field label="الرسالة الترحيبية">
-                <textarea value={s.assistantMsg} onChange={e => update({ assistantMsg: e.target.value })} rows={2}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none transition" />
-              </Field>
-
-              <ImageUploadZone
-                label="صورة المساعد"
-                sub="PNG دائري — 256×256"
-                icon={Upload}
-                value={s.assistantAvatarUrl}
-                onUpload={b64 => update({ assistantAvatarUrl: b64 })}
-              />
-
-              <Field label="شخصية المساعد">
-                <div className="grid grid-cols-2 gap-2">
-                  {[{ v: 'professional', label: 'رسمي' }, { v: 'friendly', label: 'ودود' }, { v: 'concise', label: 'مختصر' }, { v: 'detailed', label: 'تفصيلي' }].map(({ v, label }) => (
-                    <button key={v} onClick={() => update({ assistantPersonality: v })}
-                      className={`py-2.5 rounded-xl border font-bold text-sm transition ${s.assistantPersonality === v ? 'border-pink-500 bg-pink-500/10 text-pink-300' : 'border-border hover:border-pink-500/30'}`}>
-                      {label}
+          {/* ══════════════════════════════════════════════════════════════
+              1. Logo & App Name
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'logo' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Image} color="bg-indigo-500" title="شعار التطبيق" sub="رفع وتخصيص شعار البرنامج" />
+                <div className="space-y-4">
+                  <ImgZone label="الشعار الرئيسي" sub="PNG أو SVG — 512×512 موصى به" icon={Image} value={s.logoUrl} onUpload={b => update({ logoUrl: b })} size="lg" />
+                  {s.logoUrl && (
+                    <button onClick={() => update({ logoUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
+                      <Trash2 className="w-3.5 h-3.5" /> إزالة الشعار
                     </button>
-                  ))}
+                  )}
+                  <ImgZone label="أيقونة التطبيق" sub="PNG مربع — 192×192" icon={Upload} value={s.iconUrl} onUpload={b => update({ iconUrl: b })} size="sm" />
                 </div>
-              </Field>
+              </SCard>
 
-              <Field label="لغة المساعد">
-                <Sel value={s.assistantLang} onChange={e => update({ assistantLang: e.target.value })}>
-                  <option value="ar">العربية</option>
-                  <option value="en">English</option>
-                  <option value="bilingual">عربي + English</option>
-                </Sel>
-              </Field>
+              <SCard>
+                <CardHead icon={Settings2} color="bg-blue-500" title="اسم وهوية التطبيق" sub="المعلومات الأساسية للبرنامج" />
+                <div className="space-y-4">
+                  <Field label="اسم التطبيق" required>
+                    <Inp value={s.appName} onChange={e => update({ appName: e.target.value })} placeholder="WorkforceOS" />
+                  </Field>
+                  <Field label="الرسالة الترحيبية">
+                    <Inp value={s.welcomeMsg} onChange={e => update({ welcomeMsg: e.target.value })} placeholder="أهلاً بك في النظام" />
+                  </Field>
+                  <Field label="اسم الشركة">
+                    <div className="relative">
+                      <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input value={s.companyName} onChange={e => update({ companyName: e.target.value })} placeholder="اسم شركتك"
+                        className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
+                    </div>
+                  </Field>
+                  <Field label="عنوان الشركة">
+                    <div className="relative">
+                      <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input value={s.companyAddr} onChange={e => update({ companyAddr: e.target.value })} placeholder="المدينة، الدولة"
+                        className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
+                    </div>
+                  </Field>
+                  <Field label="هاتف الشركة">
+                    <div className="relative">
+                      <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input value={s.companyPhone} onChange={e => update({ companyPhone: e.target.value })} placeholder="+966 5x xxx xxxx" type="tel"
+                        className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
+                    </div>
+                  </Field>
+                  <Field label="إيميل الشركة">
+                    <div className="relative">
+                      <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input value={s.companyEmail} onChange={e => update({ companyEmail: e.target.value })} placeholder="info@company.com" type="email"
+                        className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
+                    </div>
+                  </Field>
+                  {s.appName && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-indigo-500/30 bg-indigo-500/5">
+                      {s.logoUrl
+                        ? <img src={s.logoUrl} alt="" className="w-6 h-6 object-contain rounded" />
+                        : <div className="w-6 h-6 rounded bg-indigo-500/30 flex items-center justify-center"><Settings2 className="w-3.5 h-3.5 text-indigo-400" /></div>
+                      }
+                      <span className="text-sm font-bold text-indigo-300">{s.appName}</span>
+                      {s.companyName && <span className="text-[11px] text-muted-foreground mr-auto">— {s.companyName}</span>}
+                    </div>
+                  )}
+                  <SaveBtn onClick={handleSave} label="حفظ هوية التطبيق" />
+                </div>
+              </SCard>
             </div>
-          </Card>
+          )}
 
-          <Card>
-            <CardHeader icon={Key} color="bg-rose-500" title="مفاتيح الذكاء الاصطناعي" sub="ربط المساعد بمزودي الـ AI" />
-            <div className="space-y-4">
-              {[
-                { id: 'openai', label: 'OpenAI (ChatGPT)', placeholder: 'sk-...' },
-                { id: 'gemini', label: 'Google Gemini',    placeholder: 'AIza...' },
-                { id: 'claude', label: 'Anthropic Claude', placeholder: 'sk-ant-...' },
-              ].map(({ id, label, placeholder }) => (
-                <Field key={id} label={label}>
-                  <div className="relative">
-                    <input type={showKeys[id] ? 'text' : 'password'}
-                      value={s.apiKeys[id] || ''}
-                      onChange={e => update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } })}
-                      placeholder={placeholder}
-                      className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 pr-10 font-mono transition" />
-                    <button type="button" onClick={() => setShowKeys(v => ({ ...v, [id]: !v[id] }))}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
-                      {showKeys[id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </Field>
-              ))}
-              <button
-                onClick={() => {
-                  toast({ title: t('settingsAiKeysSaved') });
-                  save();
-                }}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm transition flex items-center justify-center gap-2 hover:-translate-y-0.5 shadow-lg shadow-rose-500/20"
-              >
-                <Save className="w-4 h-4" /> حفظ المفاتيح
-              </button>
-            </div>
-          </Card>
-        </div>
-      )}
+          {/* ══════════════════════════════════════════════════════════════
+              2. Background & Cards
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'background' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Palette} color="bg-purple-500" title="الوضع والألوان" sub="الثيم والألوان الرئيسية" />
+                <div className="space-y-5">
+                  <Field label="وضع العرض">
+                    <div className="grid grid-cols-2 gap-2">
+                      {[{ v: 'light', icon: Sun, label: 'فاتح' }, { v: 'dark', icon: Moon, label: 'داكن' }].map(({ v, icon: Icon, label }) => (
+                        <button key={v} onClick={() => setTheme(v as 'light' | 'dark')}
+                          className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm transition ${theme === v ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-border hover:border-purple-500/30 text-muted-foreground'}`}>
+                          <Icon className="w-4 h-4" /> {label}
+                          {theme === v && <Check className="w-3.5 h-3.5" />}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
 
-      {/* ── API Keys ──────────────────────────────────────────────── */}
-      {tab === 'apikeys' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card>
-            <CardHeader icon={Key} color="bg-amber-500" title="مفاتيح الخدمات" sub="ربط التطبيق بالخدمات الخارجية" />
-            <div className="space-y-4">
-              {[
-                { id: 'firebase',  label: 'Firebase',       placeholder: 'AIza...' },
-                { id: 'maps',      label: 'Google Maps API', placeholder: 'AIza...' },
-                { id: 'smtp',      label: 'SMTP Email',      placeholder: 'smtp://...' },
-                { id: 'whatsapp',  label: 'WhatsApp API',    placeholder: 'token...' },
-              ].map(({ id, label, placeholder }) => (
-                <Field key={id} label={label}>
-                  <div className="relative">
-                    <input type={showKeys[id] ? 'text' : 'password'}
-                      value={s.apiKeys[id] || ''}
-                      onChange={e => update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } })}
-                      placeholder={placeholder}
-                      className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-amber-500/50 pr-10 font-mono transition" />
-                    <button type="button" onClick={() => setShowKeys(v => ({ ...v, [id]: !v[id] }))}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
-                      {showKeys[id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </Field>
-              ))}
-              <button
-                onClick={() => { save(); toast({ title: t('settingsServiceKeysSaved') }); }}
-                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition flex items-center justify-center gap-2"
-              >
-                <Save className="w-4 h-4" /> حفظ المفاتيح
-              </button>
-            </div>
-          </Card>
+                  <Field label="اللون الرئيسي" sub="يُطبق فوراً على كامل التطبيق">
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {APP_COLORS.map(c => (
+                        <ColorDot key={c} color={c} selected={s.appColor === c} onClick={() => update({ appColor: c })} />
+                      ))}
+                    </div>
+                    <div className="mt-3 flex items-center gap-3 p-3 rounded-xl border border-border bg-white/5">
+                      <label className="text-xs text-muted-foreground font-bold">لون مخصص:</label>
+                      <input type="color" value={s.appColor} onChange={e => update({ appColor: e.target.value })}
+                        className="w-9 h-9 rounded-lg cursor-pointer border border-border" />
+                      <span className="font-mono text-sm text-muted-foreground">{s.appColor}</span>
+                      <div className="w-6 h-6 rounded-full mr-auto" style={{ background: s.appColor }} />
+                    </div>
+                  </Field>
+                </div>
+              </SCard>
 
-          <Card>
-            <CardHeader icon={Zap} color="bg-orange-500" title="مفاتيح مخصصة" sub="مفاتيح لخدمات إضافية" />
-            <div className="space-y-3">
-              {s.customKeys.map((ck, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    value={ck.name}
-                    onChange={e => updateCustomKey(i, 'name', e.target.value)}
-                    placeholder="اسم الخدمة"
-                    className="w-1/3 rounded-xl px-3 py-2 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition"
-                  />
-                  <div className="relative flex-1">
-                    <input
-                      type={showKeys[`custom-${i}`] ? 'text' : 'password'}
-                      value={ck.value}
-                      onChange={e => updateCustomKey(i, 'value', e.target.value)}
-                      placeholder="المفتاح"
-                      className="w-full rounded-xl px-3 py-2 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-500/50 font-mono pr-8 transition"
+              <SCard>
+                <CardHead icon={Layers} color="bg-violet-500" title="الخلفية والكروت" sub="شكل وتصميم عناصر الواجهة" />
+                <div className="space-y-5">
+                  <Field label="نمط الخلفية">
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { v: 'default', label: 'افتراضي', icon: '⬜' },
+                        { v: 'gradient', label: 'تدرج لوني', icon: '🌈' },
+                        { v: 'dotted', label: 'نقطي ناعم', icon: '⋯' },
+                        { v: 'grid', label: 'شبكي', icon: '⊞' },
+                      ].map(({ v, label, icon }) => (
+                        <button key={v} onClick={() => update({ background: v })}
+                          className={`flex items-center gap-2 py-3 px-3 rounded-xl border font-bold text-xs transition ${s.background === v ? 'border-violet-500 bg-violet-500/10 text-violet-300' : 'border-border hover:border-violet-500/30 text-muted-foreground'}`}>
+                          <span className="text-base">{icon}</span> {label}
+                          {s.background === v && <Check className="w-3 h-3 mr-auto" />}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="تصميم الكروت">
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { v: 'auto', label: 'تلقائي' },
+                        { v: 'glass', label: 'زجاجي شفاف' },
+                        { v: 'solid-dark', label: 'داكن صلب' },
+                        { v: 'solid-light', label: 'فاتح صلب' },
+                      ].map(({ v, label }) => (
+                        <button key={v} onClick={() => update({ cardColors: v })}
+                          className={`py-2.5 rounded-xl border font-bold text-xs transition ${s.cardColors === v ? 'border-violet-500 bg-violet-500/10 text-violet-300' : 'border-border hover:border-violet-500/30 text-muted-foreground'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="لون الأزرار">
+                    <Sel value={s.buttonColor} onChange={e => update({ buttonColor: e.target.value })}>
+                      <option value="auto">تلقائي (لون التطبيق)</option>
+                      <option value="gradient">متدرج بنفسجي</option>
+                      <option value="green">أخضر</option>
+                      <option value="blue">أزرق</option>
+                      <option value="rose">وردي</option>
+                    </Sel>
+                  </Field>
+
+                  <Field label="شكل الأيقونات">
+                    <BtnPicker
+                      options={[{ v: 'rounded', label: 'مدور' }, { v: 'square', label: 'مربع' }, { v: 'circle', label: 'دائري' }]}
+                      value={s.iconStyle}
+                      onChange={v => update({ iconStyle: v as any })}
                     />
-                    <button type="button" onClick={() => setShowKeys(v => ({ ...v, [`custom-${i}`]: !v[`custom-${i}`] }))}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
-                      {showKeys[`custom-${i}`] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </Field>
+
+                  {/* Live preview */}
+                  <div className="rounded-xl border border-border p-4 bg-white/5">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-3">معاينة الكروت</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['الحضور', 'الرواتب', 'الإجازات'].map((label, i) => (
+                        <div key={i} className="rounded-lg border border-border p-2.5 text-center" style={{ background: 'var(--card)' }}>
+                          <div className="w-6 h-6 rounded mx-auto mb-1 flex items-center justify-center" style={{ background: s.appColor + '33' }}>
+                            <span className="text-[10px]">✦</span>
+                          </div>
+                          <p className="text-[10px] font-bold text-muted-foreground">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <SaveBtn onClick={handleSave} label="حفظ المظهر" color="violet" />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              3. Clock
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'clock' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Clock4} color="bg-sky-500" title="شكل الساعة" sub="تخصيص الساعة المباشرة" />
+                <div className="space-y-5">
+                  <Field label="نوع العرض">
+                    <BtnPicker
+                      options={[{ v: 'digital', label: 'رقمي' }, { v: 'analog', label: 'تناظري' }, { v: 'flip', label: 'انقلاب' }]}
+                      value={s.clockType}
+                      onChange={v => update({ clockType: v as any })}
+                      color="sky"
+                    />
+                  </Field>
+
+                  <Field label="لون الساعة">
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {APP_COLORS.map(c => (
+                        <ColorDot key={c} color={c} selected={s.clockColor === c} onClick={() => update({ clockColor: c })} />
+                      ))}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input type="color" value={s.clockColor} onChange={e => update({ clockColor: e.target.value })}
+                        className="w-8 h-8 rounded cursor-pointer border border-border" />
+                      <span className="font-mono text-xs text-muted-foreground">{s.clockColor}</span>
+                    </div>
+                  </Field>
+
+                  <Field label="حجم الساعة">
+                    <BtnPicker
+                      options={[{ v: 'small', label: 'صغير' }, { v: 'medium', label: 'متوسط' }, { v: 'large', label: 'كبير' }]}
+                      value={s.clockSize}
+                      onChange={v => update({ clockSize: v as any })}
+                      color="sky"
+                    />
+                  </Field>
+
+                  <Field label="مكان عرض الساعة">
+                    <Sel value={s.clockPos} onChange={e => update({ clockPos: e.target.value as any })}>
+                      <option value="header">الشريط العلوي</option>
+                      <option value="sidebar">القائمة الجانبية</option>
+                      <option value="dashboard">لوحة التحكم</option>
+                      <option value="floating">عائمة (طافية)</option>
+                      <option value="hidden">مخفية</option>
+                    </Sel>
+                  </Field>
+
+                  <Field label="شكل ساعة التطبيق">
+                    <BtnPicker
+                      options={[{ v: 'digital', label: 'رقمي' }, { v: 'analog', label: 'تناظري' }, { v: 'minimal', label: 'مبسط' }]}
+                      value={s.clockStyle}
+                      onChange={v => update({ clockStyle: v as any })}
+                    />
+                  </Field>
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Timer} color="bg-cyan-500" title="خيارات العرض" sub="ما يظهر مع الساعة" />
+                <div>
+                  <TRow label="إظهار التاريخ" sub="يوم / شهر / سنة تحت الوقت" on={s.showDate} onToggle={() => update({ showDate: !s.showDate })} />
+                  <TRow label="إظهار الثواني" sub="hh:mm:ss بدل hh:mm" on={s.showSeconds} onToggle={() => update({ showSeconds: !s.showSeconds })} />
+                  <TRow label="اليوم بالعربي" sub="الإثنين، الثلاثاء..." on={s.showArabicDay} onToggle={() => update({ showArabicDay: !s.showArabicDay })} />
+                  <TRow label="صيغة 12 ساعة" sub="AM / PM بدل 24 ساعة" on={s.show12h} onToggle={() => update({ show12h: !s.show12h })} />
+                  <TRow label="ساعة الحضور" sub="وقت تسجيل الدخول بجانب الساعة" on={s.showShiftClock} onToggle={() => update({ showShiftClock: !s.showShiftClock })} />
+                </div>
+
+                {/* Live preview */}
+                <div className="mt-5 rounded-xl border border-border bg-black/20 p-5 text-center">
+                  <p className="text-[10px] text-muted-foreground mb-3 font-bold uppercase tracking-wider">معاينة مباشرة</p>
+                  <div
+                    className={`font-mono font-black tabular-nums transition-all ${s.clockSize === 'small' ? 'text-3xl' : s.clockSize === 'large' ? 'text-6xl' : 'text-5xl'}`}
+                    style={{ color: s.clockColor }}
+                  >
+                    {liveTime.toLocaleTimeString(s.showArabicDay ? 'ar-SA' : 'en-US', {
+                      hour: '2-digit', minute: '2-digit',
+                      second: s.showSeconds ? '2-digit' : undefined,
+                      hour12: s.show12h,
+                    })}
+                  </div>
+                  {s.showDate && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {liveTime.toLocaleDateString(s.showArabicDay ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
+                  )}
+                  {s.showShiftClock && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border text-xs text-muted-foreground">
+                      <Activity className="w-3 h-3" /> دخلت 08:55
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <SaveBtn onClick={handleSave} label="حفظ إعدادات الساعة" color="sky" icon={Clock4} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              4. API Keys
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'apikeys' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Key} color="bg-amber-500" title="مفاتيح الذكاء الاصطناعي" sub="مزودو خدمات AI" />
+                <div className="space-y-4">
+                  {[
+                    { id: 'openai', label: 'OpenAI (ChatGPT)', placeholder: 'sk-...', color: 'text-green-400' },
+                    { id: 'gemini', label: 'Google Gemini', placeholder: 'AIza...', color: 'text-blue-400' },
+                    { id: 'claude', label: 'Anthropic Claude', placeholder: 'sk-ant-...', color: 'text-orange-400' },
+                  ].map(({ id, label, placeholder, color }) => (
+                    <Field key={id} label={label}>
+                      <div className="relative">
+                        <input type={showKeys[id] ? 'text' : 'password'}
+                          value={s.apiKeys[id] || ''}
+                          onChange={e => update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } })}
+                          placeholder={placeholder}
+                          className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-amber-500/50 pr-10 font-mono transition" />
+                        <button type="button" onClick={() => setShowKeys(v => ({ ...v, [id]: !v[id] }))}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                          {showKeys[id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {s.apiKeys[id] && (
+                        <div className={`flex items-center gap-1.5 mt-1 text-[11px] font-bold ${color}`}>
+                          <CheckCircle2 className="w-3 h-3" /> مفتاح مُدخل
+                        </div>
+                      )}
+                    </Field>
+                  ))}
+                  <SaveBtn onClick={() => { save(); toast({ title: 'تم حفظ مفاتيح الذكاء الاصطناعي' }); }} label="حفظ مفاتيح AI" color="amber" icon={Key} />
+                </div>
+              </SCard>
+
+              <div className="space-y-4">
+                <SCard>
+                  <CardHead icon={Zap} color="bg-orange-500" title="مفاتيح الخدمات" sub="Firebase وMaps وSMTP" />
+                  <div className="space-y-4">
+                    {[
+                      { id: 'firebase', label: 'Firebase', placeholder: 'AIza...' },
+                      { id: 'maps', label: 'Google Maps API', placeholder: 'AIza...' },
+                      { id: 'smtp', label: 'SMTP Email', placeholder: 'smtp://user:pass@host' },
+                      { id: 'whatsapp', label: 'WhatsApp Business API', placeholder: 'token...' },
+                    ].map(({ id, label, placeholder }) => (
+                      <Field key={id} label={label}>
+                        <div className="relative">
+                          <input type={showKeys[id] ? 'text' : 'password'}
+                            value={s.apiKeys[id] || ''}
+                            onChange={e => update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } })}
+                            placeholder={placeholder}
+                            className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-500/50 pr-10 font-mono transition" />
+                          <button type="button" onClick={() => setShowKeys(v => ({ ...v, [id]: !v[id] }))}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                            {showKeys[id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </Field>
+                    ))}
+                    <SaveBtn onClick={() => { save(); toast({ title: 'تم حفظ مفاتيح الخدمات' }); }} label="حفظ مفاتيح الخدمات" color="orange" />
+                  </div>
+                </SCard>
+
+                <SCard>
+                  <CardHead icon={Settings2} color="bg-yellow-600" title="مفاتيح مخصصة" sub="أضف مفاتيح لخدمات إضافية" />
+                  <div className="space-y-2.5">
+                    {s.customKeys.map((ck, i) => (
+                      <div key={i} className="flex gap-2">
+                        <input value={ck.name} onChange={e => updateCustomKey(i, 'name', e.target.value)} placeholder="اسم الخدمة"
+                          className="w-2/5 rounded-xl px-3 py-2 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500/50 transition" />
+                        <div className="relative flex-1">
+                          <input type={showKeys[`c${i}`] ? 'text' : 'password'} value={ck.value} onChange={e => updateCustomKey(i, 'value', e.target.value)} placeholder="المفتاح"
+                            className="w-full rounded-xl px-3 py-2 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500/50 font-mono pr-8 transition" />
+                          <button type="button" onClick={() => setShowKeys(v => ({ ...v, [`c${i}`]: !v[`c${i}`] }))}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                            {showKeys[`c${i}`] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <button onClick={() => update({ customKeys: s.customKeys.filter((_, idx) => idx !== i) })}
+                          className="p-2 rounded-xl border border-border hover:border-red-500/40 hover:text-red-400 transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button onClick={() => update({ customKeys: [...s.customKeys, { name: '', value: '' }] })}
+                      className="w-full py-2.5 rounded-xl border border-dashed border-amber-500/40 text-amber-400 text-sm font-bold hover:bg-amber-500/5 transition flex items-center justify-center gap-2">
+                      <Plus className="w-4 h-4" /> إضافة مفتاح جديد
                     </button>
                   </div>
-                  <button onClick={() => removeCustomKey(i)} className="p-2 rounded-xl border border-border hover:border-red-500/40 hover:text-red-400 transition">
-                    <Trash2 className="w-4 h-4" />
+                  <InfoBox text="المفاتيح تُخزن بأمان في المتصفح. لا تشاركها مع أحد." type="warning" />
+                </SCard>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              5. Language
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'language' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Globe} color="bg-teal-500" title="لغة التطبيق" sub="اختر اللغة الأساسية" />
+                <div className="space-y-5">
+                  <Field label="اللغة الرئيسية">
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        { v: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'RTL' },
+                        { v: 'en', label: 'English', flag: '🇺🇸', dir: 'LTR' },
+                        { v: 'sv', label: 'Svenska', flag: '🇸🇪', dir: 'LTR' },
+                      ].map(({ v, label, flag, dir: d }) => (
+                        <button key={v}
+                          onClick={() => { setLocale(v as any); update({ language: v as any }); }}
+                          className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border font-bold text-sm transition ${locale === v ? 'border-teal-500 bg-teal-500/10 text-teal-300' : 'border-border hover:border-teal-500/30 text-muted-foreground'}`}>
+                          <span className="text-2xl">{flag}</span>
+                          <div className="text-right">
+                            <p className="font-bold">{label}</p>
+                            <p className="text-[11px] text-muted-foreground">{d} اتجاه الكتابة</p>
+                          </div>
+                          {locale === v && <Check className="w-4 h-4 mr-auto" />}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Calendar} color="bg-emerald-500" title="التنسيق والتقويم" sub="التاريخ والوقت والعملة" />
+                <div className="space-y-4">
+                  <Field label="نوع التقويم">
+                    <Sel value={s.calendarType} onChange={e => update({ calendarType: e.target.value as any })}>
+                      <option value="gregorian">ميلادي (Gregorian)</option>
+                      <option value="hijri">هجري (Islamic)</option>
+                      <option value="both">كلاهما (ميلادي + هجري)</option>
+                    </Sel>
+                  </Field>
+
+                  <Field label="تنسيق التاريخ">
+                    <Sel value={s.dateFormat} onChange={e => update({ dateFormat: e.target.value })}>
+                      <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2025)</option>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2025)</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD (2025-12-31)</option>
+                    </Sel>
+                  </Field>
+
+                  <Field label="العملة">
+                    <Sel value={s.currencyCode} onChange={e => update({ currencyCode: e.target.value })}>
+                      <option value="SAR">ريال سعودي (SAR)</option>
+                      <option value="AED">درهم إماراتي (AED)</option>
+                      <option value="USD">دولار أمريكي (USD)</option>
+                      <option value="EUR">يورو (EUR)</option>
+                      <option value="GBP">جنيه إسترليني (GBP)</option>
+                      <option value="KWD">دينار كويتي (KWD)</option>
+                      <option value="QAR">ريال قطري (QAR)</option>
+                      <option value="BHD">دينار بحريني (BHD)</option>
+                      <option value="OMR">ريال عُماني (OMR)</option>
+                      <option value="JOD">دينار أردني (JOD)</option>
+                    </Sel>
+                  </Field>
+
+                  <Field label="المنطقة الزمنية">
+                    <Sel value={s.timezone} onChange={e => update({ timezone: e.target.value })}>
+                      <option value="Asia/Riyadh">الرياض (UTC+3)</option>
+                      <option value="Asia/Dubai">دبي (UTC+4)</option>
+                      <option value="Asia/Kuwait">الكويت (UTC+3)</option>
+                      <option value="Asia/Qatar">قطر (UTC+3)</option>
+                      <option value="Asia/Bahrain">البحرين (UTC+3)</option>
+                      <option value="Asia/Muscat">مسقط (UTC+4)</option>
+                      <option value="Asia/Amman">عمّان (UTC+3)</option>
+                      <option value="Africa/Cairo">القاهرة (UTC+2)</option>
+                      <option value="Europe/London">لندن (UTC+0)</option>
+                      <option value="America/New_York">نيويورك (UTC-5)</option>
+                    </Sel>
+                  </Field>
+
+                  <Field label="تنسيق الأرقام">
+                    <BtnPicker
+                      options={[{ v: 'western', label: '123 (غربي)' }, { v: 'arabic', label: '١٢٣ (عربي)' }]}
+                      value={s.numberFormat}
+                      onChange={v => update({ numberFormat: v as any })}
+                      color="teal"
+                    />
+                  </Field>
+
+                  <div className="p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 space-y-1 text-sm">
+                    <p className="text-teal-300 font-bold text-xs">معاينة التنسيق</p>
+                    <p className="text-muted-foreground">
+                      التاريخ: {new Date().toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US')}
+                    </p>
+                    <p className="text-muted-foreground">
+                      المبلغ: {new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', { style: 'currency', currency: s.currencyCode, maximumFractionDigits: 0 }).format(15000)}
+                    </p>
+                  </div>
+
+                  <SaveBtn onClick={handleSave} label="حفظ إعدادات اللغة" color="teal" icon={Globe} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              6. Alarm / Notifications
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'alarm' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Bell} color="bg-orange-500" title="قنوات الإشعارات" sub="كيف وأين تصلك التنبيهات" />
+                <div>
+                  <TRow label="إشعارات التطبيق" sub="تنبيهات داخل النظام" on={s.notif.app} onToggle={() => toggleNotif('app')} />
+                  <TRow label="إشعارات البريد الإلكتروني" sub="ترسل إلى إيميلك المسجل" on={s.notif.email} onToggle={() => toggleNotif('email')} />
+                  <TRow label="إشعارات واتساب" sub="رسائل WhatsApp تلقائية" on={s.notif.whatsapp} onToggle={() => toggleNotif('whatsapp')} />
+                  <TRow label="أصوات التنبيه" sub="صوت عند كل إشعار" on={s.notif.sound} onToggle={() => toggleNotif('sound')} />
+                </div>
+                <div className="mt-4 space-y-3">
+                  <Field label="نبرة صوت التنبيه">
+                    <Sel value={s.notifSoundTone} onChange={e => update({ notifSoundTone: e.target.value })} disabled={!s.notif.sound}>
+                      <option value="default">افتراضي</option>
+                      <option value="soft">ناعم</option>
+                      <option value="strong">قوي</option>
+                      <option value="ping">نقرة</option>
+                      <option value="silent">صامت</option>
+                    </Sel>
+                  </Field>
+                  <button
+                    onClick={() => toast({ title: 'تم اختبار صوت التنبيه 🔔' })}
+                    disabled={!s.notif.sound}
+                    className="w-full py-2 rounded-xl border border-border hover:border-orange-500/40 text-sm font-bold transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <Volume2 className="w-4 h-4" /> اختبار الصوت
                   </button>
                 </div>
-              ))}
-              <button onClick={addCustomKey}
-                className="w-full py-2.5 rounded-xl border border-dashed border-amber-500/40 text-amber-400 text-sm font-bold hover:bg-amber-500/5 transition flex items-center justify-center gap-2">
-                <Plus className="w-4 h-4" /> إضافة مفتاح جديد
-              </button>
-            </div>
-            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-              <p className="text-xs text-amber-400 font-bold flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 shrink-0" /> المفاتيح مشفرة ومخزنة بأمان
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-1">لا تشارك هذه المفاتيح مع أحد. يتم تشفيرها قبل الحفظ.</p>
-            </div>
-          </Card>
-        </div>
-      )}
+              </SCard>
 
-      {/* ── Notifications ─────────────────────────────────────────── */}
-      {tab === 'notif' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card>
-            <CardHeader icon={Bell} color="bg-orange-500" title="قنوات الإشعارات" sub="كيف تصلك التنبيهات" />
-            <div>
-              <ToggleRow label="إشعارات التطبيق" sub="تنبيهات داخل النظام" on={s.notif.app} onToggle={() => toggleNotif('app')} />
-              <ToggleRow label="إشعارات البريد الإلكتروني" sub="ترسل على إيميلك" on={s.notif.email} onToggle={() => toggleNotif('email')} />
-              <ToggleRow label="إشعارات واتساب" sub="رسائل WhatsApp تلقائية" on={s.notif.whatsapp} onToggle={() => toggleNotif('whatsapp')} />
-              <ToggleRow label="أصوات التنبيه" sub="صوت عند كل إشعار" on={s.notif.sound} onToggle={() => toggleNotif('sound')} />
-            </div>
-            <div className="mt-4">
-              <Field label="نبرة صوت التنبيه">
-                <Sel value={s.notifSoundTone} onChange={e => update({ notifSoundTone: e.target.value })}>
-                  <option value="default">افتراضي</option>
-                  <option value="soft">ناعم</option>
-                  <option value="strong">قوي</option>
-                  <option value="silent">صامت</option>
-                </Sel>
-              </Field>
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader icon={AlarmClock} color="bg-red-500" title="المنبهات والتذكيرات" sub="تنبيهات الدوام والرواتب" />
-            <div>
-              <ToggleRow label="منبه بداية الدوام" on={s.notif.shiftStart} onToggle={() => toggleNotif('shiftStart')} />
-              <ToggleRow label="منبه نهاية الدوام" on={s.notif.shiftEnd} onToggle={() => toggleNotif('shiftEnd')} />
-              <ToggleRow label="تذكير الرواتب" sub="إشعار يوم صرف الراتب" on={s.notif.salary} onToggle={() => toggleNotif('salary')} />
-              <ToggleRow label="تذكير الإجازات" sub="إشعار عند اعتماد أو رفض إجازة" on={s.notif.leaves} onToggle={() => toggleNotif('leaves')} />
-            </div>
-            <div className="mt-4 space-y-3">
-              <Field label="وقت منبه بداية الدوام">
-                <Input type="time" value={s.shiftStartAlarm} onChange={e => update({ shiftStartAlarm: e.target.value })} />
-              </Field>
-              <Field label="وقت منبه نهاية الدوام">
-                <Input type="time" value={s.shiftEndAlarm} onChange={e => update({ shiftEndAlarm: e.target.value })} />
-              </Field>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ── Security ──────────────────────────────────────────────── */}
-      {tab === 'security' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card>
-            <CardHeader icon={Shield} color="bg-rose-500" title="أمان الحساب" sub="تغيير بيانات الدخول" />
-            <div className="space-y-4">
-              <Field label="تغيير البريد الإلكتروني">
-                <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="email"
-                    value={secEmail}
-                    onChange={e => setSecEmail(e.target.value)}
-                    placeholder="البريد الجديد"
-                    className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition"
-                  />
+              <SCard>
+                <CardHead icon={AlarmClock} color="bg-red-500" title="المنبهات والتذكيرات" sub="أوقات تنبيهات الدوام" />
+                <div>
+                  <TRow label="منبه بداية الدوام" sub="تنبيه قبل بدء العمل" on={s.notif.shiftStart} onToggle={() => toggleNotif('shiftStart')} />
+                  <TRow label="منبه نهاية الدوام" sub="تنبيه عند انتهاء الوقت" on={s.notif.shiftEnd} onToggle={() => toggleNotif('shiftEnd')} />
+                  <TRow label="تذكير الرواتب" sub="إشعار يوم صرف الراتب" on={s.notif.salary} onToggle={() => toggleNotif('salary')} />
+                  <TRow label="تذكير الإجازات" sub="إشعار عند اعتماد أو رفض إجازة" on={s.notif.leaves} onToggle={() => toggleNotif('leaves')} />
                 </div>
-              </Field>
+                <div className="mt-4 space-y-3">
+                  <Field label="وقت منبه البداية">
+                    <Inp type="time" value={s.shiftStartAlarm} onChange={e => update({ shiftStartAlarm: e.target.value })} disabled={!s.notif.shiftStart} />
+                  </Field>
+                  <Field label="وقت منبه النهاية">
+                    <Inp type="time" value={s.shiftEndAlarm} onChange={e => update({ shiftEndAlarm: e.target.value })} disabled={!s.notif.shiftEnd} />
+                  </Field>
+                  <div className="flex items-center gap-2 p-3 rounded-xl border border-red-500/20 bg-red-500/5">
+                    <AlarmClock className="w-4 h-4 text-red-400 shrink-0" />
+                    <div className="text-xs">
+                      <p className="text-red-300 font-bold">المنبهات المُفعَّلة</p>
+                      <p className="text-muted-foreground">
+                        {s.notif.shiftStart ? `بداية: ${s.shiftStartAlarm}` : ''} {s.notif.shiftStart && s.notif.shiftEnd ? '·' : ''} {s.notif.shiftEnd ? `نهاية: ${s.shiftEndAlarm}` : ''}
+                        {!s.notif.shiftStart && !s.notif.shiftEnd && 'لا توجد منبهات مفعلة'}
+                      </p>
+                    </div>
+                  </div>
+                  <SaveBtn onClick={handleSave} label="حفظ إعدادات الإشعارات" color="orange" icon={Bell} />
+                </div>
+              </SCard>
+            </div>
+          )}
 
-              {/* Password fields */}
-              {[
-                { key: 'current', label: 'كلمة المرور الحالية', value: secCurrentPw, set: setSecCurrentPw },
-                { key: 'new',     label: 'كلمة المرور الجديدة', value: secNewPw, set: setSecNewPw, placeholder: 'كلمة مرور قوية (8+ أحرف)' },
-                { key: 'confirm', label: 'تأكيد كلمة المرور',   value: secConfirmPw, set: setSecConfirmPw, placeholder: 'أعد الكتابة' },
-              ].map(({ key, label, value, set, placeholder }) => (
-                <Field key={key} label={label}>
-                  <div className="relative">
-                    <input
-                      type={showPw[key] ? 'text' : 'password'}
-                      value={value}
-                      onChange={e => set(e.target.value)}
-                      placeholder={placeholder || '••••••••'}
-                      className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-500/50 pr-10 transition"
-                    />
-                    <button type="button" onClick={() => setShowPw(v => ({ ...v, [key]: !v[key] }))}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
-                      {showPw[key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          {/* ══════════════════════════════════════════════════════════════
+              7. Splash Screen
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'splash' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Sparkles} color="bg-pink-500" title="شاشة البداية" sub="تخصيص شاشة الترحيب" />
+                <div className="space-y-4">
+                  <ImgZone label="صورة خلفية الشاشة" sub="تظهر خلف الشعار أثناء التحميل" icon={Layers} value={s.splashUrl} onUpload={b => update({ splashUrl: b })} size="lg" />
+                  {s.splashUrl && (
+                    <button onClick={() => update({ splashUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
+                      <Trash2 className="w-3.5 h-3.5" /> إزالة الصورة
                     </button>
-                  </div>
-                </Field>
-              ))}
+                  )}
 
-              <button
-                onClick={handleUpdateCredentials}
-                className="w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm transition flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" /> تحديث بيانات الدخول
-              </button>
-            </div>
-          </Card>
+                  <Field label="مدة عرض الشاشة">
+                    <Sel value={s.splashDuration} onChange={e => update({ splashDuration: e.target.value })}>
+                      <option value="1000">ثانية واحدة</option>
+                      <option value="1500">1.5 ثانية</option>
+                      <option value="2000">2 ثانية</option>
+                      <option value="2500">2.5 ثانية</option>
+                      <option value="3000">3 ثواني</option>
+                      <option value="4000">4 ثواني</option>
+                    </Sel>
+                  </Field>
 
-          <div className="space-y-5">
-            <Card>
-              <CardHeader icon={Fingerprint} color="bg-violet-500" title="التحقق البيومتري" sub="Face ID & بصمة الإصبع & PIN" />
-              <div>
-                <ToggleRow
-                  label="Face ID"
-                  sub="الدخول بالتعرف على الوجه"
-                  on={s.biometric.faceId}
-                  onToggle={() => {
-                    toggleBiometric('faceId');
-                    toast({ title: s.biometric.faceId ? t('settingsFaceIdDisabled') : t('settingsFaceIdEnabled') });
-                  }}
-                />
-                <ToggleRow
-                  label="بصمة الإصبع"
-                  on={s.biometric.fingerprint}
-                  onToggle={() => {
-                    toggleBiometric('fingerprint');
-                    toast({ title: s.biometric.fingerprint ? t('settingsFingerprintDisabled') : t('settingsFingerprintEnabled') });
-                  }}
-                />
-                <div className="flex items-center justify-between gap-4 py-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold">PIN Code</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">رمز سري مكون من 6 أرقام</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {s.biometric.pin && (
-                      <button
-                        onClick={() => { setPinValue(''); setPinDialog(true); }}
-                        className="text-xs text-indigo-400 hover:text-indigo-300 font-bold transition"
-                      >
-                        تغيير
-                      </button>
-                    )}
-                    <Toggle
-                      on={s.biometric.pin}
-                      onToggle={() => {
-                        if (!s.biometric.pin) {
-                          setPinValue('');
-                          setPinDialog(true);
-                        } else {
-                          toggleBiometric('pin');
-                          toast({ title: t('settingsPinDisabledMsg') });
-                        }
-                      }}
+                  <Field label="تأثير الانتقال">
+                    <BtnPicker
+                      options={[{ v: 'fade', label: 'تلاشي' }, { v: 'slide', label: 'انزلاق' }, { v: 'zoom', label: 'تكبير' }, { v: 'none', label: 'بلا' }]}
+                      value={s.splashEffect}
+                      onChange={v => update({ splashEffect: v as any })}
+                      color="pink"
                     />
+                  </Field>
+
+                  <Field label="لون خلفية الشاشة">
+                    <div className="flex items-center gap-3">
+                      <input type="color" value={s.splashBgColor} onChange={e => update({ splashBgColor: e.target.value })}
+                        className="w-12 h-12 rounded-xl cursor-pointer border border-border" />
+                      <span className="font-mono text-sm text-muted-foreground">{s.splashBgColor}</span>
+                      <div className="w-8 h-8 rounded-lg mr-auto" style={{ background: s.splashBgColor }} />
+                    </div>
+                  </Field>
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Monitor} color="bg-rose-500" title="محتوى الشاشة" sub="ما يظهر أثناء التحميل" />
+                <div className="space-y-1">
+                  <TRow label="إظهار الشعار" sub="اللوغو في وسط الشاشة" on={s.splashShowLogo} onToggle={() => update({ splashShowLogo: !s.splashShowLogo })} />
+                  <TRow label="إظهار اسم التطبيق" sub="اسم البرنامج تحت الشعار" on={s.splashShowName} onToggle={() => update({ splashShowName: !s.splashShowName })} />
+                  <TRow label="شريط التحميل" sub="مؤشر تقدم في أسفل الشاشة" on={s.splashShowProgress} onToggle={() => update({ splashShowProgress: !s.splashShowProgress })} />
+                </div>
+
+                {/* Splash preview */}
+                <div className="mt-5 rounded-xl overflow-hidden border border-border" style={{ height: 200, background: s.splashBgColor }}>
+                  <div className="h-full flex flex-col items-center justify-center gap-2 relative">
+                    {s.splashShowLogo && (
+                      s.logoUrl
+                        ? <img src={s.logoUrl} alt="" className="w-14 h-14 object-contain" />
+                        : <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: s.appColor + '33' }}>
+                            <Sparkles className="w-7 h-7" style={{ color: s.appColor }} />
+                          </div>
+                    )}
+                    {s.splashShowName && (
+                      <p className="font-black text-white text-lg">{s.appName}</p>
+                    )}
+                    {s.splashShowProgress && (
+                      <div className="absolute bottom-4 left-4 right-4 h-1 rounded-full bg-white/20 overflow-hidden">
+                        <div className="h-full rounded-full animate-pulse w-2/3" style={{ background: s.appColor }} />
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            </Card>
+                <p className="text-[10px] text-muted-foreground text-center mt-1">معاينة شاشة البداية</p>
 
-            <Card>
-              <CardHeader icon={Database} color="bg-green-500" title="النسخ الاحتياطي" sub="حفظ واستعادة كامل إعدادات النظام" />
-              <p className="text-xs text-muted-foreground mb-4">يشمل الملف: جميع الإعدادات، الألوان، ساعات العمل، وبيانات الشركة.</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={createBackup} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-sm transition">
-                  <Download className="w-4 h-4" /> نسخ احتياطي
-                </button>
-                <button onClick={restoreBackup} className="flex items-center justify-center gap-2 py-3 rounded-xl border border-border hover:border-indigo-500/40 hover:bg-indigo-500/5 font-bold text-sm transition">
-                  <RefreshCw className="w-4 h-4" /> استعادة
-                </button>
+                <div className="mt-4">
+                  <SaveBtn onClick={handleSave} label="حفظ شاشة الترحيب" color="pink" icon={Sparkles} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              8. Location
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'location' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={MapPin} color="bg-green-500" title="إعدادات الموقع" sub="GPS والجيوفنس" />
+                <div className="space-y-4">
+                  <Field label="وضع تحديد الموقع">
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        { v: 'gps', label: 'GPS تلقائي', sub: 'يستخدم موقع الجهاز', icon: Navigation },
+                        { v: 'manual', label: 'إدخال يدوي', sub: 'إحداثيات محددة', icon: MapPin },
+                        { v: 'both', label: 'GPS + يدوي', sub: 'يقبل كلا الطريقتين', icon: Map },
+                      ].map(({ v, label, sub, icon: Icon }) => (
+                        <button key={v} onClick={() => update({ locationMode: v as any })}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition ${s.locationMode === v ? 'border-green-500 bg-green-500/10' : 'border-border hover:border-green-500/30'}`}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.locationMode === v ? 'bg-green-500/20' : 'bg-white/5'}`}>
+                            <Icon className={`w-4 h-4 ${s.locationMode === v ? 'text-green-400' : 'text-muted-foreground'}`} />
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-bold ${s.locationMode === v ? 'text-green-300' : ''}`}>{label}</p>
+                            <p className="text-[11px] text-muted-foreground">{sub}</p>
+                          </div>
+                          {s.locationMode === v && <Check className="w-4 h-4 text-green-400 mr-auto" />}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="نطاق الجيوفنس (أمتار)" sub="المسافة المسموح بها من موقع العمل">
+                    <div className="space-y-2">
+                      <Inp type="number" value={s.locationRadius} onChange={e => update({ locationRadius: e.target.value })} min="50" max="5000" />
+                      <input type="range" min="50" max="1000" value={Number(s.locationRadius)} onChange={e => update({ locationRadius: e.target.value })} className="w-full accent-green-500" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>50م</span><span className="font-bold text-green-400">{s.locationRadius}م</span><span>1000م</span>
+                      </div>
+                    </div>
+                  </Field>
+
+                  <Field label="مزود الخرائط">
+                    <Sel value={s.locationProvider} onChange={e => update({ locationProvider: e.target.value })}>
+                      <option value="google">Google Maps</option>
+                      <option value="openstreetmap">OpenStreetMap (مجاني)</option>
+                      <option value="mapbox">Mapbox</option>
+                      <option value="here">HERE Maps</option>
+                    </Sel>
+                  </Field>
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Map} color="bg-emerald-500" title="موقع الشركة" sub="إعداد الموقع الجغرافي" />
+                <div className="space-y-4">
+                  <Field label="عنوان الشركة">
+                    <div className="relative">
+                      <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input value={s.locationAddress} onChange={e => update({ locationAddress: e.target.value })} placeholder="المدينة، الحي، الشارع"
+                        className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500/50 transition" />
+                    </div>
+                  </Field>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="خط العرض (Lat)">
+                      <Inp type="number" step="0.000001" value={s.locationLat} onChange={e => update({ locationLat: e.target.value })} placeholder="24.7136" />
+                    </Field>
+                    <Field label="خط الطول (Lng)">
+                      <Inp type="number" step="0.000001" value={s.locationLng} onChange={e => update({ locationLng: e.target.value })} placeholder="46.6753" />
+                    </Field>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(pos => {
+                          update({ locationLat: pos.coords.latitude.toFixed(6), locationLng: pos.coords.longitude.toFixed(6) });
+                          toast({ title: 'تم تحديد موقعك الحالي' });
+                        }, () => toast({ title: 'تعذر تحديد الموقع', variant: 'destructive' }));
+                      }
+                    }}
+                    className="w-full py-2.5 rounded-xl border border-green-500/40 text-green-400 font-bold text-sm hover:bg-green-500/5 transition flex items-center justify-center gap-2">
+                    <Navigation className="w-4 h-4" /> استخدام موقعي الحالي
+                  </button>
+
+                  <div className="space-y-1">
+                    <TRow label="إلزامية الموقع عند التسجيل" sub="يجب تفعيل GPS عند الحضور" on={s.requireLocationOnClock} onToggle={() => update({ requireLocationOnClock: !s.requireLocationOnClock })} />
+                    <TRow label="إظهار الخريطة في الحضور" sub="عرض خريطة مصغرة" on={s.showMapOnAttendance} onToggle={() => update({ showMapOnAttendance: !s.showMapOnAttendance })} />
+                  </div>
+
+                  {s.locationLat && s.locationLng && (
+                    <InfoBox text={`الموقع المحدد: ${s.locationLat}°N, ${s.locationLng}°E — نطاق ${s.locationRadius}م`} type="success" />
+                  )}
+
+                  <SaveBtn onClick={handleSave} label="حفظ إعدادات الموقع" color="green" icon={MapPin} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              9. AI Assistant
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'assistant' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Bot} color="bg-rose-500" title="المساعد الذكي" sub="تخصيص مساعد الذكاء الاصطناعي" />
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-rose-500/10 to-pink-500/10 border border-rose-500/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center overflow-hidden shadow-lg">
+                        {s.assistantAvatarUrl
+                          ? <img src={s.assistantAvatarUrl} alt="" className="w-full h-full object-cover" />
+                          : <Bot className="w-6 h-6 text-white" />}
+                      </div>
+                      <div>
+                        <p className="font-bold">{s.assistantName || 'WorkBot'}</p>
+                        <p className="text-[11px] text-muted-foreground">{s.assistantOn ? '✅ نشط' : '⭕ معطل'}</p>
+                      </div>
+                    </div>
+                    <Toggle on={s.assistantOn} onToggle={() => update({ assistantOn: !s.assistantOn })} />
+                  </div>
+
+                  <Field label="اسم المساعد">
+                    <Inp value={s.assistantName} onChange={e => update({ assistantName: e.target.value })} placeholder="WorkBot" disabled={!s.assistantOn} />
+                  </Field>
+
+                  <Field label="الرسالة الترحيبية">
+                    <textarea value={s.assistantMsg} onChange={e => update({ assistantMsg: e.target.value })} rows={3}
+                      disabled={!s.assistantOn}
+                      className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-500/50 resize-none transition disabled:opacity-50" />
+                  </Field>
+
+                  <ImgZone label="صورة المساعد" sub="PNG دائري — 256×256" icon={Camera} value={s.assistantAvatarUrl} onUpload={b => update({ assistantAvatarUrl: b })} size="sm" />
+
+                  <Field label="شخصية المساعد">
+                    <div className="grid grid-cols-2 gap-2">
+                      {[{ v: 'professional', label: 'رسمي' }, { v: 'friendly', label: 'ودود' }, { v: 'concise', label: 'مختصر' }, { v: 'detailed', label: 'تفصيلي' }].map(({ v, label }) => (
+                        <button key={v} onClick={() => update({ assistantPersonality: v })} disabled={!s.assistantOn}
+                          className={`py-2.5 rounded-xl border font-bold text-sm transition disabled:opacity-40 ${s.assistantPersonality === v ? 'border-rose-500 bg-rose-500/10 text-rose-300' : 'border-border hover:border-rose-500/30 text-muted-foreground'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="لغة المساعد">
+                    <Sel value={s.assistantLang} onChange={e => update({ assistantLang: e.target.value })} disabled={!s.assistantOn}>
+                      <option value="ar">العربية فقط</option>
+                      <option value="en">English Only</option>
+                      <option value="bilingual">عربي + English</option>
+                    </Sel>
+                  </Field>
+
+                  <SaveBtn onClick={handleSave} label="حفظ إعدادات المساعد" color="rose" icon={Bot} />
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Key} color="bg-pink-500" title="مفاتيح AI" sub="ربط المساعد بمزودي الذكاء الاصطناعي" />
+                <div className="space-y-4">
+                  {[
+                    { id: 'openai', label: 'OpenAI (ChatGPT)', placeholder: 'sk-...', sub: 'GPT-4o, GPT-4 Turbo' },
+                    { id: 'gemini', label: 'Google Gemini', placeholder: 'AIza...', sub: 'Gemini Pro, Flash' },
+                    { id: 'claude', label: 'Anthropic Claude', placeholder: 'sk-ant-...', sub: 'Claude 3.5 Sonnet' },
+                  ].map(({ id, label, placeholder, sub }) => (
+                    <Field key={id} label={label} sub={sub}>
+                      <div className="relative">
+                        <input type={showKeys[`ai-${id}`] ? 'text' : 'password'}
+                          value={s.apiKeys[id] || ''}
+                          onChange={e => update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } })}
+                          placeholder={placeholder}
+                          className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-pink-500/50 pr-10 font-mono transition" />
+                        <button type="button" onClick={() => setShowKeys(v => ({ ...v, [`ai-${id}`]: !v[`ai-${id}`] }))}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                          {showKeys[`ai-${id}`] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        {s.apiKeys[id] && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <CheckCircle2 className="w-3 h-3 text-green-400" />
+                            <span className="text-[11px] text-green-400 font-bold">تم إدخال المفتاح</span>
+                          </div>
+                        )}
+                      </div>
+                    </Field>
+                  ))}
+
+                  <InfoBox text="المساعد يستخدم أول مفتاح متاح بالترتيب. تأكد من صلاحية المفتاح." type="info" />
+
+                  <SaveBtn onClick={() => { save(); toast({ title: 'تم حفظ مفاتيح المساعد' }); }} label="حفظ مفاتيح AI" color="pink" icon={Key} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              10. Backup
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'backup' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Download} color="bg-emerald-500" title="نسخ احتياطي" sub="صدِّر إعداداتك لحفظها" />
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl border border-border bg-white/5 space-y-2">
+                    <p className="text-sm font-bold">الملف يشمل:</p>
+                    {['جميع الإعدادات والألوان', 'ساعات العمل والجدول', 'بيانات الشركة والهوية', 'إعدادات المساعد', 'تفضيلات الإشعارات'].map(item => (
+                      <div key={item} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> {item}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button onClick={createBackup}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5 transition flex items-center justify-center gap-2">
+                    <Download className="w-4 h-4" /> تنزيل نسخة احتياطية
+                  </button>
+
+                  <InfoBox text={`آخر حفظ: ${new Date().toLocaleDateString('ar-SA', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`} type="success" />
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={RefreshCw} color="bg-blue-500" title="استعادة النسخة" sub="استرجع إعداداتك من ملف سابق" />
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-300">
+                        <p className="font-bold mb-1">تحذير مهم</p>
+                        <p>استعادة النسخة ستستبدل جميع الإعدادات الحالية. تأكد من صحة الملف قبل المتابعة.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button onClick={restoreBackup}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-sm shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 transition flex items-center justify-center gap-2">
+                    <Upload className="w-4 h-4" /> استعادة من ملف
+                  </button>
+
+                  <button onClick={() => { update({}); save(); toast({ title: 'تمت إعادة التعيين للإعدادات الافتراضية' }); }}
+                    className="w-full py-3 rounded-xl border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/5 transition flex items-center justify-center gap-2">
+                    <RotateCcw className="w-4 h-4" /> إعادة تعيين لافتراضيات النظام
+                  </button>
+
+                  <InfoBox text="صيغة الملف المقبولة: JSON فقط (.json)" type="info" />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              11. Auth / Security
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'auth' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Fingerprint} color="bg-violet-500" title="التحقق البيومتري" sub="Face ID وبصمة الإصبع وPIN" />
+                <div>
+                  <TRow label="Face ID" sub="الدخول بالتعرف على الوجه"
+                    on={s.biometric.faceId}
+                    onToggle={() => { toggleBiometric('faceId'); toast({ title: s.biometric.faceId ? 'تم إيقاف Face ID' : 'تم تفعيل Face ID' }); }} />
+                  <TRow label="بصمة الإصبع" sub="Touch ID أو مستشعر البصمة"
+                    on={s.biometric.fingerprint}
+                    onToggle={() => { toggleBiometric('fingerprint'); toast({ title: s.biometric.fingerprint ? 'تم إيقاف البصمة' : 'تم تفعيل البصمة' }); }} />
+
+                  <div className="flex items-center justify-between gap-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold">رمز PIN</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">رمز سري مكون من 6 أرقام</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {s.biometric.pin && (
+                        <button onClick={() => { setPinValue(''); setPinDialog(true); }}
+                          className="text-xs text-violet-400 hover:text-violet-300 font-bold transition">
+                          تغيير
+                        </button>
+                      )}
+                      <Toggle on={s.biometric.pin} onToggle={() => {
+                        if (!s.biometric.pin) { setPinValue(''); setPinDialog(true); }
+                        else { toggleBiometric('pin'); toast({ title: 'تم إلغاء رمز PIN' }); }
+                      }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {[
+                    { id: 'faceId', label: 'Face ID', on: s.biometric.faceId },
+                    { id: 'fingerprint', label: 'البصمة', on: s.biometric.fingerprint },
+                    { id: 'pin', label: 'PIN Code', on: s.biometric.pin },
+                  ].map(({ id, label, on }) => (
+                    <div key={id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${on ? 'bg-violet-500/10 border border-violet-500/20 text-violet-300' : 'bg-white/5 border border-border text-muted-foreground'}`}>
+                      {on ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <X className="w-3.5 h-3.5 shrink-0" />}
+                      {label} — {on ? 'مُفعَّل' : 'معطل'}
+                    </div>
+                  ))}
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Shield} color="bg-slate-500" title="أمان الجلسة" sub="إعدادات الأمان المتقدمة" />
+                <div className="space-y-4">
+                  <Field label="مهلة الجلسة التلقائية">
+                    <Sel defaultValue="30">
+                      <option value="15">15 دقيقة</option>
+                      <option value="30">30 دقيقة</option>
+                      <option value="60">ساعة واحدة</option>
+                      <option value="120">ساعتان</option>
+                      <option value="480">8 ساعات</option>
+                      <option value="0">لا تسجيل خروج تلقائي</option>
+                    </Sel>
+                  </Field>
+
+                  <Field label="عدد محاولات الدخول قبل القفل">
+                    <BtnPicker
+                      options={[{ v: '3', label: '3' }, { v: '5', label: '5' }, { v: '10', label: '10' }]}
+                      value="5"
+                      onChange={() => {}}
+                      color="slate"
+                    />
+                  </Field>
+
+                  <div className="p-3 rounded-xl border border-slate-500/20 bg-slate-500/5 space-y-2">
+                    <p className="text-sm font-bold text-slate-300">حالة الأمان</p>
+                    <div className="space-y-1">
+                      {[
+                        { label: 'تشفير البيانات', ok: true },
+                        { label: 'اتصال آمن HTTPS', ok: true },
+                        { label: 'تحقق بخطوتين', ok: s.biometric.pin || s.biometric.faceId },
+                      ].map(({ label, ok }) => (
+                        <div key={label} className="flex items-center gap-2 text-xs">
+                          {ok ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
+                          <span className={ok ? 'text-muted-foreground' : 'text-amber-400'}>{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button onClick={() => { toast({ title: 'تم تسجيل الخروج من جميع الأجهزة' }); }}
+                    className="w-full py-2.5 rounded-xl border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/5 transition flex items-center justify-center gap-2">
+                    <LogOut className="w-4 h-4" /> تسجيل خروج من جميع الأجهزة
+                  </button>
+
+                  <SaveBtn onClick={handleSave} label="حفظ إعدادات الأمان" color="violet" icon={Shield} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              12. Clear Logs
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'clearlogs' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Trash2} color="bg-red-500" title="مسح السجلات" sub="حذف بيانات النظام" />
+                <InfoBox text="تحذير: عملية الحذف لا يمكن التراجع عنها. تأكد من وجود نسخة احتياطية." type="warning" />
+                <div className="mt-4 space-y-3">
+                  {[
+                    { id: 'attendance', label: 'سجلات الحضور', sub: 'جميع سجلات الدخول والخروج', icon: Clock, color: 'text-orange-400', border: 'border-orange-500/30 hover:bg-orange-500/5' },
+                    { id: 'payroll', label: 'سجلات الرواتب', sub: 'كشوف الرواتب والمدفوعات', icon: Wallet, color: 'text-amber-400', border: 'border-amber-500/30 hover:bg-amber-500/5' },
+                    { id: 'leaves', label: 'سجلات الإجازات', sub: 'طلبات الإجازات المؤرشفة', icon: Calendar, color: 'text-blue-400', border: 'border-blue-500/30 hover:bg-blue-500/5' },
+                    { id: 'notifications', label: 'سجل الإشعارات', sub: 'التنبيهات والرسائل المحفوظة', icon: Bell, color: 'text-purple-400', border: 'border-purple-500/30 hover:bg-purple-500/5' },
+                    { id: 'activity', label: 'سجل النشاط', sub: 'سجل عمليات المستخدمين', icon: Activity, color: 'text-cyan-400', border: 'border-cyan-500/30 hover:bg-cyan-500/5' },
+                  ].map(({ id, label, sub, icon: Icon, color, border }) => (
+                    <button key={id} onClick={() => setClearDialog(id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border ${border} transition text-right group`}>
+                      <div className="w-9 h-9 rounded-lg bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition">
+                        <Icon className={`w-4.5 h-4.5 ${color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm">{label}</p>
+                        <p className="text-[11px] text-muted-foreground">{sub}</p>
+                      </div>
+                      <Trash2 className={`w-4 h-4 ${color} opacity-50 group-hover:opacity-100 transition`} />
+                    </button>
+                  ))}
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={AlertTriangle} color="bg-rose-600" title="حذف شامل" sub="إعادة تعيين كاملة للنظام" />
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5 space-y-2">
+                    <p className="text-red-300 font-bold text-sm">⚠️ منطقة الخطر</p>
+                    <p className="text-xs text-muted-foreground">هذه الإجراءات حاسمة وغير قابلة للتراجع. احرص على أخذ نسخة احتياطية أولاً.</p>
+                  </div>
+
+                  <button onClick={() => setClearDialog('all')}
+                    className="w-full py-3 rounded-xl bg-red-500/10 border border-red-500/40 text-red-400 font-bold text-sm hover:bg-red-500/20 transition flex items-center justify-center gap-2">
+                    <Trash2 className="w-4 h-4" /> مسح جميع السجلات
+                  </button>
+
+                  <button onClick={() => {
+                    if (confirm('هل أنت متأكد؟ سيتم مسح جميع بيانات التطبيق والإعدادات.')) {
+                      localStorage.clear();
+                      toast({ title: 'تم مسح جميع بيانات التطبيق. سيتم إعادة التحميل...' });
+                      setTimeout(() => window.location.reload(), 2000);
+                    }
+                  }}
+                    className="w-full py-3 rounded-xl bg-red-600/10 border border-red-600/40 text-red-500 font-bold text-sm hover:bg-red-600/20 transition flex items-center justify-center gap-2">
+                    <AlertTriangle className="w-4 h-4" /> إعادة تعيين كاملة للتطبيق
+                  </button>
+
+                  <InfoBox text="بعد الحذف الشامل لا يمكن استرجاع البيانات إلا من نسخة احتياطية مسبقة." type="warning" />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              13. Font
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'font' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Type} color="bg-cyan-500" title="نوع الخط" sub="اختر خط التطبيق" />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-2">
+                    {[
+                      { v: 'system', label: 'Almarai (الافتراضي)', sample: 'أبجد هوز', family: 'Almarai, sans-serif' },
+                      { v: 'cairo', label: 'Cairo', sample: 'أبجد هوز حطي', family: 'Cairo, sans-serif' },
+                      { v: 'tajawal', label: 'Tajawal', sample: 'أبجد هوز كلمن', family: 'Tajawal, sans-serif' },
+                      { v: 'inter', label: 'Inter', sample: 'ABCDE abcde 12345', family: 'Inter, sans-serif' },
+                      { v: 'poppins', label: 'Poppins', sample: 'ABCDE abcde 12345', family: 'Poppins, sans-serif' },
+                      { v: 'mono', label: 'Monospace', sample: 'ABC 123 xyz', family: 'monospace' },
+                    ].map(({ v, label, sample, family }) => (
+                      <button key={v} onClick={() => update({ fontFamily: v })}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl border font-bold text-sm transition ${s.fontFamily === v ? 'border-cyan-500 bg-cyan-500/10' : 'border-border hover:border-cyan-500/30'}`}>
+                        <div className="text-right">
+                          <p className={s.fontFamily === v ? 'text-cyan-300' : ''}>{label}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5" style={{ fontFamily: family }}>{sample}</p>
+                        </div>
+                        {s.fontFamily === v && <Check className="w-4 h-4 text-cyan-400" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Sliders} color="bg-teal-600" title="حجم وشكل الخط" sub="ضبط قراءة النص" />
+                <div className="space-y-5">
+                  <Field label="حجم الخط">
+                    <div className="space-y-2">
+                      <BtnPicker
+                        options={[{ v: 'small', label: 'صغير (14px)' }, { v: 'medium', label: 'متوسط (16px)' }, { v: 'large', label: 'كبير (18px)' }]}
+                        value={s.fontSize}
+                        onChange={v => update({ fontSize: v as any })}
+                        color="cyan"
+                      />
+                      <div className="p-3 rounded-xl border border-border bg-white/5 text-center">
+                        <p style={{ fontSize: s.fontSize === 'small' ? 14 : s.fontSize === 'large' ? 18 : 16 }}>
+                          مثال على حجم الخط المختار
+                        </p>
+                      </div>
+                    </div>
+                  </Field>
+
+                  <Field label="وزن الخط">
+                    <BtnPicker
+                      options={[{ v: 'normal', label: 'عادي' }, { v: 'medium', label: 'متوسط' }, { v: 'bold', label: 'عريض' }]}
+                      value={s.fontWeight}
+                      onChange={v => update({ fontWeight: v as any })}
+                      color="cyan"
+                    />
+                  </Field>
+
+                  <Field label="شكل الخط (Style)">
+                    <BtnPicker
+                      options={[{ v: 'normal', label: 'عادي' }, { v: 'bold', label: 'ثخين' }, { v: 'italic', label: 'مائل' }]}
+                      value={s.fontShape}
+                      onChange={v => update({ fontShape: v })}
+                    />
+                  </Field>
+
+                  <Field label="تباعد الأسطر">
+                    <BtnPicker
+                      options={[{ v: 'tight', label: 'ضيق' }, { v: 'normal', label: 'عادي' }, { v: 'relaxed', label: 'واسع' }]}
+                      value={s.lineHeight}
+                      onChange={v => update({ lineHeight: v as any })}
+                    />
+                  </Field>
+
+                  <Field label="تباعد الحروف">
+                    <BtnPicker
+                      options={[{ v: 'tight', label: 'ضيق' }, { v: 'normal', label: 'عادي' }, { v: 'wide', label: 'واسع' }]}
+                      value={s.letterSpacing}
+                      onChange={v => update({ letterSpacing: v as any })}
+                    />
+                  </Field>
+
+                  {/* Font preview */}
+                  <div className="p-4 rounded-xl border border-border bg-white/5 space-y-1"
+                    style={{
+                      fontWeight: s.fontWeight === 'bold' ? 700 : s.fontWeight === 'medium' ? 500 : 400,
+                      fontStyle: s.fontShape === 'italic' ? 'italic' : 'normal',
+                      lineHeight: s.lineHeight === 'tight' ? 1.2 : s.lineHeight === 'relaxed' ? 1.8 : 1.5,
+                      letterSpacing: s.letterSpacing === 'tight' ? '-0.05em' : s.letterSpacing === 'wide' ? '0.1em' : 'normal',
+                    }}>
+                    <p className="text-[10px] text-muted-foreground font-normal uppercase tracking-wider" style={{ fontStyle: 'normal', letterSpacing: '0.1em' }}>معاينة النص</p>
+                    <p className="text-base">إدارة القوى العاملة — نظام متكامل</p>
+                    <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة © {new Date().getFullYear()}</p>
+                  </div>
+
+                  <SaveBtn onClick={handleSave} label="حفظ إعدادات الخط" color="cyan" icon={Type} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              14. Credentials (Email & Password)
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'credentials' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={Mail} color="bg-slate-500" title="تغيير البريد الإلكتروني" sub="تحديث إيميل الحساب" />
+                <div className="space-y-4">
+                  <Field label="البريد الإلكتروني الحالي">
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-white/5 text-sm text-muted-foreground">
+                      <Mail className="w-4 h-4 shrink-0" />
+                      <span>admin@company.com</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-400 mr-auto" />
+                    </div>
+                  </Field>
+
+                  <Field label="البريد الجديد" required>
+                    <div className="relative">
+                      <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input type="email" value={secEmail} onChange={e => setSecEmail(e.target.value)} placeholder="new@email.com"
+                        className="w-full rounded-xl pr-9 pl-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
+                    </div>
+                  </Field>
+
+                  <Field label="كلمة المرور الحالية للتأكيد" required>
+                    <div className="relative">
+                      <input type={showPw.emailConfirm ? 'text' : 'password'} value={curPw} onChange={e => setCurPw(e.target.value)} placeholder="••••••••"
+                        className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500/50 pr-10 transition" />
+                      <button type="button" onClick={() => setShowPw(v => ({ ...v, emailConfirm: !v.emailConfirm }))}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                        {showPw.emailConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </Field>
+
+                  <button onClick={() => {
+                    if (!secEmail || !curPw) { toast({ title: 'الرجاء ملء جميع الحقول', variant: 'destructive' }); return; }
+                    toast({ title: 'تم إرسال رابط التأكيد إلى البريد الجديد' });
+                    setSecEmail(''); setCurPw('');
+                  }}
+                    className="w-full py-2.5 rounded-xl bg-slate-600 hover:bg-slate-500 text-white font-bold text-sm transition flex items-center justify-center gap-2">
+                    <Mail className="w-4 h-4" /> تحديث البريد الإلكتروني
+                  </button>
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Lock} color="bg-rose-500" title="تغيير كلمة السر" sub="تحديث كلمة مرور الحساب" />
+                <div className="space-y-4">
+                  {[
+                    { key: 'current', label: 'كلمة المرور الحالية', value: curPw, set: setCurPw, placeholder: '••••••••' },
+                    { key: 'new', label: 'كلمة المرور الجديدة', value: newPw, set: setNewPw, placeholder: '8 أحرف على الأقل' },
+                    { key: 'confirm', label: 'تأكيد كلمة المرور', value: confirmPw, set: setConfirmPw, placeholder: 'أعد كتابة كلمة المرور' },
+                  ].map(({ key, label, value, set, placeholder }) => (
+                    <Field key={key} label={label}>
+                      <div className="relative">
+                        <input type={showPw[key] ? 'text' : 'password'} value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
+                          className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-500/50 pr-10 transition" />
+                        <button type="button" onClick={() => setShowPw(v => ({ ...v, [key]: !v[key] }))}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                          {showPw[key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {key === 'new' && newPw.length > 0 && (
+                        <div className="flex gap-1 mt-1.5">
+                          {[4, 7, 10].map((len, i) => (
+                            <div key={i} className={`h-1 flex-1 rounded-full transition ${newPw.length >= len ? i === 0 ? 'bg-red-400' : i === 1 ? 'bg-amber-400' : 'bg-green-400' : 'bg-border'}`} />
+                          ))}
+                          <span className="text-[10px] text-muted-foreground mr-1">
+                            {newPw.length < 4 ? 'ضعيفة' : newPw.length < 8 ? 'متوسطة' : 'قوية'}
+                          </span>
+                        </div>
+                      )}
+                      {key === 'confirm' && confirmPw && (
+                        <div className={`flex items-center gap-1 mt-1 text-[11px] font-bold ${confirmPw === newPw ? 'text-green-400' : 'text-red-400'}`}>
+                          {confirmPw === newPw ? <><CheckCircle2 className="w-3 h-3" /> متطابقتان</> : <><X className="w-3 h-3" /> غير متطابقتين</>}
+                        </div>
+                      )}
+                    </Field>
+                  ))}
+
+                  <button onClick={handleUpdateCredentials}
+                    className="w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm transition flex items-center justify-center gap-2">
+                    <Lock className="w-4 h-4" /> تحديث كلمة المرور
+                  </button>
+
+                  <InfoBox text="بعد التغيير ستحتاج لتسجيل الدخول مجدداً من جميع الأجهزة." type="info" />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              15. Dashboard / Home Layout
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'dashboard' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <SCard>
+                <CardHead icon={LayoutDashboard} color="bg-blue-500" title="تخطيط لوحة البداية" sub="اختر شكل الصفحة الرئيسية" />
+                <div className="space-y-5">
+                  <Field label="نمط عرض اللوحة">
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        { v: 'default', label: 'عادي', sub: 'بطاقات بحجم متوسط', icon: Grid3X3 },
+                        { v: 'compact', label: 'مضغوط', sub: 'أكثر معلومات في مساحة أقل', icon: List },
+                        { v: 'detailed', label: 'تفصيلي', sub: 'أكبر حجماً مع رسوم بيانية', icon: BarChart3 },
+                      ].map(({ v, label, sub, icon: Icon }) => (
+                        <button key={v} onClick={() => update({ dashboardLayout: v as any })}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-right transition ${s.dashboardLayout === v ? 'border-blue-500 bg-blue-500/10' : 'border-border hover:border-blue-500/30'}`}>
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.dashboardLayout === v ? 'bg-blue-500/20' : 'bg-white/5'}`}>
+                            <Icon className={`w-4.5 h-4.5 ${s.dashboardLayout === v ? 'text-blue-400' : 'text-muted-foreground'}`} />
+                          </div>
+                          <div className="flex-1">
+                            <p className={`font-bold text-sm ${s.dashboardLayout === v ? 'text-blue-300' : ''}`}>{label}</p>
+                            <p className="text-[11px] text-muted-foreground">{sub}</p>
+                          </div>
+                          {s.dashboardLayout === v && <Check className="w-4 h-4 text-blue-400" />}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <div className="space-y-1">
+                    <TRow label="إظهار رسالة الترحيب" sub="اسمك وتحية اليوم في الأعلى" on={s.dashboardGreeting} onToggle={() => update({ dashboardGreeting: !s.dashboardGreeting })} />
+                    <TRow label="ساعة مباشرة في اللوحة" sub="عرض الوقت الحالي" on={s.dashboardClock} onToggle={() => update({ dashboardClock: !s.dashboardClock })} />
+                    <TRow label="أزرار الإجراءات السريعة" sub="حضور/انصراف وطلبات سريعة" on={s.dashboardQuickActions} onToggle={() => update({ dashboardQuickActions: !s.dashboardQuickActions })} />
+                  </div>
+                </div>
+              </SCard>
+
+              <SCard>
+                <CardHead icon={Layers} color="bg-indigo-500" title="الودجات المعروضة" sub="اختر ما يظهر في لوحة البداية" />
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {s.dashboardWidgets.length} من {DASH_WIDGETS.length} ودجات مفعلة
+                  </p>
+                  {DASH_WIDGETS.map(({ id, label }) => {
+                    const active = s.dashboardWidgets.includes(id);
+                    return (
+                      <button key={id} onClick={() => toggleWidget(id)}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm font-bold transition ${active ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300' : 'border-border text-muted-foreground hover:border-indigo-500/30'}`}>
+                        {label}
+                        <Toggle on={active} onToggle={() => toggleWidget(id)} />
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-4">
+                  <SaveBtn onClick={handleSave} label="حفظ تخطيط اللوحة" color="blue" icon={LayoutDashboard} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* ── Clear Dialog ── */}
+      {clearDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" dir={dir}>
+          <div className="relative w-full max-w-sm rounded-2xl border border-border p-6 shadow-2xl mx-4" style={{ background: 'var(--card)' }}>
+            <button onClick={() => setClearDialog(null)} className="absolute top-4 left-4 text-muted-foreground hover:text-foreground transition">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-3">
+                <AlertTriangle className="w-7 h-7 text-red-400" />
               </div>
-            </Card>
+              <h3 className="font-bold text-lg">تأكيد الحذف</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                هل أنت متأكد من مسح {clearDialog === 'attendance' ? 'سجلات الحضور' : clearDialog === 'payroll' ? 'سجلات الرواتب' : clearDialog === 'leaves' ? 'سجلات الإجازات' : clearDialog === 'all' ? 'جميع السجلات' : 'السجلات'}؟
+              </p>
+              <p className="text-xs text-red-400 mt-1">لا يمكن التراجع عن هذه العملية</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setClearDialog(null)}
+                className="flex-1 py-2.5 rounded-xl border border-border font-bold text-sm hover:bg-white/5 transition">
+                إلغاء
+              </button>
+              <button onClick={() => clearLogs(clearDialog)}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition">
+                حذف
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── Attendance Settings ───────────────────────────────────── */}
-      {tab === 'attendance' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card>
-            <CardHeader icon={Clock} color="bg-teal-500" title="ساعات العمل" sub="ضبط جدول الدوام الرسمي" />
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="بداية الدوام">
-                  <Input type="time" value={s.workStart} onChange={e => update({ workStart: e.target.value })} />
-                </Field>
-                <Field label="نهاية الدوام">
-                  <Input type="time" value={s.workEnd} onChange={e => update({ workEnd: e.target.value })} />
-                </Field>
-              </div>
-
-              <Field label="مدة الاستراحة (دقائق)">
-                <Input type="number" value={s.breakMin} onChange={e => update({ breakMin: e.target.value })} min="0" max="120" />
-              </Field>
-
-              <Field label="بداية الأسبوع">
-                <Sel value={s.weekStart} onChange={e => update({ weekStart: e.target.value })}>
-                  <option value="sunday">الأحد</option>
-                  <option value="monday">الإثنين</option>
-                  <option value="saturday">السبت</option>
-                </Sel>
-              </Field>
-
-              <Field label="أيام العطل الأسبوعية">
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'].map(d => (
-                    <button key={d}
-                      onClick={() => {
-                        const curr = s.holidays;
-                        update({ holidays: curr.includes(d) ? curr.filter(x => x !== d) : [...curr, d] });
-                      }}
-                      className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition ${s.holidays.includes(d) ? 'border-teal-500 bg-teal-500/10 text-teal-300' : 'border-border hover:border-teal-500/30'}`}>
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-
-              <div className="p-3 rounded-xl border border-teal-500/20 bg-teal-500/5 text-xs text-teal-300 font-bold space-y-1">
-                <p>⏰ الدوام: {s.workStart} → {s.workEnd}</p>
-                <p>☕ الاستراحة: {s.breakMin} دقيقة</p>
-                <p>🗓 العطل: {s.holidays.join('، ') || 'لا يوجد'}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader icon={CalendarClock} color="bg-emerald-500" title="قواعد الحضور" sub="التأخير والإضافي والخصومات" />
-            <div className="space-y-4">
-              <Field label="فترة السماح للتأخير (دقائق)" sub="لا يُحتسب تأخيراً إذا دخل خلالها">
-                <Input type="number" value={s.lateGrace} onChange={e => update({ lateGrace: e.target.value })} min="0" max="60" />
-              </Field>
-
-              <Field label="بداية احتساب الإضافي (دقائق)" sub="يُحتسب إضافياً بعد انتهاء الدوام بهذه المدة">
-                <Input type="number" value={s.otThreshold} onChange={e => update({ otThreshold: e.target.value })} min="0" />
-              </Field>
-
-              <Field label="معدل الخصم عند الغياب">
-                <Sel value={s.deductRate} onChange={e => update({ deductRate: e.target.value })}>
-                  <option value="hour">خصم ساعة بساعة</option>
-                  <option value="half">خصم نصف يوم</option>
-                  <option value="full">خصم يوم كامل</option>
-                </Sel>
-              </Field>
-
-              <Field label="رصيد الإجازة السنوية (أيام)">
-                <Input type="number" value={s.annualLeave} onChange={e => update({ annualLeave: e.target.value })} min="0" max="60" />
-              </Field>
-
-              <Field label="سياسة الإجازات">
-                <Sel value={s.leavePolicy} onChange={e => update({ leavePolicy: e.target.value })}>
-                  <option value="carryover">يُرحّل الرصيد للعام التالي</option>
-                  <option value="expire">يسقط الرصيد غير المستخدم</option>
-                  <option value="payout">يُصرف مقابل مالي</option>
-                </Sel>
-              </Field>
-
-              <button onClick={handleSave}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-sm shadow shadow-teal-500/20 hover:-translate-y-0.5 transition flex items-center justify-center gap-2">
-                <Save className="w-4 h-4" /> حفظ إعدادات الحضور
-              </button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ── PIN Dialog ───────────────────────────────────────────── */}
+      {/* ── PIN Dialog ── */}
       {pinDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-          <div className="relative w-full max-w-sm rounded-2xl border border-border p-6 shadow-2xl" style={{ background: 'var(--card)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" dir={dir}>
+          <div className="relative w-full max-w-sm rounded-2xl border border-border p-6 shadow-2xl mx-4" style={{ background: 'var(--card)' }}>
             <button onClick={() => setPinDialog(false)} className="absolute top-4 left-4 text-muted-foreground hover:text-foreground transition">
               <X className="w-5 h-5" />
             </button>
@@ -1007,22 +1736,33 @@ export default function Settings() {
               <h3 className="font-bold text-lg">إعداد رمز PIN</h3>
               <p className="text-sm text-muted-foreground mt-1">أدخل رمزاً مكوناً من 6 أرقام</p>
             </div>
-            <input
-              type="password"
-              inputMode="numeric"
-              maxLength={6}
-              value={pinValue}
+            <div className="flex gap-2 justify-center mb-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i}
+                  className={`w-10 h-12 rounded-xl border-2 flex items-center justify-center font-mono text-xl font-bold transition ${pinValue.length > i ? 'border-violet-500 bg-violet-500/10 text-violet-300' : 'border-border'}`}>
+                  {pinValue.length > i ? '●' : ''}
+                </div>
+              ))}
+            </div>
+            <input type="tel" inputMode="numeric" maxLength={6} value={pinValue}
               onChange={e => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="● ● ● ● ● ●"
-              className="w-full text-center text-2xl font-mono rounded-xl px-4 py-3 border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-violet-500/50 tracking-[0.5em] mb-4"
-            />
+              className="sr-only" autoFocus />
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((btn, i) => (
+                <button key={i} onClick={() => {
+                  if (btn === '') return;
+                  if (btn === '⌫') setPinValue(v => v.slice(0, -1));
+                  else if (pinValue.length < 6) setPinValue(v => v + btn);
+                }}
+                  className={`h-12 rounded-xl border font-bold text-lg transition ${btn === '' ? 'invisible' : 'border-border hover:border-violet-500/40 hover:bg-violet-500/5'}`}>
+                  {btn}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-2">
-              <button onClick={() => setPinDialog(false)}
-                className="flex-1 py-2.5 rounded-xl border border-border font-bold text-sm hover:bg-white/5 transition">
-                إلغاء
-              </button>
-              <button onClick={handlePinSave}
-                className="flex-1 py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 text-white font-bold text-sm transition">
+              <button onClick={() => setPinDialog(false)} className="flex-1 py-2.5 rounded-xl border border-border font-bold text-sm hover:bg-white/5 transition">إلغاء</button>
+              <button onClick={handlePinSave} disabled={pinValue.length !== 6}
+                className="flex-1 py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
                 تأكيد
               </button>
             </div>
