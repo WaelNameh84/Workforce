@@ -343,9 +343,23 @@ export default function Settings() {
         </button>
       </div>
 
+      {/* ── Mobile pill nav (above content, column layout) ── */}
+      <div className="md:hidden flex gap-2 overflow-x-auto pb-2 scrollbar-none shrink-0">
+        {SECTIONS.map(sec => (
+          <button key={sec.id} onClick={() => setActiveSection(sec.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
+              activeSection === sec.id ? 'text-white border-transparent' : 'border-border text-muted-foreground'
+            }`}
+            style={activeSection === sec.id ? { background: `linear-gradient(135deg, ${s.appColor}, ${s.appColor}99)` } : {}}>
+            <sec.icon className="w-3.5 h-3.5 shrink-0" />
+            {sec.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-5 flex-1 min-h-0">
-        {/* ── Sidebar ── */}
-        <div className="w-52 shrink-0 flex flex-col gap-1 overflow-y-auto pb-4 scrollbar-none hidden md:flex">
+        {/* ── Desktop Sidebar ── */}
+        <div className="w-52 shrink-0 flex-col gap-1 overflow-y-auto pb-4 scrollbar-none hidden md:flex">
           {SECTIONS.map(sec => (
             <button key={sec.id} onClick={() => setActiveSection(sec.id)}
               className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-right text-sm transition-all ${
@@ -361,20 +375,6 @@ export default function Settings() {
                 <p className="font-bold text-[13px] leading-tight truncate">{sec.label}</p>
                 <p className={`text-[10px] truncate ${activeSection === sec.id ? 'text-white/70' : 'text-muted-foreground'}`}>{sec.desc}</p>
               </div>
-            </button>
-          ))}
-        </div>
-
-        {/* ── Mobile top nav ── */}
-        <div className="md:hidden flex gap-2 overflow-x-auto pb-1 scrollbar-none mb-4 shrink-0">
-          {SECTIONS.map(sec => (
-            <button key={sec.id} onClick={() => setActiveSection(sec.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
-                activeSection === sec.id ? 'text-white border-transparent' : 'border-border text-muted-foreground'
-              }`}
-              style={activeSection === sec.id ? { background: `linear-gradient(135deg, ${s.appColor}, ${s.appColor}99)` } : {}}>
-              <sec.icon className="w-3.5 h-3.5 shrink-0" />
-              {sec.label}
             </button>
           ))}
         </div>
