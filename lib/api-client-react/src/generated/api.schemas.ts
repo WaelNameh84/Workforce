@@ -204,6 +204,12 @@ export interface Attendance {
   location?: string | null;
   /** @nullable */
   method?: string | null;
+  /** @nullable */
+  gpsLatitude?: number | null;
+  /** @nullable */
+  gpsLongitude?: number | null;
+  /** @nullable */
+  gpsAccuracy?: number | null;
   status?: AttendanceStatus;
   isLate?: boolean;
   /** @nullable */
@@ -223,6 +229,12 @@ export interface ClockInInput {
   employeeId: number;
   location?: string;
   method?: string;
+  /** @nullable */
+  gpsLatitude?: number | null;
+  /** @nullable */
+  gpsLongitude?: number | null;
+  /** @nullable */
+  gpsAccuracy?: number | null;
 }
 
 export interface ClockOutInput {

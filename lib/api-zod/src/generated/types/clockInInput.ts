@@ -10,4 +10,10 @@ export interface ClockInInput {
   employeeId: number;
   location?: string;
   method?: string;
+  /** @nullable */
+  gpsLatitude?: number | null;
+  /** @nullable */
+  gpsLongitude?: number | null;
+  /** @nullable */
+  gpsAccuracy?: number | null;
 }

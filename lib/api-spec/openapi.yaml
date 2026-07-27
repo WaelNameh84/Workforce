@@ -260,6 +260,15 @@ components:
         method:
           type: string
           nullable: true
+        gpsLatitude:
+          type: number
+          nullable: true
+        gpsLongitude:
+          type: number
+          nullable: true
+        gpsAccuracy:
+          type: number
+          nullable: true
         status:
           type: string
           enum: [present, absent, late, half-day]
@@ -298,6 +307,15 @@ components:
           type: string
         method:
           type: string
+        gpsLatitude:
+          type: number
+          nullable: true
+        gpsLongitude:
+          type: number
+          nullable: true
+        gpsAccuracy:
+          type: number
+          nullable: true
 
     ClockOutInput:
       type: object

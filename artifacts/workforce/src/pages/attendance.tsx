@@ -5,6 +5,7 @@ import {
   useGetAttendance, useGetTodayAttendance, useClockIn, useClockOut, useUpdateAttendance,
   useGetLocations, getGetAttendanceQueryKey, getGetTodayAttendanceQueryKey, getGetLocationsQueryKey,
 } from '@workspace/api-client-react';
+import type { Attendance as AttendanceRecord } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -19,6 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 /* ─── helpers ─────────────────────────────────────────────── */
 const WORK_END_HOUR = 17;   // 17:00 = end of work day
@@ -67,9 +71,10 @@ export default function Attendance() {
 
   /* ── location & GPS ── */
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
-  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number; accuracy: number | null } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsAddress, setGpsAddress] = useState<string | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
@@ -97,7 +102,7 @@ export default function Attendance() {
     navigator.geolocation.getCurrentPosition(
       pos => {
         const { latitude: lat, longitude: lng } = pos.coords;
-        setGpsCoords({ lat, lng });
+        setGpsCoords({ lat, lng, accuracy: Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null });
         setGpsLoading(false);
         reverseGeocode(lat, lng);
       },
@@ -220,7 +225,16 @@ export default function Attendance() {
     haptic('medium');
     try {
       const rec = await clockInMutation.mutateAsync({
-        data: { employeeId: attendanceEmployeeId, location: selectedLocation.name, method: checkMethod },
+        data: {
+          employeeId: attendanceEmployeeId,
+          location: selectedLocation.name,
+          method: checkMethod,
+          ...(gpsCoords ? {
+            gpsLatitude: gpsCoords.lat,
+            gpsLongitude: gpsCoords.lng,
+            gpsAccuracy: gpsCoords.accuracy ?? undefined,
+          } : {}),
+        },
       });
       queryClient.setQueryData(getGetTodayAttendanceQueryKey({ employeeId: attendanceEmployeeId }), rec);
       invalidate();
@@ -311,6 +325,19 @@ export default function Attendance() {
   const totalH    = rows.reduce((s, r) => s + Number(r.totalHours || 0), 0);
   const lateCount = rows.filter(r => r.isLate || r.status === 'late').length;
   const openCount = rows.filter(r => r.clockIn && !r.clockOut).length;
+
+  const formatRecordDateTime = (value?: string | null) => value
+    ? format(new Date(value), ar ? 'dd/MM/yyyy HH:mm' : 'MMM d, yyyy HH:mm')
+    : (ar ? 'غير مسجل' : 'Not recorded');
+  const methodLabel = (method?: string | null) => ({
+    gps: ar ? 'الموقع الجغرافي GPS' : 'GPS location',
+    wifi: 'Wi‑Fi',
+    bluetooth: ar ? 'بلوتوث' : 'Bluetooth',
+    qr: ar ? 'رمز QR' : 'QR code',
+  }[method || ''] || method || (ar ? 'غير محدد' : 'Not specified'));
+  const recordMapUrl = selectedRecord?.gpsLatitude != null && selectedRecord?.gpsLongitude != null
+    ? `https://www.google.com/maps?q=${selectedRecord.gpsLatitude},${selectedRecord.gpsLongitude}`
+    : null;
 
   const stats = [
     { label: ar ? 'إجمالي الساعات'  : 'Total Hours',   value: `${totalH.toFixed(1)}h`, gradient: 'from-blue-500 to-cyan-500',      icon: Timer        },
@@ -750,9 +777,19 @@ export default function Attendance() {
                 const isEarlyOut = outHour !== null && outHour < WORK_END_HOUR;
                 const isOT = outHour !== null && outHour >= OVERTIME_THRESHOLD;
                 return (
-                  <div key={rec.id}
+                   <div key={rec.id}
                        data-testid={`card-attendance-${rec.id}`}
-                       className={`rounded-xl border-l-4 p-4 flex flex-col sm:flex-row sm:items-center gap-3 animate-fadeIn stagger-${(idx % 4) + 1} ${col.row}`}>
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedRecord(rec)}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedRecord(rec);
+                          }
+                        }}
+                        className={`rounded-xl border-l-4 p-4 flex flex-col sm:flex-row sm:items-center gap-3 animate-fadeIn stagger-${(idx % 4) + 1} ${col.row} cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400/70`}
+                        aria-label={ar ? `عرض تفاصيل حضور ${rec.employeeName || ''}` : `View attendance details for ${rec.employeeName || ''}`}>
 
                     {/* Avatar + name + date */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -826,6 +863,89 @@ export default function Attendance() {
           )}
         </div>
       </div>
+
+      <Dialog open={!!selectedRecord} onOpenChange={open => { if (!open) setSelectedRecord(null); }}>
+        <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-xl" dir={ar ? 'rtl' : 'ltr'}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-xl">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-500">
+                <Clock className="h-5 w-5" />
+              </span>
+              {ar ? 'تفاصيل تسجيل الحضور' : 'Attendance registration details'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRecord?.employeeName || (ar ? 'سجل الحضور' : 'Attendance record')}
+              {selectedRecord?.date ? ` · ${selectedRecord.date}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedRecord && (
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-indigo-500">
+                  <MapPin className="h-4 w-4" />
+                  {ar ? 'الموقع والتسجيل' : 'Location & registration'}
+                </div>
+                <div className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div><span className="text-muted-foreground">{ar ? 'موقع العمل' : 'Work location'}:</span> <strong>{selectedRecord.location || '—'}</strong></div>
+                  <div><span className="text-muted-foreground">{ar ? 'طريقة التسجيل' : 'Method'}:</span> <strong>{methodLabel(selectedRecord.method)}</strong></div>
+                  <div className="sm:col-span-2">
+                    <span className="text-muted-foreground">{ar ? 'الموقع الجغرافي' : 'GPS coordinates'}:</span>{' '}
+                    <strong>
+                      {selectedRecord.gpsLatitude != null && selectedRecord.gpsLongitude != null
+                        ? `${selectedRecord.gpsLatitude}, ${selectedRecord.gpsLongitude}`
+                        : (ar ? 'لم يتم حفظ إحداثيات' : 'No GPS coordinates saved')}
+                    </strong>
+                  </div>
+                  {selectedRecord.gpsAccuracy != null && (
+                    <div><span className="text-muted-foreground">{ar ? 'دقة الموقع' : 'GPS accuracy'}:</span> <strong>{selectedRecord.gpsAccuracy} m</strong></div>
+                  )}
+                </div>
+                {recordMapUrl && (
+                  <a
+                    href={recordMapUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={event => event.stopPropagation()}
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-indigo-600"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {ar ? 'فتح الموقع على الخريطة' : 'Open location in Maps'}
+                  </a>
+                )}
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  [ar ? 'الموظف' : 'Employee', selectedRecord.employeeName || '—'],
+                  [ar ? 'رقم الموظف' : 'Employee ID', selectedRecord.employeeId ?? '—'],
+                  [ar ? 'التاريخ' : 'Date', selectedRecord.date || '—'],
+                  [ar ? 'وقت تسجيل الدخول' : 'Clock-in time', formatRecordDateTime(selectedRecord.clockIn)],
+                  [ar ? 'وقت تسجيل الخروج' : 'Clock-out time', formatRecordDateTime(selectedRecord.clockOut)],
+                  [ar ? 'إجمالي الساعات' : 'Total hours', selectedRecord.totalHours ? hoursLabel(selectedRecord.totalHours, locale) : '—'],
+                  [ar ? 'الحالة' : 'Status', selectedRecord.status || '—'],
+                  [ar ? 'متأخر' : 'Late', selectedRecord.isLate ? (ar ? 'نعم' : 'Yes') : (ar ? 'لا' : 'No')],
+                  [ar ? 'حالة التبرير' : 'Justification', selectedRecord.justificationStatus || '—'],
+                  [ar ? 'حالة الدفع' : 'Payment status', selectedRecord.paymentStatus || '—'],
+                  [ar ? 'نوع التبرير' : 'Justification type', selectedRecord.justificationType || '—'],
+                  [ar ? 'أنشئ في' : 'Created at', formatRecordDateTime(selectedRecord.createdAt)],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl border bg-muted/30 px-3 py-2.5">
+                    <div className="text-[11px] text-muted-foreground">{label}</div>
+                    <div className="mt-1 break-words text-sm font-semibold">{value}</div>
+                  </div>
+                ))}
+              </div>
+              {selectedRecord.notes && (
+                <div className="rounded-xl border bg-muted/30 px-3 py-3">
+                  <div className="text-[11px] text-muted-foreground">{ar ? 'الملاحظات' : 'Notes'}</div>
+                  <div className="mt-1 text-sm font-medium">{selectedRecord.notes}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ════ BOTTOM SHEET — Late Arrival ════ */}
       <BottomSheet

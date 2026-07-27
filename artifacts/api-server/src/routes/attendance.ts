@@ -131,6 +131,9 @@ router.get("/attendance", authMiddleware, async (req, res) => {
         totalHours: attendance.totalHours,
         location: attendance.location,
         method: attendance.method,
+        gpsLatitude: attendance.gpsLatitude,
+        gpsLongitude: attendance.gpsLongitude,
+        gpsAccuracy: attendance.gpsAccuracy,
         status: attendance.status,
         isLate: attendance.isLate,
         notes: attendance.notes,
@@ -165,7 +168,7 @@ router.get("/attendance", authMiddleware, async (req, res) => {
 router.post("/attendance/clock-in", authMiddleware, async (req, res) => {
   try {
     const employeeId = await resolveEmployeeId(req, req.body.employeeId);
-    const { location, method } = req.body;
+    const { location, method, gpsLatitude, gpsLongitude, gpsAccuracy } = req.body;
     if (employeeId === null || !Number.isInteger(employeeId) || employeeId <= 0) {
       res.status(400).json({ error: "A valid employee profile is required to record attendance" });
       return;
@@ -200,6 +203,9 @@ router.post("/attendance/clock-in", authMiddleware, async (req, res) => {
         clockIn: clockInTime,
         location,
         method,
+        gpsLatitude: gpsLatitude === null || gpsLatitude === undefined ? null : String(gpsLatitude),
+        gpsLongitude: gpsLongitude === null || gpsLongitude === undefined ? null : String(gpsLongitude),
+        gpsAccuracy: gpsAccuracy === null || gpsAccuracy === undefined ? null : String(gpsAccuracy),
         status: "present",
         isLate,
       })

@@ -402,6 +402,9 @@ export const GetAttendanceResponse = zod.object({
   "totalHours": zod.string().nullish(),
   "location": zod.string().nullish(),
   "method": zod.string().nullish(),
+  "gpsLatitude": zod.number().nullish(),
+  "gpsLongitude": zod.number().nullish(),
+  "gpsAccuracy": zod.number().nullish(),
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
@@ -422,7 +425,10 @@ export const GetAttendanceResponse = zod.object({
 export const ClockInBody = zod.object({
   "employeeId": zod.number(),
   "location": zod.string().optional(),
-  "method": zod.string().optional()
+  "method": zod.string().optional(),
+  "gpsLatitude": zod.number().nullish(),
+  "gpsLongitude": zod.number().nullish(),
+  "gpsAccuracy": zod.number().nullish()
 })
 
 export const ClockInResponse = zod.object({
@@ -435,6 +441,9 @@ export const ClockInResponse = zod.object({
   "totalHours": zod.string().nullish(),
   "location": zod.string().nullish(),
   "method": zod.string().nullish(),
+  "gpsLatitude": zod.number().nullish(),
+  "gpsLongitude": zod.number().nullish(),
+  "gpsAccuracy": zod.number().nullish(),
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
@@ -464,6 +473,9 @@ export const ClockOutResponse = zod.object({
   "totalHours": zod.string().nullish(),
   "location": zod.string().nullish(),
   "method": zod.string().nullish(),
+  "gpsLatitude": zod.number().nullish(),
+  "gpsLongitude": zod.number().nullish(),
+  "gpsAccuracy": zod.number().nullish(),
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
@@ -501,6 +513,9 @@ export const UpdateAttendanceResponse = zod.object({
   "totalHours": zod.string().nullish(),
   "location": zod.string().nullish(),
   "method": zod.string().nullish(),
+  "gpsLatitude": zod.number().nullish(),
+  "gpsLongitude": zod.number().nullish(),
+  "gpsAccuracy": zod.number().nullish(),
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
@@ -530,6 +545,9 @@ export const GetTodayAttendanceResponse = zod.object({
   "totalHours": zod.string().nullish(),
   "location": zod.string().nullish(),
   "method": zod.string().nullish(),
+  "gpsLatitude": zod.number().nullish(),
+  "gpsLongitude": zod.number().nullish(),
+  "gpsAccuracy": zod.number().nullish(),
   "status": zod.enum(['present', 'absent', 'late', 'half-day']).optional(),
   "isLate": zod.boolean().optional(),
   "notes": zod.string().nullish(),
