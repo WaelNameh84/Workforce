@@ -5,6 +5,7 @@
  * WorkforceOS - Multilingual Workforce Management Platform API
  * OpenAPI spec version: 1.0.0
  */
+import type { PayrollContractType } from './payrollContractType';
 import type { PayrollStatus } from './payrollStatus';
 
 export interface Payroll {
@@ -12,14 +13,80 @@ export interface Payroll {
   employeeId?: number;
   /** @nullable */
   employeeName?: string | null;
+  /** @nullable */
+  departmentName?: string | null;
   period?: string;
+  /** @nullable */
+  contractType?: PayrollContractType;
+  /** @nullable */
+  workDaysPerMonth?: number | null;
+  /** @nullable */
+  dailyHoursScheduled?: string | null;
   basicSalary?: string;
+  /** @nullable */
+  dailyRate?: string | null;
+  /** @nullable */
+  hourlyRate?: string | null;
+  /** @nullable */
+  minuteRate?: string | null;
+  /** @nullable */
+  secondRate?: string | null;
+  /** @nullable */
+  workedDays?: string | null;
+  /** @nullable */
+  workedHours?: string | null;
+  /** @nullable */
+  workedMinutes?: string | null;
+  /** @nullable */
+  workedSeconds?: string | null;
+  /** @nullable */
+  absentDays?: string | null;
+  /** @nullable */
+  lateMinutes?: string | null;
+  /** @nullable */
+  earlyMinutes?: string | null;
+  /** @nullable */
+  overtimeHours?: string | null;
+  /** @nullable */
+  overtimeRate?: string | null;
   overtime?: string;
   bonus?: string;
+  /** @nullable */
+  allowances?: string | null;
+  /** @nullable */
+  commissions?: string | null;
+  /** @nullable */
+  grossSalary?: string | null;
+  /** @nullable */
+  lateDeduction?: string | null;
+  /** @nullable */
+  absenceDeduction?: string | null;
+  /** @nullable */
+  advances?: string | null;
+  /** @nullable */
+  fines?: string | null;
   deductions?: string;
   tax?: string;
+  /** @nullable */
+  insurance?: string | null;
+  /** @nullable */
+  totalEarnings?: string | null;
+  /** @nullable */
+  totalDeductions?: string | null;
   netSalary?: string;
+  /** @nullable */
+  paidLeaveDays?: string | null;
+  /** @nullable */
+  unpaidLeaveDays?: string | null;
+  /** @nullable */
+  notes?: string | null;
   status?: PayrollStatus;
+  /** @nullable */
+  approvedBy?: number | null;
+  /** @nullable */
+  approvedAt?: string | null;
+  /** @nullable */
+  lockedAt?: string | null;
   /** @nullable */
   paidAt?: string | null;
   createdAt?: Date;

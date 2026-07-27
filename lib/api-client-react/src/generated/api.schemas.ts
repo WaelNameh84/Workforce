@@ -435,13 +435,27 @@ export interface ScheduleInput {
   notes?: string;
 }
 
+/**
+ * @nullable
+ */
+export type PayrollContractType = typeof PayrollContractType[keyof typeof PayrollContractType] | null;
+
+
+export const PayrollContractType = {
+  monthly: 'monthly',
+  daily: 'daily',
+  hourly: 'hourly',
+} as const;
+
 export type PayrollStatus = typeof PayrollStatus[keyof typeof PayrollStatus];
 
 
 export const PayrollStatus = {
+  draft: 'draft',
   pending: 'pending',
-  processing: 'processing',
+  approved: 'approved',
   paid: 'paid',
+  locked: 'locked',
 } as const;
 
 export interface Payroll {
@@ -449,30 +463,189 @@ export interface Payroll {
   employeeId?: number;
   /** @nullable */
   employeeName?: string | null;
+  /** @nullable */
+  departmentName?: string | null;
   period?: string;
+  /** @nullable */
+  contractType?: PayrollContractType;
+  /** @nullable */
+  workDaysPerMonth?: number | null;
+  /** @nullable */
+  dailyHoursScheduled?: string | null;
   basicSalary?: string;
+  /** @nullable */
+  dailyRate?: string | null;
+  /** @nullable */
+  hourlyRate?: string | null;
+  /** @nullable */
+  minuteRate?: string | null;
+  /** @nullable */
+  secondRate?: string | null;
+  /** @nullable */
+  workedDays?: string | null;
+  /** @nullable */
+  workedHours?: string | null;
+  /** @nullable */
+  workedMinutes?: string | null;
+  /** @nullable */
+  workedSeconds?: string | null;
+  /** @nullable */
+  absentDays?: string | null;
+  /** @nullable */
+  lateMinutes?: string | null;
+  /** @nullable */
+  earlyMinutes?: string | null;
+  /** @nullable */
+  overtimeHours?: string | null;
+  /** @nullable */
+  overtimeRate?: string | null;
   overtime?: string;
   bonus?: string;
+  /** @nullable */
+  allowances?: string | null;
+  /** @nullable */
+  commissions?: string | null;
+  /** @nullable */
+  grossSalary?: string | null;
+  /** @nullable */
+  lateDeduction?: string | null;
+  /** @nullable */
+  absenceDeduction?: string | null;
+  /** @nullable */
+  advances?: string | null;
+  /** @nullable */
+  fines?: string | null;
   deductions?: string;
   tax?: string;
+  /** @nullable */
+  insurance?: string | null;
+  /** @nullable */
+  totalEarnings?: string | null;
+  /** @nullable */
+  totalDeductions?: string | null;
   netSalary?: string;
+  /** @nullable */
+  paidLeaveDays?: string | null;
+  /** @nullable */
+  unpaidLeaveDays?: string | null;
+  /** @nullable */
+  notes?: string | null;
   status?: PayrollStatus;
+  /** @nullable */
+  approvedBy?: number | null;
+  /** @nullable */
+  approvedAt?: string | null;
+  /** @nullable */
+  lockedAt?: string | null;
   /** @nullable */
   paidAt?: string | null;
   createdAt?: string;
 }
 
+export type PayrollInputContractType = typeof PayrollInputContractType[keyof typeof PayrollInputContractType];
+
+
+export const PayrollInputContractType = {
+  monthly: 'monthly',
+  daily: 'daily',
+  hourly: 'hourly',
+} as const;
+
+export type PayrollInputStatus = typeof PayrollInputStatus[keyof typeof PayrollInputStatus];
+
+
+export const PayrollInputStatus = {
+  draft: 'draft',
+  pending: 'pending',
+  approved: 'approved',
+  paid: 'paid',
+  locked: 'locked',
+} as const;
+
+export interface PayrollInput {
+  employeeId: number;
+  period: string;
+  contractType?: PayrollInputContractType;
+  workDaysPerMonth?: number;
+  dailyHoursScheduled?: string;
+  basicSalary: string;
+  dailyRate?: string;
+  hourlyRate?: string;
+  workedDays?: string;
+  workedHours?: string;
+  workedMinutes?: string;
+  workedSeconds?: string;
+  absentDays?: string;
+  lateMinutes?: string;
+  earlyMinutes?: string;
+  overtimeHours?: string;
+  overtimeRate?: string;
+  overtime?: string;
+  bonus?: string;
+  allowances?: string;
+  commissions?: string;
+  grossSalary?: string;
+  lateDeduction?: string;
+  absenceDeduction?: string;
+  advances?: string;
+  fines?: string;
+  deductions?: string;
+  tax?: string;
+  insurance?: string;
+  totalEarnings?: string;
+  totalDeductions?: string;
+  netSalary?: string;
+  paidLeaveDays?: string;
+  unpaidLeaveDays?: string;
+  notes?: string;
+  status?: PayrollInputStatus;
+}
+
+export type PayrollUpdateContractType = typeof PayrollUpdateContractType[keyof typeof PayrollUpdateContractType];
+
+
+export const PayrollUpdateContractType = {
+  monthly: 'monthly',
+  daily: 'daily',
+  hourly: 'hourly',
+} as const;
+
 export type PayrollUpdateStatus = typeof PayrollUpdateStatus[keyof typeof PayrollUpdateStatus];
 
 
 export const PayrollUpdateStatus = {
+  draft: 'draft',
   pending: 'pending',
-  processing: 'processing',
+  approved: 'approved',
   paid: 'paid',
+  locked: 'locked',
 } as const;
 
 export interface PayrollUpdate {
+  contractType?: PayrollUpdateContractType;
+  workDaysPerMonth?: number;
+  basicSalary?: string;
+  overtime?: string;
+  overtimeHours?: string;
+  overtimeRate?: string;
+  bonus?: string;
+  allowances?: string;
+  commissions?: string;
+  advances?: string;
+  fines?: string;
+  deductions?: string;
+  tax?: string;
+  insurance?: string;
+  netSalary?: string;
+  grossSalary?: string;
+  totalEarnings?: string;
+  totalDeductions?: string;
+  notes?: string;
   status?: PayrollUpdateStatus;
+}
+
+export interface PayrollApprove {
+  approvedBy?: number;
 }
 
 export type WorkRequestType = typeof WorkRequestType[keyof typeof WorkRequestType];
@@ -659,6 +832,28 @@ export interface PayrollList {
   total?: number;
 }
 
+export interface PayrollStats {
+  period?: string;
+  totalBasicSalary?: number;
+  totalGross?: number;
+  totalNet?: number;
+  totalOvertime?: number;
+  totalBonus?: number;
+  totalAllowances?: number;
+  totalDeductions?: number;
+  totalTax?: number;
+  totalInsurance?: number;
+  averageSalary?: number;
+  maxSalary?: number;
+  minSalary?: number;
+  headcount?: number;
+  approvedCount?: number;
+  pendingCount?: number;
+  paidCount?: number;
+  totalWorkedHours?: number;
+  totalOvertimeHours?: number;
+}
+
 export interface WorkRequestList {
   requests?: WorkRequest[];
   total?: number;
@@ -785,6 +980,15 @@ export type GetPayrollParams = {
 companyId: number;
 period?: string;
 employeeId?: number;
+status?: string;
+departmentId?: number;
+contractType?: string;
+};
+
+export type GetPayrollStatsParams = {
+companyId: number;
+period?: string;
+year?: number;
 };
 
 export type GetRequestsParams = {

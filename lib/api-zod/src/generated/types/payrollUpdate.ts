@@ -5,8 +5,28 @@
  * WorkforceOS - Multilingual Workforce Management Platform API
  * OpenAPI spec version: 1.0.0
  */
+import type { PayrollUpdateContractType } from './payrollUpdateContractType';
 import type { PayrollUpdateStatus } from './payrollUpdateStatus';
 
 export interface PayrollUpdate {
+  contractType?: PayrollUpdateContractType;
+  workDaysPerMonth?: number;
+  basicSalary?: string;
+  overtime?: string;
+  overtimeHours?: string;
+  overtimeRate?: string;
+  bonus?: string;
+  allowances?: string;
+  commissions?: string;
+  advances?: string;
+  fines?: string;
+  deductions?: string;
+  tax?: string;
+  insurance?: string;
+  netSalary?: string;
+  grossSalary?: string;
+  totalEarnings?: string;
+  totalDeductions?: string;
+  notes?: string;
   status?: PayrollUpdateStatus;
 }

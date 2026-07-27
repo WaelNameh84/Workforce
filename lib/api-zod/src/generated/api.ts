@@ -717,7 +717,10 @@ export const CreateScheduleResponse = zod.object({
 export const GetPayrollQueryParams = zod.object({
   "companyId": zod.coerce.number(),
   "period": zod.coerce.string().optional(),
-  "employeeId": zod.coerce.number().optional()
+  "employeeId": zod.coerce.number().optional(),
+  "status": zod.coerce.string().optional(),
+  "departmentId": zod.coerce.number().optional(),
+  "contractType": zod.coerce.string().optional()
 })
 
 export const GetPayrollResponse = zod.object({
@@ -725,14 +728,47 @@ export const GetPayrollResponse = zod.object({
   "id": zod.number().optional(),
   "employeeId": zod.number().optional(),
   "employeeName": zod.string().nullish(),
+  "departmentName": zod.string().nullish(),
   "period": zod.string().optional(),
+  "contractType": zod.enum(['monthly', 'daily', 'hourly']).nullish(),
+  "workDaysPerMonth": zod.number().nullish(),
+  "dailyHoursScheduled": zod.string().nullish(),
   "basicSalary": zod.string().optional(),
+  "dailyRate": zod.string().nullish(),
+  "hourlyRate": zod.string().nullish(),
+  "minuteRate": zod.string().nullish(),
+  "secondRate": zod.string().nullish(),
+  "workedDays": zod.string().nullish(),
+  "workedHours": zod.string().nullish(),
+  "workedMinutes": zod.string().nullish(),
+  "workedSeconds": zod.string().nullish(),
+  "absentDays": zod.string().nullish(),
+  "lateMinutes": zod.string().nullish(),
+  "earlyMinutes": zod.string().nullish(),
+  "overtimeHours": zod.string().nullish(),
+  "overtimeRate": zod.string().nullish(),
   "overtime": zod.string().optional(),
   "bonus": zod.string().optional(),
+  "allowances": zod.string().nullish(),
+  "commissions": zod.string().nullish(),
+  "grossSalary": zod.string().nullish(),
+  "lateDeduction": zod.string().nullish(),
+  "absenceDeduction": zod.string().nullish(),
+  "advances": zod.string().nullish(),
+  "fines": zod.string().nullish(),
   "deductions": zod.string().optional(),
   "tax": zod.string().optional(),
+  "insurance": zod.string().nullish(),
+  "totalEarnings": zod.string().nullish(),
+  "totalDeductions": zod.string().nullish(),
   "netSalary": zod.string().optional(),
-  "status": zod.enum(['pending', 'processing', 'paid']).optional(),
+  "paidLeaveDays": zod.string().nullish(),
+  "unpaidLeaveDays": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'pending', 'approved', 'paid', 'locked']).optional(),
+  "approvedBy": zod.number().nullish(),
+  "approvedAt": zod.string().nullish(),
+  "lockedAt": zod.string().nullish(),
   "paidAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })).optional(),
@@ -741,28 +777,322 @@ export const GetPayrollResponse = zod.object({
 
 
 /**
- * @summary Update payroll status
+ * @summary Create or upsert a payroll record
+ */
+export const CreatePayrollBody = zod.object({
+  "employeeId": zod.number(),
+  "period": zod.string(),
+  "contractType": zod.enum(['monthly', 'daily', 'hourly']).optional(),
+  "workDaysPerMonth": zod.number().optional(),
+  "dailyHoursScheduled": zod.string().optional(),
+  "basicSalary": zod.string(),
+  "dailyRate": zod.string().optional(),
+  "hourlyRate": zod.string().optional(),
+  "workedDays": zod.string().optional(),
+  "workedHours": zod.string().optional(),
+  "workedMinutes": zod.string().optional(),
+  "workedSeconds": zod.string().optional(),
+  "absentDays": zod.string().optional(),
+  "lateMinutes": zod.string().optional(),
+  "earlyMinutes": zod.string().optional(),
+  "overtimeHours": zod.string().optional(),
+  "overtimeRate": zod.string().optional(),
+  "overtime": zod.string().optional(),
+  "bonus": zod.string().optional(),
+  "allowances": zod.string().optional(),
+  "commissions": zod.string().optional(),
+  "grossSalary": zod.string().optional(),
+  "lateDeduction": zod.string().optional(),
+  "absenceDeduction": zod.string().optional(),
+  "advances": zod.string().optional(),
+  "fines": zod.string().optional(),
+  "deductions": zod.string().optional(),
+  "tax": zod.string().optional(),
+  "insurance": zod.string().optional(),
+  "totalEarnings": zod.string().optional(),
+  "totalDeductions": zod.string().optional(),
+  "netSalary": zod.string().optional(),
+  "paidLeaveDays": zod.string().optional(),
+  "unpaidLeaveDays": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "status": zod.enum(['draft', 'pending', 'approved', 'paid', 'locked']).optional()
+})
+
+export const CreatePayrollResponse = zod.object({
+  "id": zod.number().optional(),
+  "employeeId": zod.number().optional(),
+  "employeeName": zod.string().nullish(),
+  "departmentName": zod.string().nullish(),
+  "period": zod.string().optional(),
+  "contractType": zod.enum(['monthly', 'daily', 'hourly']).nullish(),
+  "workDaysPerMonth": zod.number().nullish(),
+  "dailyHoursScheduled": zod.string().nullish(),
+  "basicSalary": zod.string().optional(),
+  "dailyRate": zod.string().nullish(),
+  "hourlyRate": zod.string().nullish(),
+  "minuteRate": zod.string().nullish(),
+  "secondRate": zod.string().nullish(),
+  "workedDays": zod.string().nullish(),
+  "workedHours": zod.string().nullish(),
+  "workedMinutes": zod.string().nullish(),
+  "workedSeconds": zod.string().nullish(),
+  "absentDays": zod.string().nullish(),
+  "lateMinutes": zod.string().nullish(),
+  "earlyMinutes": zod.string().nullish(),
+  "overtimeHours": zod.string().nullish(),
+  "overtimeRate": zod.string().nullish(),
+  "overtime": zod.string().optional(),
+  "bonus": zod.string().optional(),
+  "allowances": zod.string().nullish(),
+  "commissions": zod.string().nullish(),
+  "grossSalary": zod.string().nullish(),
+  "lateDeduction": zod.string().nullish(),
+  "absenceDeduction": zod.string().nullish(),
+  "advances": zod.string().nullish(),
+  "fines": zod.string().nullish(),
+  "deductions": zod.string().optional(),
+  "tax": zod.string().optional(),
+  "insurance": zod.string().nullish(),
+  "totalEarnings": zod.string().nullish(),
+  "totalDeductions": zod.string().nullish(),
+  "netSalary": zod.string().optional(),
+  "paidLeaveDays": zod.string().nullish(),
+  "unpaidLeaveDays": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'pending', 'approved', 'paid', 'locked']).optional(),
+  "approvedBy": zod.number().nullish(),
+  "approvedAt": zod.string().nullish(),
+  "lockedAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Get payroll statistics for a period
+ */
+export const GetPayrollStatsQueryParams = zod.object({
+  "companyId": zod.coerce.number(),
+  "period": zod.coerce.string().optional(),
+  "year": zod.coerce.number().optional()
+})
+
+export const GetPayrollStatsResponse = zod.object({
+  "period": zod.string().optional(),
+  "totalBasicSalary": zod.number().optional(),
+  "totalGross": zod.number().optional(),
+  "totalNet": zod.number().optional(),
+  "totalOvertime": zod.number().optional(),
+  "totalBonus": zod.number().optional(),
+  "totalAllowances": zod.number().optional(),
+  "totalDeductions": zod.number().optional(),
+  "totalTax": zod.number().optional(),
+  "totalInsurance": zod.number().optional(),
+  "averageSalary": zod.number().optional(),
+  "maxSalary": zod.number().optional(),
+  "minSalary": zod.number().optional(),
+  "headcount": zod.number().optional(),
+  "approvedCount": zod.number().optional(),
+  "pendingCount": zod.number().optional(),
+  "paidCount": zod.number().optional(),
+  "totalWorkedHours": zod.number().optional(),
+  "totalOvertimeHours": zod.number().optional()
+})
+
+
+/**
+ * @summary Update payroll record
  */
 export const UpdatePayrollParams = zod.object({
   "id": zod.coerce.number()
 })
 
 export const UpdatePayrollBody = zod.object({
-  "status": zod.enum(['pending', 'processing', 'paid']).optional()
+  "contractType": zod.enum(['monthly', 'daily', 'hourly']).optional(),
+  "workDaysPerMonth": zod.number().optional(),
+  "basicSalary": zod.string().optional(),
+  "overtime": zod.string().optional(),
+  "overtimeHours": zod.string().optional(),
+  "overtimeRate": zod.string().optional(),
+  "bonus": zod.string().optional(),
+  "allowances": zod.string().optional(),
+  "commissions": zod.string().optional(),
+  "advances": zod.string().optional(),
+  "fines": zod.string().optional(),
+  "deductions": zod.string().optional(),
+  "tax": zod.string().optional(),
+  "insurance": zod.string().optional(),
+  "netSalary": zod.string().optional(),
+  "grossSalary": zod.string().optional(),
+  "totalEarnings": zod.string().optional(),
+  "totalDeductions": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "status": zod.enum(['draft', 'pending', 'approved', 'paid', 'locked']).optional()
 })
 
 export const UpdatePayrollResponse = zod.object({
   "id": zod.number().optional(),
   "employeeId": zod.number().optional(),
   "employeeName": zod.string().nullish(),
+  "departmentName": zod.string().nullish(),
   "period": zod.string().optional(),
+  "contractType": zod.enum(['monthly', 'daily', 'hourly']).nullish(),
+  "workDaysPerMonth": zod.number().nullish(),
+  "dailyHoursScheduled": zod.string().nullish(),
   "basicSalary": zod.string().optional(),
+  "dailyRate": zod.string().nullish(),
+  "hourlyRate": zod.string().nullish(),
+  "minuteRate": zod.string().nullish(),
+  "secondRate": zod.string().nullish(),
+  "workedDays": zod.string().nullish(),
+  "workedHours": zod.string().nullish(),
+  "workedMinutes": zod.string().nullish(),
+  "workedSeconds": zod.string().nullish(),
+  "absentDays": zod.string().nullish(),
+  "lateMinutes": zod.string().nullish(),
+  "earlyMinutes": zod.string().nullish(),
+  "overtimeHours": zod.string().nullish(),
+  "overtimeRate": zod.string().nullish(),
   "overtime": zod.string().optional(),
   "bonus": zod.string().optional(),
+  "allowances": zod.string().nullish(),
+  "commissions": zod.string().nullish(),
+  "grossSalary": zod.string().nullish(),
+  "lateDeduction": zod.string().nullish(),
+  "absenceDeduction": zod.string().nullish(),
+  "advances": zod.string().nullish(),
+  "fines": zod.string().nullish(),
   "deductions": zod.string().optional(),
   "tax": zod.string().optional(),
+  "insurance": zod.string().nullish(),
+  "totalEarnings": zod.string().nullish(),
+  "totalDeductions": zod.string().nullish(),
   "netSalary": zod.string().optional(),
-  "status": zod.enum(['pending', 'processing', 'paid']).optional(),
+  "paidLeaveDays": zod.string().nullish(),
+  "unpaidLeaveDays": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'pending', 'approved', 'paid', 'locked']).optional(),
+  "approvedBy": zod.number().nullish(),
+  "approvedAt": zod.string().nullish(),
+  "lockedAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Approve a payroll record
+ */
+export const ApprovePayrollParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ApprovePayrollBody = zod.object({
+  "approvedBy": zod.number().optional()
+})
+
+export const ApprovePayrollResponse = zod.object({
+  "id": zod.number().optional(),
+  "employeeId": zod.number().optional(),
+  "employeeName": zod.string().nullish(),
+  "departmentName": zod.string().nullish(),
+  "period": zod.string().optional(),
+  "contractType": zod.enum(['monthly', 'daily', 'hourly']).nullish(),
+  "workDaysPerMonth": zod.number().nullish(),
+  "dailyHoursScheduled": zod.string().nullish(),
+  "basicSalary": zod.string().optional(),
+  "dailyRate": zod.string().nullish(),
+  "hourlyRate": zod.string().nullish(),
+  "minuteRate": zod.string().nullish(),
+  "secondRate": zod.string().nullish(),
+  "workedDays": zod.string().nullish(),
+  "workedHours": zod.string().nullish(),
+  "workedMinutes": zod.string().nullish(),
+  "workedSeconds": zod.string().nullish(),
+  "absentDays": zod.string().nullish(),
+  "lateMinutes": zod.string().nullish(),
+  "earlyMinutes": zod.string().nullish(),
+  "overtimeHours": zod.string().nullish(),
+  "overtimeRate": zod.string().nullish(),
+  "overtime": zod.string().optional(),
+  "bonus": zod.string().optional(),
+  "allowances": zod.string().nullish(),
+  "commissions": zod.string().nullish(),
+  "grossSalary": zod.string().nullish(),
+  "lateDeduction": zod.string().nullish(),
+  "absenceDeduction": zod.string().nullish(),
+  "advances": zod.string().nullish(),
+  "fines": zod.string().nullish(),
+  "deductions": zod.string().optional(),
+  "tax": zod.string().optional(),
+  "insurance": zod.string().nullish(),
+  "totalEarnings": zod.string().nullish(),
+  "totalDeductions": zod.string().nullish(),
+  "netSalary": zod.string().optional(),
+  "paidLeaveDays": zod.string().nullish(),
+  "unpaidLeaveDays": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'pending', 'approved', 'paid', 'locked']).optional(),
+  "approvedBy": zod.number().nullish(),
+  "approvedAt": zod.string().nullish(),
+  "lockedAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Lock an approved payroll record
+ */
+export const LockPayrollParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const LockPayrollResponse = zod.object({
+  "id": zod.number().optional(),
+  "employeeId": zod.number().optional(),
+  "employeeName": zod.string().nullish(),
+  "departmentName": zod.string().nullish(),
+  "period": zod.string().optional(),
+  "contractType": zod.enum(['monthly', 'daily', 'hourly']).nullish(),
+  "workDaysPerMonth": zod.number().nullish(),
+  "dailyHoursScheduled": zod.string().nullish(),
+  "basicSalary": zod.string().optional(),
+  "dailyRate": zod.string().nullish(),
+  "hourlyRate": zod.string().nullish(),
+  "minuteRate": zod.string().nullish(),
+  "secondRate": zod.string().nullish(),
+  "workedDays": zod.string().nullish(),
+  "workedHours": zod.string().nullish(),
+  "workedMinutes": zod.string().nullish(),
+  "workedSeconds": zod.string().nullish(),
+  "absentDays": zod.string().nullish(),
+  "lateMinutes": zod.string().nullish(),
+  "earlyMinutes": zod.string().nullish(),
+  "overtimeHours": zod.string().nullish(),
+  "overtimeRate": zod.string().nullish(),
+  "overtime": zod.string().optional(),
+  "bonus": zod.string().optional(),
+  "allowances": zod.string().nullish(),
+  "commissions": zod.string().nullish(),
+  "grossSalary": zod.string().nullish(),
+  "lateDeduction": zod.string().nullish(),
+  "absenceDeduction": zod.string().nullish(),
+  "advances": zod.string().nullish(),
+  "fines": zod.string().nullish(),
+  "deductions": zod.string().optional(),
+  "tax": zod.string().optional(),
+  "insurance": zod.string().nullish(),
+  "totalEarnings": zod.string().nullish(),
+  "totalDeductions": zod.string().nullish(),
+  "netSalary": zod.string().optional(),
+  "paidLeaveDays": zod.string().nullish(),
+  "unpaidLeaveDays": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'pending', 'approved', 'paid', 'locked']).optional(),
+  "approvedBy": zod.number().nullish(),
+  "approvedAt": zod.string().nullish(),
+  "lockedAt": zod.string().nullish(),
   "paidAt": zod.string().nullish(),
   "createdAt": zod.coerce.date().optional()
 })

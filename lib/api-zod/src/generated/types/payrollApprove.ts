@@ -6,11 +6,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type GetPayrollParams = {
-companyId: number;
-period?: string;
-employeeId?: number;
-status?: string;
-departmentId?: number;
-contractType?: string;
-};
+export interface PayrollApprove {
+  approvedBy?: number;
+}

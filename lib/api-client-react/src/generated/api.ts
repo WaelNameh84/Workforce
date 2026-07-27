@@ -48,6 +48,7 @@ import type {
   GetLeavesParams,
   GetLocationsParams,
   GetPayrollParams,
+  GetPayrollStatsParams,
   GetRequestsParams,
   GetSchedulesParams,
   GetTodayAttendanceParams,
@@ -61,7 +62,10 @@ import type {
   LocationList,
   LoginRequest,
   Payroll,
+  PayrollApprove,
+  PayrollInput,
   PayrollList,
+  PayrollStats,
   PayrollUpdate,
   RegisterRequest,
   Schedule,
@@ -2229,6 +2233,161 @@ export function useGetPayroll<TData = Awaited<ReturnType<typeof getPayroll>>, TE
 
 
 
+export const getCreatePayrollUrl = () => {
+
+
+
+
+  return `/api/payroll`
+}
+
+/**
+ * @summary Create or upsert a payroll record
+ */
+export const createPayroll = async (payrollInput: PayrollInput, options?: RequestInit): Promise<Payroll> => {
+
+  return customFetch<Payroll>(getCreatePayrollUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(payrollInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePayrollMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayroll>>, TError,{data: BodyType<PayrollInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPayroll>>, TError,{data: BodyType<PayrollInput>}, TContext> => {
+
+const mutationKey = ['createPayroll'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPayroll>>, {data: BodyType<PayrollInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPayroll(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePayrollMutationResult = NonNullable<Awaited<ReturnType<typeof createPayroll>>>
+    export type CreatePayrollMutationBody = BodyType<PayrollInput>
+    export type CreatePayrollMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create or upsert a payroll record
+ */
+export const useCreatePayroll = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayroll>>, TError,{data: BodyType<PayrollInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPayroll>>,
+        TError,
+        {data: BodyType<PayrollInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePayrollMutationOptions(options));
+    }
+
+export const getGetPayrollStatsUrl = (params: GetPayrollStatsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/payroll/stats?${stringifiedParams}` : `/api/payroll/stats`
+}
+
+/**
+ * @summary Get payroll statistics for a period
+ */
+export const getPayrollStats = async (params: GetPayrollStatsParams, options?: RequestInit): Promise<PayrollStats> => {
+
+  return customFetch<PayrollStats>(getGetPayrollStatsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayrollStatsQueryKey = (params?: GetPayrollStatsParams,) => {
+    return [
+    `/api/payroll/stats`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPayrollStatsQueryOptions = <TData = Awaited<ReturnType<typeof getPayrollStats>>, TError = ErrorType<unknown>>(params: GetPayrollStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayrollStatsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayrollStats>>> = ({ signal }) => getPayrollStats(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayrollStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayrollStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getPayrollStats>>>
+export type GetPayrollStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get payroll statistics for a period
+ */
+
+export function useGetPayrollStats<TData = Awaited<ReturnType<typeof getPayrollStats>>, TError = ErrorType<unknown>>(
+ params: GetPayrollStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayrollStatsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getUpdatePayrollUrl = (id: number,) => {
 
 
@@ -2238,7 +2397,7 @@ export const getUpdatePayrollUrl = (id: number,) => {
 }
 
 /**
- * @summary Update payroll status
+ * @summary Update payroll record
  */
 export const updatePayroll = async (id: number,
     payrollUpdate: PayrollUpdate, options?: RequestInit): Promise<Payroll> => {
@@ -2288,7 +2447,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdatePayrollMutationError = ErrorType<unknown>
 
     /**
- * @summary Update payroll status
+ * @summary Update payroll record
  */
 export const useUpdatePayroll = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePayroll>>, TError,{id: number;data: BodyType<PayrollUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -2299,6 +2458,149 @@ export const useUpdatePayroll = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdatePayrollMutationOptions(options));
+    }
+
+export const getApprovePayrollUrl = (id: number,) => {
+
+
+
+
+  return `/api/payroll/${id}/approve`
+}
+
+/**
+ * @summary Approve a payroll record
+ */
+export const approvePayroll = async (id: number,
+    payrollApprove: PayrollApprove, options?: RequestInit): Promise<Payroll> => {
+
+  return customFetch<Payroll>(getApprovePayrollUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(payrollApprove)
+  }
+);}
+
+
+
+
+
+export const getApprovePayrollMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approvePayroll>>, TError,{id: number;data: BodyType<PayrollApprove>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approvePayroll>>, TError,{id: number;data: BodyType<PayrollApprove>}, TContext> => {
+
+const mutationKey = ['approvePayroll'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approvePayroll>>, {id: number;data: BodyType<PayrollApprove>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  approvePayroll(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApprovePayrollMutationResult = NonNullable<Awaited<ReturnType<typeof approvePayroll>>>
+    export type ApprovePayrollMutationBody = BodyType<PayrollApprove>
+    export type ApprovePayrollMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve a payroll record
+ */
+export const useApprovePayroll = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approvePayroll>>, TError,{id: number;data: BodyType<PayrollApprove>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approvePayroll>>,
+        TError,
+        {id: number;data: BodyType<PayrollApprove>},
+        TContext
+      > => {
+      return useMutation(getApprovePayrollMutationOptions(options));
+    }
+
+export const getLockPayrollUrl = (id: number,) => {
+
+
+
+
+  return `/api/payroll/${id}/lock`
+}
+
+/**
+ * @summary Lock an approved payroll record
+ */
+export const lockPayroll = async (id: number, options?: RequestInit): Promise<Payroll> => {
+
+  return customFetch<Payroll>(getLockPayrollUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLockPayrollMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof lockPayroll>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof lockPayroll>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['lockPayroll'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof lockPayroll>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  lockPayroll(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LockPayrollMutationResult = NonNullable<Awaited<ReturnType<typeof lockPayroll>>>
+
+    export type LockPayrollMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Lock an approved payroll record
+ */
+export const useLockPayroll = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof lockPayroll>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof lockPayroll>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getLockPayrollMutationOptions(options));
     }
 
 export const getGetRequestsUrl = (params: GetRequestsParams,) => {

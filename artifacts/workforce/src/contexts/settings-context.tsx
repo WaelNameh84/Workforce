@@ -81,6 +81,7 @@ export interface AppSettings {
   weekStart: string;
   lateGrace: string;
   otThreshold: string;
+  workDays: string;
   deductRate: string;
   annualLeave: string;
   holidays: string[];
@@ -194,6 +195,7 @@ export const DEFAULTS: AppSettings = {
   weekStart: 'sunday',
   lateGrace: '15',
   otThreshold: '60',
+  workDays: '22',
   deductRate: 'hour',
   annualLeave: '21',
   holidays: ['الجمعة', 'السبت'],

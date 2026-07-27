@@ -6,10 +6,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type PayrollUpdateStatus = typeof PayrollUpdateStatus[keyof typeof PayrollUpdateStatus];
+export type PayrollInputStatus = typeof PayrollInputStatus[keyof typeof PayrollInputStatus];
 
 
-export const PayrollUpdateStatus = {
+export const PayrollInputStatus = {
   draft: 'draft',
   pending: 'pending',
   approved: 'approved',

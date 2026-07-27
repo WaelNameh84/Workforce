@@ -119,15 +119,60 @@ export const payroll = pgTable('payroll', {
   id: serial('id').primaryKey(),
   employeeId: integer('employee_id').notNull(),
   period: varchar('period', { length: 20 }).notNull(),
-  basicSalary: decimal('basic_salary', { precision: 10, scale: 2 }).default('0'),
-  overtime: decimal('overtime', { precision: 10, scale: 2 }).default('0'),
-  bonus: decimal('bonus', { precision: 10, scale: 2 }).default('0'),
-  deductions: decimal('deductions', { precision: 10, scale: 2 }).default('0'),
-  tax: decimal('tax', { precision: 10, scale: 2 }).default('0'),
-  netSalary: decimal('net_salary', { precision: 10, scale: 2 }).default('0'),
-  status: varchar('status', { length: 20 }).default('pending'),
+  // Contract settings
+  contractType: varchar('contract_type', { length: 20 }).default('monthly'),
+  workDaysPerMonth: integer('work_days_per_month').default(26),
+  dailyHoursScheduled: decimal('daily_hours_scheduled', { precision: 5, scale: 2 }).default('8'),
+  // Core salary
+  basicSalary: decimal('basic_salary', { precision: 14, scale: 4 }).default('0'),
+  dailyRate: decimal('daily_rate', { precision: 14, scale: 4 }).default('0'),
+  hourlyRate: decimal('hourly_rate', { precision: 14, scale: 6 }).default('0'),
+  minuteRate: decimal('minute_rate', { precision: 14, scale: 8 }).default('0'),
+  secondRate: decimal('second_rate', { precision: 14, scale: 10 }).default('0'),
+  // Time worked
+  workedDays: decimal('worked_days', { precision: 8, scale: 2 }).default('0'),
+  workedHours: decimal('worked_hours', { precision: 10, scale: 4 }).default('0'),
+  workedMinutes: decimal('worked_minutes', { precision: 12, scale: 2 }).default('0'),
+  workedSeconds: decimal('worked_seconds', { precision: 14, scale: 0 }).default('0'),
+  absentDays: decimal('absent_days', { precision: 8, scale: 2 }).default('0'),
+  lateMinutes: decimal('late_minutes', { precision: 10, scale: 2 }).default('0'),
+  earlyMinutes: decimal('early_minutes', { precision: 10, scale: 2 }).default('0'),
+  // Overtime
+  overtimeHours: decimal('overtime_hours', { precision: 10, scale: 4 }).default('0'),
+  overtimeRate: decimal('overtime_rate', { precision: 5, scale: 2 }).default('1.5'),
+  overtime: decimal('overtime', { precision: 14, scale: 4 }).default('0'),
+  // Additions
+  bonus: decimal('bonus', { precision: 14, scale: 4 }).default('0'),
+  allowances: decimal('allowances', { precision: 14, scale: 4 }).default('0'),
+  commissions: decimal('commissions', { precision: 14, scale: 4 }).default('0'),
+  grossSalary: decimal('gross_salary', { precision: 14, scale: 4 }).default('0'),
+  // Deductions
+  lateDeduction: decimal('late_deduction', { precision: 14, scale: 4 }).default('0'),
+  absenceDeduction: decimal('absence_deduction', { precision: 14, scale: 4 }).default('0'),
+  advances: decimal('advances', { precision: 14, scale: 4 }).default('0'),
+  fines: decimal('fines', { precision: 14, scale: 4 }).default('0'),
+  deductions: decimal('deductions', { precision: 14, scale: 4 }).default('0'),
+  // Optional statutory
+  tax: decimal('tax', { precision: 14, scale: 4 }).default('0'),
+  insurance: decimal('insurance', { precision: 14, scale: 4 }).default('0'),
+  // Totals
+  totalEarnings: decimal('total_earnings', { precision: 14, scale: 4 }).default('0'),
+  totalDeductions: decimal('total_deductions', { precision: 14, scale: 4 }).default('0'),
+  netSalary: decimal('net_salary', { precision: 14, scale: 4 }).default('0'),
+  // Leave
+  paidLeaveDays: decimal('paid_leave_days', { precision: 8, scale: 2 }).default('0'),
+  unpaidLeaveDays: decimal('unpaid_leave_days', { precision: 8, scale: 2 }).default('0'),
+  // Metadata
+  metadata: jsonb('metadata'),
+  notes: text('notes'),
+  // Status and approval
+  status: varchar('status', { length: 20 }).default('draft'),
+  approvedBy: integer('approved_by'),
+  approvedAt: timestamp('approved_at'),
+  lockedAt: timestamp('locked_at'),
   paidAt: timestamp('paid_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const requests = pgTable('requests', {

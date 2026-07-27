@@ -475,23 +475,123 @@ components:
         employeeName:
           type: string
           nullable: true
+        departmentName:
+          type: string
+          nullable: true
         period:
           type: string
+        contractType:
+          type: string
+          nullable: true
+          enum: [monthly, daily, hourly]
+        workDaysPerMonth:
+          type: integer
+          nullable: true
+        dailyHoursScheduled:
+          type: string
+          nullable: true
         basicSalary:
           type: string
+        dailyRate:
+          type: string
+          nullable: true
+        hourlyRate:
+          type: string
+          nullable: true
+        minuteRate:
+          type: string
+          nullable: true
+        secondRate:
+          type: string
+          nullable: true
+        workedDays:
+          type: string
+          nullable: true
+        workedHours:
+          type: string
+          nullable: true
+        workedMinutes:
+          type: string
+          nullable: true
+        workedSeconds:
+          type: string
+          nullable: true
+        absentDays:
+          type: string
+          nullable: true
+        lateMinutes:
+          type: string
+          nullable: true
+        earlyMinutes:
+          type: string
+          nullable: true
+        overtimeHours:
+          type: string
+          nullable: true
+        overtimeRate:
+          type: string
+          nullable: true
         overtime:
           type: string
         bonus:
           type: string
+        allowances:
+          type: string
+          nullable: true
+        commissions:
+          type: string
+          nullable: true
+        grossSalary:
+          type: string
+          nullable: true
+        lateDeduction:
+          type: string
+          nullable: true
+        absenceDeduction:
+          type: string
+          nullable: true
+        advances:
+          type: string
+          nullable: true
+        fines:
+          type: string
+          nullable: true
         deductions:
           type: string
         tax:
           type: string
+        insurance:
+          type: string
+          nullable: true
+        totalEarnings:
+          type: string
+          nullable: true
+        totalDeductions:
+          type: string
+          nullable: true
         netSalary:
           type: string
+        paidLeaveDays:
+          type: string
+          nullable: true
+        unpaidLeaveDays:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
         status:
           type: string
-          enum: [pending, processing, paid]
+          enum: [draft, pending, approved, paid, locked]
+        approvedBy:
+          type: integer
+          nullable: true
+        approvedAt:
+          type: string
+          nullable: true
+        lockedAt:
+          type: string
+          nullable: true
         paidAt:
           type: string
           nullable: true
@@ -499,12 +599,136 @@ components:
           type: string
           format: date-time
 
+    PayrollInput:
+      type: object
+      required: [employeeId, period, basicSalary]
+      properties:
+        employeeId:
+          type: integer
+        period:
+          type: string
+        contractType:
+          type: string
+          enum: [monthly, daily, hourly]
+        workDaysPerMonth:
+          type: integer
+        dailyHoursScheduled:
+          type: string
+        basicSalary:
+          type: string
+        dailyRate:
+          type: string
+        hourlyRate:
+          type: string
+        workedDays:
+          type: string
+        workedHours:
+          type: string
+        workedMinutes:
+          type: string
+        workedSeconds:
+          type: string
+        absentDays:
+          type: string
+        lateMinutes:
+          type: string
+        earlyMinutes:
+          type: string
+        overtimeHours:
+          type: string
+        overtimeRate:
+          type: string
+        overtime:
+          type: string
+        bonus:
+          type: string
+        allowances:
+          type: string
+        commissions:
+          type: string
+        grossSalary:
+          type: string
+        lateDeduction:
+          type: string
+        absenceDeduction:
+          type: string
+        advances:
+          type: string
+        fines:
+          type: string
+        deductions:
+          type: string
+        tax:
+          type: string
+        insurance:
+          type: string
+        totalEarnings:
+          type: string
+        totalDeductions:
+          type: string
+        netSalary:
+          type: string
+        paidLeaveDays:
+          type: string
+        unpaidLeaveDays:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+          enum: [draft, pending, approved, paid, locked]
+
     PayrollUpdate:
       type: object
       properties:
+        contractType:
+          type: string
+          enum: [monthly, daily, hourly]
+        workDaysPerMonth:
+          type: integer
+        basicSalary:
+          type: string
+        overtime:
+          type: string
+        overtimeHours:
+          type: string
+        overtimeRate:
+          type: string
+        bonus:
+          type: string
+        allowances:
+          type: string
+        commissions:
+          type: string
+        advances:
+          type: string
+        fines:
+          type: string
+        deductions:
+          type: string
+        tax:
+          type: string
+        insurance:
+          type: string
+        netSalary:
+          type: string
+        grossSalary:
+          type: string
+        totalEarnings:
+          type: string
+        totalDeductions:
+          type: string
+        notes:
+          type: string
         status:
           type: string
-          enum: [pending, processing, paid]
+          enum: [draft, pending, approved, paid, locked]
+
+    PayrollApprove:
+      type: object
+      properties:
+        approvedBy:
+          type: integer
 
     # WorkRequest
     WorkRequest:
@@ -691,6 +915,48 @@ components:
             $ref: '#/components/schemas/Payroll'
         total:
           type: integer
+
+    PayrollStats:
+      type: object
+      properties:
+        period:
+          type: string
+        totalBasicSalary:
+          type: number
+        totalGross:
+          type: number
+        totalNet:
+          type: number
+        totalOvertime:
+          type: number
+        totalBonus:
+          type: number
+        totalAllowances:
+          type: number
+        totalDeductions:
+          type: number
+        totalTax:
+          type: number
+        totalInsurance:
+          type: number
+        averageSalary:
+          type: number
+        maxSalary:
+          type: number
+        minSalary:
+          type: number
+        headcount:
+          type: integer
+        approvedCount:
+          type: integer
+        pendingCount:
+          type: integer
+        paidCount:
+          type: integer
+        totalWorkedHours:
+          type: number
+        totalOvertimeHours:
+          type: number
 
     WorkRequestList:
       type: object
@@ -1385,6 +1651,18 @@ paths:
           in: query
           schema:
             type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: departmentId
+          in: query
+          schema:
+            type: integer
+        - name: contractType
+          in: query
+          schema:
+            type: string
       responses:
         '200':
           description: OK
@@ -1392,11 +1670,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PayrollList'
+    post:
+      operationId: createPayroll
+      summary: Create or upsert a payroll record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayrollInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payroll'
+
+  /payroll/stats:
+    get:
+      operationId: getPayrollStats
+      summary: Get payroll statistics for a period
+      parameters:
+        - name: companyId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: period
+          in: query
+          schema:
+            type: string
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollStats'
 
   /payroll/{id}:
     put:
       operationId: updatePayroll
-      summary: Update payroll status
+      summary: Update payroll record
       parameters:
         - name: id
           in: path
@@ -1409,6 +1729,48 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PayrollUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payroll'
+
+  /payroll/{id}/approve:
+    post:
+      operationId: approvePayroll
+      summary: Approve a payroll record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayrollApprove'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payroll'
+
+  /payroll/{id}/lock:
+    post:
+      operationId: lockPayroll
+      summary: Lock an approved payroll record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: OK

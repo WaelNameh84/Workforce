@@ -10,7 +10,9 @@ export type PayrollStatus = typeof PayrollStatus[keyof typeof PayrollStatus];
 
 
 export const PayrollStatus = {
+  draft: 'draft',
   pending: 'pending',
-  processing: 'processing',
+  approved: 'approved',
   paid: 'paid',
+  locked: 'locked',
 } as const;
