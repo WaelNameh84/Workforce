@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useSettings } from '@/contexts/settings-context';
 import { useGetDashboardStats, useGetAttendance, useGetEmployees, useGetLeaves, useGetPayroll, useGetRequests, getGetDashboardStatsQueryKey, getGetAttendanceQueryKey, getGetEmployeesQueryKey, getGetLeavesQueryKey, getGetPayrollQueryKey, getGetRequestsQueryKey } from '@workspace/api-client-react';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { Link, useLocation } from 'wouter';
@@ -25,6 +26,7 @@ type AdminDetailCard = {
 // Admin dashboard — a touch-first live operations screen, not a navigation page.
 function AdminDashboard() {
   const { user } = useAuth();
+  const { s } = useSettings();
   const { t, intlLocale, formatDate, formatTime, formatCurrency, translateText } = useLanguage();
   const [, setLocation] = useLocation();
   const companyId = user?.companyId || 0;
@@ -272,6 +274,9 @@ function AdminDashboard() {
         <div>
            <p className="text-xs font-bold text-indigo-300 mb-1">{translateText('مركز المتابعة الحي')}</p>
            <h1 className="font-display text-2xl font-extrabold text-white">{translateText('مرحباً،')} {displayName}</h1>
+           {s.welcomeMsg && s.welcomeMsg !== 'أهلاً وسهلاً في نظام إدارة القوى العاملة' && (
+             <p className="text-xs text-indigo-300 font-medium mt-0.5">{s.welcomeMsg}</p>
+           )}
           <p className="text-xs text-slate-400 mt-1">{dateLabel}</p>
         </div>
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
@@ -517,6 +522,7 @@ function AdminDashboard() {
 // Employee dashboard — only shows their own quick stats
 function EmployeeDashboard() {
   const { user } = useAuth();
+  const { s } = useSettings();
   const { t } = useLanguage();
 
   const empId = (user as any)?.employeeId;
@@ -556,6 +562,9 @@ function EmployeeDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-white mb-1">مرحباً، {user?.fullName?.split(' ')[0]}</h1>
+          {s.welcomeMsg && s.welcomeMsg !== 'أهلاً وسهلاً في نظام إدارة القوى العاملة' && (
+            <p className="text-indigo-300 text-xs font-medium mt-0.5">{s.welcomeMsg}</p>
+          )}
           <p className="text-muted-foreground text-sm">{new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">

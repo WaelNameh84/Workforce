@@ -3,3 +3,4 @@
 - [Payroll approval state](payroll-approval-state.md) — keep approval and payment decisions separate so payroll only uses explicitly paid approvals.
 - [Native interaction layer](native-interaction-layer.md) — keep mobile-native behaviors shared at the shell and degrade safely on desktop browsers.
 - [Mobile scroll ownership](mobile-scroll-ownership.md) — preserve native vertical scrolling; pull-to-refresh only observes downward pulls from the top edge.
+- [Settings draft workflow](settings-draft-workflow.md) — settings edits stay local to the settings screen until the user explicitly saves them.

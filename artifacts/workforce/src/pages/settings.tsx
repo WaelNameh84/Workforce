@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { THEMES_CATALOG } from '@/components/splash-themes';
+import { THEMES_CATALOG, GLOBAL_CSS, ThemeCosmic, ThemeAurora, ThemeNeon, ThemeCrystal, ThemeFire, ThemeOcean, ThemeRings, ThemeGlass, ThemePremium, ThemeHolo, ThemeParticles, ThemeSpace, ThemeGolden, ThemeSmoke } from '@/components/splash-themes';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/components/ui/use-toast';
-import { useSettings } from '@/contexts/settings-context';
+import { DEFAULTS, AppSettings, useSettings } from '@/contexts/settings-context';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
   Image, Building2, Palette, Clock4, Key, Globe, Bell, AlarmClock,
@@ -320,6 +320,208 @@ function SaveBtn({ onClick, label = 'حفظ التغييرات', color = 'indigo
   );
 }
 
+function toRgb(hex: string) {
+  const normalized = hex.replace('#', '');
+  const value = parseInt(normalized.length === 3 ? normalized.split('').map(x => x + x).join('') : normalized, 16);
+  if (Number.isNaN(value)) return '99,102,241';
+  return `${(value >> 16) & 255},${(value >> 8) & 255},${value & 255}`;
+}
+
+const SPLASH_THEME_MAP = {
+  cosmic: ThemeCosmic,
+  aurora: ThemeAurora,
+  neon: ThemeNeon,
+  crystal: ThemeCrystal,
+  fire: ThemeFire,
+  ocean: ThemeOcean,
+  rings: ThemeRings,
+  glass: ThemeGlass,
+  premium: ThemePremium,
+  holo: ThemeHolo,
+  particles: ThemeParticles,
+  space: ThemeSpace,
+  golden: ThemeGolden,
+  smoke: ThemeSmoke,
+} as const;
+
+function SplashLivePreview({ settings, previewKey = 0 }: { settings: AppSettings; previewKey?: number }) {
+  const duration = Math.max(1800, parseInt(settings.splashDuration || '2500', 10));
+  const Theme = SPLASH_THEME_MAP[settings.splashTheme] ?? ThemeCosmic;
+  const color = settings.appColor || '#6366f1';
+
+  return (
+    <div
+      key={previewKey}
+      className="mt-5 rounded-xl overflow-hidden border border-border relative"
+      style={{
+        height: 250,
+        backgroundColor: settings.splashBgColor || '#0f172a',
+        backgroundImage: settings.splashUrl ? `url(${settings.splashUrl})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <style>{GLOBAL_CSS}</style>
+      <div className="absolute inset-0 bg-black/20">
+        <Theme
+          color={color}
+          rgb={toRgb(color)}
+          appName={settings.appName || 'WorkforceOS'}
+          companyName={settings.companyName || ''}
+          logoUrl={settings.logoUrl || ''}
+          showLogo={settings.splashShowLogo !== false}
+          showName={settings.splashShowName !== false}
+          showProg={settings.splashShowProgress !== false}
+          fillSec={Math.max(0.5, (duration - 1200) / 1000)}
+        />
+      </div>
+      <div className="absolute inset-x-0 bottom-2 text-center text-[10px] text-white/60 pointer-events-none">
+        معاينة شاشة البداية — لا تُطبّق حتى الحفظ
+      </div>
+    </div>
+  );
+}
+
+function PreviewSample({ settings, sectionId, liveTime, previewKey = 0 }: { settings: AppSettings; sectionId: string; liveTime: Date; previewKey?: number }) {
+  const cardBackground = settings.cardColors === 'solid-light' ? '#f8fafc' : settings.cardColors === 'solid-dark' ? '#111827' : 'rgba(255,255,255,.08)';
+  const pageBackground = settings.background === 'gradient'
+    ? `linear-gradient(135deg, ${settings.appColor}55, #0f172a)`
+    : settings.background === 'grid'
+      ? `linear-gradient(${settings.appColor}18 1px, transparent 1px), linear-gradient(90deg, ${settings.appColor}18 1px, transparent 1px)`
+      : settings.background === 'dotted'
+        ? `radial-gradient(${settings.appColor}55 1px, transparent 1px)`
+        : 'var(--background)';
+  const fontWeight = settings.fontWeight === 'bold' ? 700 : settings.fontWeight === 'medium' ? 500 : 400;
+  const fontStyle = settings.fontShape === 'italic' ? 'italic' : 'normal';
+  const lineHeight = settings.lineHeight === 'tight' ? 1.2 : settings.lineHeight === 'relaxed' ? 1.8 : 1.5;
+  const letterSpacing = settings.letterSpacing === 'tight' ? '-0.05em' : settings.letterSpacing === 'wide' ? '0.1em' : 'normal';
+
+  if (sectionId === 'logo') return (
+    <div className="rounded-2xl p-6 text-center border border-border" style={{ background: pageBackground }}>
+      {settings.logoUrl
+        ? <img src={settings.logoUrl} alt="" className="w-16 h-16 object-contain mx-auto mb-3 rounded-2xl" />
+        : <div className="w-16 h-16 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl font-black text-white" style={{ background: settings.appColor }}>{(settings.appName || 'W')[0].toUpperCase()}</div>}
+      <h3 className="font-black text-xl">{settings.appName || 'WorkforceOS'}</h3>
+      <p className="text-sm text-muted-foreground mt-1">{settings.welcomeMsg || 'أهلاً وسهلاً'}</p>
+      {settings.companyName && <p className="text-xs mt-3" style={{ color: settings.appColor }}>{settings.companyName}</p>}
+    </div>
+  );
+
+  if (sectionId === 'background') return (
+    <div className="rounded-2xl p-5 border border-border space-y-4" style={{ background: pageBackground, backgroundSize: settings.background === 'grid' || settings.background === 'dotted' ? '18px 18px' : undefined }}>
+      <div className="grid grid-cols-3 gap-2">
+        {['الحضور', 'الرواتب', 'الإجازات'].map(label => (
+          <div key={label} className="rounded-xl p-3 border border-border text-center" style={{ background: cardBackground, color: settings.cardColors === 'solid-light' ? '#0f172a' : undefined }}>
+            <div className="w-7 h-7 rounded-lg mx-auto mb-2" style={{ background: `${settings.appColor}55` }} />
+            <p className="text-[11px] font-bold">{label}</p>
+          </div>
+        ))}
+      </div>
+      <button className="w-full rounded-xl py-2.5 text-white text-sm font-bold" style={{ background: settings.buttonColor === 'green' ? '#16a34a' : settings.buttonColor === 'blue' ? '#2563eb' : settings.buttonColor === 'rose' ? '#e11d48' : settings.appColor }}>حفظ الإجراء</button>
+    </div>
+  );
+
+  if (sectionId === 'clock') return (
+    <div className="rounded-2xl p-7 border border-border text-center" style={{ color: settings.clockColor }}>
+      <p className={`font-mono font-black tabular-nums ${settings.clockSize === 'small' ? 'text-3xl' : settings.clockSize === 'large' ? 'text-6xl' : 'text-5xl'}`}>
+        {liveTime.toLocaleTimeString(settings.showArabicDay ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', second: settings.showSeconds ? '2-digit' : undefined, hour12: settings.show12h })}
+      </p>
+      {settings.showDate && <p className="text-sm text-muted-foreground mt-2">{liveTime.toLocaleDateString(settings.showArabicDay ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>}
+      {settings.showShiftClock && <span className="inline-flex mt-3 px-3 py-1 rounded-full border border-border text-xs text-muted-foreground">دخلت 08:55</span>}
+    </div>
+  );
+
+  if (sectionId === 'splash') return <SplashLivePreview settings={settings} previewKey={previewKey} />;
+
+  if (sectionId === 'assistant') return (
+    <div className="rounded-2xl p-5 border border-rose-500/20 bg-gradient-to-br from-rose-500/10 to-pink-500/5">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center bg-gradient-to-br from-rose-500 to-pink-500">
+          {settings.assistantAvatarUrl ? <img src={settings.assistantAvatarUrl} alt="" className="w-full h-full object-cover" /> : <Bot className="w-6 h-6 text-white" />}
+        </div>
+        <div><p className="font-bold">{settings.assistantName || 'WorkBot'}</p><p className="text-[11px] text-muted-foreground">{settings.assistantOn ? 'مساعد نشط' : 'المساعد متوقف'}</p></div>
+      </div>
+      <p className="mt-5 rounded-xl bg-black/10 p-3 text-sm leading-7">{settings.assistantMsg || 'مرحباً! كيف يمكنني مساعدتك؟'}</p>
+    </div>
+  );
+
+  if (sectionId === 'language') {
+    const previewLocale = settings.language === 'ar' ? 'ar-SA' : settings.language === 'sv' ? 'sv-SE' : 'en-US';
+    return <div className="rounded-2xl p-5 border border-teal-500/20 bg-teal-500/5 space-y-2 text-sm">
+      <p className="font-bold text-teal-300">معاينة التنسيق</p>
+      <p className="text-muted-foreground">التاريخ: {new Date().toLocaleDateString(previewLocale)}</p>
+      <p className="text-muted-foreground">{new Intl.NumberFormat(previewLocale, { style: 'currency', currency: settings.currencyCode, maximumFractionDigits: 0 }).format(15000)}</p>
+      <p className="text-xs text-muted-foreground">المنطقة الزمنية: {settings.timezone}</p>
+    </div>;
+  }
+
+  if (sectionId === 'alarm') return (
+    <div className="rounded-2xl p-5 border border-orange-500/20 bg-orange-500/5 space-y-3">
+      <p className="font-bold text-orange-300">التنبيهات المفعلة</p>
+      <p className="text-sm text-muted-foreground">{settings.notif.shiftStart ? `بداية الدوام: ${settings.shiftStartAlarm}` : 'منبه البداية متوقف'}</p>
+      <p className="text-sm text-muted-foreground">{settings.notif.shiftEnd ? `نهاية الدوام: ${settings.shiftEndAlarm}` : 'منبه النهاية متوقف'}</p>
+      <p className="text-xs text-muted-foreground">الصوت: {settings.notif.sound ? settings.notifSoundTone : 'متوقف'}</p>
+    </div>
+  );
+
+  if (sectionId === 'location') return (
+    <div className="rounded-2xl p-5 border border-green-500/20 bg-green-500/5">
+      <div className="h-28 rounded-xl border border-green-500/20 relative overflow-hidden bg-green-500/5">
+        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(45deg, transparent 48%, #22c55e 49%, transparent 51%), linear-gradient(-45deg, transparent 48%, #22c55e 49%, transparent 51%)', backgroundSize: '30px 30px' }} />
+        <div className="absolute inset-0 flex items-center justify-center"><div className="w-16 h-16 rounded-full border-2 border-green-400/40 flex items-center justify-center"><MapPin className="w-6 h-6 text-green-400" /></div></div>
+      </div>
+      <p className="text-sm font-bold mt-3">{settings.locationAddress || 'لم يتم تحديد عنوان الشركة'}</p>
+      <p className="text-xs text-muted-foreground mt-1">نطاق السماح: {settings.locationRadius}م · الوضع: {settings.locationMode}</p>
+    </div>
+  );
+
+  if (sectionId === 'font') return (
+    <div className="rounded-2xl p-5 border border-cyan-500/20 bg-cyan-500/5" style={{ fontWeight, fontStyle, lineHeight, letterSpacing }}>
+      <p className="text-[10px] text-muted-foreground mb-2">معاينة النص</p>
+      <p className="text-xl">إدارة القوى العاملة — نظام متكامل</p>
+      <p className="text-sm text-muted-foreground mt-2">الحضور والرواتب والإجازات في مكان واحد</p>
+    </div>
+  );
+
+  if (sectionId === 'dashboard') return (
+    <div className="rounded-2xl p-4 border border-blue-500/20 bg-blue-500/5 space-y-3">
+      {settings.dashboardGreeting && <p className="font-bold">مرحباً بك في لوحة البداية</p>}
+      {settings.dashboardClock && <p className="font-mono text-blue-300">{liveTime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</p>}
+      <div className={`grid gap-2 ${settings.dashboardLayout === 'compact' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {settings.dashboardWidgets.slice(0, settings.dashboardLayout === 'detailed' ? 6 : 4).map(widget => <div key={widget} className="h-12 rounded-xl border border-border bg-white/5 text-[10px] flex items-center justify-center text-muted-foreground">{DASH_WIDGETS.find(item => item.id === widget)?.label || widget}</div>)}
+      </div>
+    </div>
+  );
+
+  if (sectionId === 'auth') return <div className="rounded-2xl p-5 border border-violet-500/20 bg-violet-500/5 space-y-3"><p className="font-bold">حالة الأمان</p>{[['PIN', settings.biometric.pin], ['Face ID', settings.biometric.faceId], ['البصمة', settings.biometric.fingerprint]].map(([label, enabled]) => <div key={String(label)} className="flex justify-between text-sm"><span>{label}</span><span className={enabled ? 'text-green-400' : 'text-muted-foreground'}>{enabled ? 'مُفعّل' : 'متوقف'}</span></div>)}</div>;
+  if (sectionId === 'credentials') return <div className="rounded-2xl p-5 border border-slate-500/20 bg-slate-500/5 space-y-3"><p className="font-bold">تحديث بيانات الحساب</p><div className="h-10 rounded-xl border border-border bg-white/5" /><div className="h-10 rounded-xl border border-border bg-white/5" /><p className="text-xs text-muted-foreground">سيتم طلب التأكيد قبل التحديث</p></div>;
+  if (sectionId === 'backup') return <div className="rounded-2xl p-5 border border-emerald-500/20 bg-emerald-500/5 space-y-3"><p className="font-bold text-emerald-300">نسخة WorkforceOS الاحتياطية</p><p className="text-sm text-muted-foreground">الملف يشمل جميع الإعدادات والألوان وتفضيلات المستخدم.</p><div className="h-2 rounded-full bg-emerald-500/20"><div className="h-full w-3/4 rounded-full bg-emerald-400" /></div></div>;
+  if (sectionId === 'clearlogs') return <div className="rounded-2xl p-5 border border-red-500/20 bg-red-500/5 space-y-3"><AlertTriangle className="w-6 h-6 text-red-400" /><p className="font-bold text-red-300">منطقة حذف السجلات</p><p className="text-sm text-muted-foreground">هذه الإجراءات لا يمكن التراجع عنها.</p></div>;
+  if (sectionId === 'apikeys') return <div className="rounded-2xl p-5 border border-amber-500/20 bg-amber-500/5 space-y-3"><p className="font-bold text-amber-300">حالة الخدمات</p>{['OpenAI', 'Gemini', 'Maps'].map(name => <div key={name} className="flex justify-between text-sm"><span>{name}</span><span className="text-muted-foreground">جاهز للربط</span></div>)}</div>;
+
+  return <div className="rounded-2xl p-5 border border-border bg-white/5"><p className="font-bold">معاينة الإعدادات</p><p className="text-sm text-muted-foreground mt-2">هذه التغييرات مؤقتة وتُطبّق على النظام بعد الضغط على «حفظ».</p></div>;
+}
+
+function SettingsPreviewModal({ sectionId, sectionLabel, settings, liveTime, previewKey, onClose, onReplay }: {
+  sectionId: string; sectionLabel: string; settings: AppSettings; liveTime: Date; previewKey: number; onClose: () => void; onReplay: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" dir="rtl">
+      <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border p-5 shadow-2xl" style={{ background: 'var(--card)' }}>
+        <button onClick={onClose} className="absolute top-4 left-4 w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition" aria-label="إغلاق المعاينة"><X className="w-4 h-4" /></button>
+        <div className="mb-4 pl-10">
+          <p className="text-xs text-indigo-300 font-bold">معاينة مؤقتة</p>
+          <h3 className="font-black text-xl">معاينة {sectionLabel}</h3>
+          <p className="text-xs text-muted-foreground mt-1">لن يتغير التطبيق أو التخزين حتى تضغط «حفظ».</p>
+        </div>
+        <PreviewSample settings={settings} sectionId={sectionId} liveTime={liveTime} previewKey={previewKey} />
+        {sectionId === 'splash' && <button onClick={onReplay} className="w-full mt-3 py-2.5 rounded-xl border border-pink-500/40 text-pink-300 font-bold text-sm flex items-center justify-center gap-2"><Play className="w-4 h-4" /> إعادة تشغيل المعاينة</button>}
+        <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-sm transition">إغلاق المعاينة</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Section nav config ────────────────────────────────────────────────────────
 const SECTIONS = [
   { id: 'logo',        label: 'اللوغو والاسم',       icon: Image,          color: 'bg-indigo-500',  desc: 'شعار وهوية التطبيق' },
@@ -355,12 +557,17 @@ const DASH_WIDGETS = [
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export default function Settings() {
-  const { theme, setTheme }   = useTheme();
-  const { locale, setLocale } = useLanguage();
+  const { theme: savedTheme, setTheme }   = useTheme();
+  const { locale: savedLocale, setLocale } = useLanguage();
   const { toast }             = useToast();
-  const { s, update, save }   = useSettings();
+  const { s: savedSettings, save }   = useSettings();
 
   const [activeSection, setActiveSection] = useState('logo');
+  const [draft, setDraft] = useState<AppSettings>(() => savedSettings);
+  const [draftTheme, setDraftTheme] = useState(savedTheme);
+  const [draftLocale, setDraftLocale] = useState(savedLocale);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
   const [showKeys, setShowKeys]           = useState<Record<string, boolean>>({});
   const [showPw, setShowPw]               = useState<Record<string, boolean>>({});
   const [pinDialog, setPinDialog]         = useState(false);
@@ -373,11 +580,27 @@ export default function Settings() {
   const [newPw, setNewPw]             = useState('');
   const [confirmPw, setConfirmPw]     = useState('');
 
+  // Settings are edited locally first. The rest of the application only sees
+  // them after an explicit save.
+  const s = draft;
+  const theme = draftTheme;
+  const locale = draftLocale;
+  const update = (patch: Partial<AppSettings>) => {
+    setDraft(prev => {
+      const next = { ...prev, ...patch };
+      if (patch.notif) next.notif = { ...prev.notif, ...patch.notif };
+      if (patch.apiKeys) next.apiKeys = { ...prev.apiKeys, ...patch.apiKeys };
+      return next;
+    });
+  };
+
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
   const sec = SECTIONS.find(s => s.id === activeSection)!;
 
   const handleSave = () => {
-    save();
+    save(draft);
+    setTheme(draftTheme);
+    setLocale(draftLocale);
     toast({ title: 'تم حفظ الإعدادات بنجاح' });
   };
 
@@ -401,7 +624,8 @@ export default function Settings() {
       if (!file) return;
       file.text().then(text => {
         try {
-          update(JSON.parse(text)); save();
+          const restored = { ...DEFAULTS, ...JSON.parse(text) } as AppSettings;
+          setDraft(restored); save(restored);
           toast({ title: 'تم استعادة الإعدادات' });
         } catch {
           toast({ title: 'ملف غير صالح', variant: 'destructive' });
@@ -421,7 +645,8 @@ export default function Settings() {
 
   const handlePinSave = () => {
     if (!/^\d{6}$/.test(pinValue)) { toast({ title: 'يجب أن يكون الرمز 6 أرقام', variant: 'destructive' }); return; }
-    update({ biometric: { ...s.biometric, pin: true } }); save();
+    const next = { ...draft, biometric: { ...draft.biometric, pin: true } };
+    setDraft(next); save(next);
     toast({ title: 'تم تفعيل رمز PIN' }); setPinDialog(false); setPinValue('');
   };
 
@@ -499,7 +724,8 @@ export default function Settings() {
         <div className="flex-1 overflow-y-auto pb-6 scrollbar-none">
 
           {/* Section title badge */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${sec.color} shadow-lg`}>
               <sec.icon className="w-4 h-4 text-white" />
             </div>
@@ -507,6 +733,13 @@ export default function Settings() {
               <h2 className="font-black text-lg leading-tight">{sec.label}</h2>
               <p className="text-[11px] text-muted-foreground">{sec.desc}</p>
             </div>
+            </div>
+            <button
+              onClick={() => { setPreviewKey(key => key + 1); setPreviewOpen(true); }}
+              className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl border border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 font-bold text-xs transition"
+            >
+              <Eye className="w-4 h-4" /> معاينة
+            </button>
           </div>
 
           {/* ══════════════════════════════════════════════════════════════
@@ -591,7 +824,7 @@ export default function Settings() {
                   <Field label="وضع العرض">
                     <div className="grid grid-cols-2 gap-2">
                       {[{ v: 'light', icon: Sun, label: 'فاتح' }, { v: 'dark', icon: Moon, label: 'داكن' }].map(({ v, icon: Icon, label }) => (
-                        <button key={v} onClick={() => setTheme(v as 'light' | 'dark')}
+                        <button key={v} onClick={() => setDraftTheme(v as 'light' | 'dark')}
                           className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm transition ${theme === v ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-border hover:border-purple-500/30 text-muted-foreground'}`}>
                           <Icon className="w-4 h-4" /> {label}
                           {theme === v && <Check className="w-3.5 h-3.5" />}
@@ -825,7 +1058,7 @@ export default function Settings() {
                       )}
                     </Field>
                   ))}
-                  <SaveBtn onClick={() => { save(); toast({ title: 'تم حفظ مفاتيح الذكاء الاصطناعي' }); }} label="حفظ مفاتيح AI" color="amber" icon={Key} />
+                  <SaveBtn onClick={handleSave} label="حفظ مفاتيح الذكاء الاصطناعي" color="amber" icon={Key} />
                 </div>
               </SCard>
 
@@ -853,7 +1086,7 @@ export default function Settings() {
                         </div>
                       </Field>
                     ))}
-                    <SaveBtn onClick={() => { save(); toast({ title: 'تم حفظ مفاتيح الخدمات' }); }} label="حفظ مفاتيح الخدمات" color="orange" />
+                    <SaveBtn onClick={handleSave} label="حفظ مفاتيح الخدمات" color="orange" />
                   </div>
                 </SCard>
 
@@ -905,7 +1138,7 @@ export default function Settings() {
                         { v: 'sv', label: 'Svenska', flag: '🇸🇪', dir: 'LTR' },
                       ].map(({ v, label, flag, dir: d }) => (
                         <button key={v}
-                          onClick={() => { setLocale(v as any); update({ language: v as any }); }}
+                          onClick={() => { setDraftLocale(v as any); update({ language: v as any }); }}
                           className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border font-bold text-sm transition ${locale === v ? 'border-teal-500 bg-teal-500/10 text-teal-300' : 'border-border hover:border-teal-500/30 text-muted-foreground'}`}>
                           <span className="text-2xl">{flag}</span>
                           <div className="text-right">
@@ -1164,27 +1397,8 @@ export default function Settings() {
                   <TRow label="شريط التحميل" sub="مؤشر تقدم في أسفل الشاشة" on={s.splashShowProgress} onToggle={() => update({ splashShowProgress: !s.splashShowProgress })} />
                 </div>
 
-                {/* Splash preview */}
-                <div className="mt-5 rounded-xl overflow-hidden border border-border" style={{ height: 200, background: s.splashBgColor }}>
-                  <div className="h-full flex flex-col items-center justify-center gap-2 relative">
-                    {s.splashShowLogo && (
-                      s.logoUrl
-                        ? <img src={s.logoUrl} alt="" className="w-14 h-14 object-contain" />
-                        : <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: s.appColor + '33' }}>
-                            <Sparkles className="w-7 h-7" style={{ color: s.appColor }} />
-                          </div>
-                    )}
-                    {s.splashShowName && (
-                      <p className="font-black text-white text-lg">{s.appName}</p>
-                    )}
-                    {s.splashShowProgress && (
-                      <div className="absolute bottom-4 left-4 right-4 h-1 rounded-full bg-white/20 overflow-hidden">
-                        <div className="h-full rounded-full animate-pulse w-2/3" style={{ background: s.appColor }} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <p className="text-[10px] text-muted-foreground text-center mt-1">معاينة شاشة البداية</p>
+                {/* Live animated splash preview */}
+                <SplashLivePreview settings={s} />
 
                 <div className="mt-4">
                   <SaveBtn onClick={handleSave} label="حفظ شاشة الترحيب" color="pink" icon={Sparkles} />
@@ -1381,7 +1595,7 @@ export default function Settings() {
 
                   <InfoBox text="المساعد يستخدم أول مفتاح متاح بالترتيب. تأكد من صلاحية المفتاح." type="info" />
 
-                  <SaveBtn onClick={() => { save(); toast({ title: 'تم حفظ مفاتيح المساعد' }); }} label="حفظ مفاتيح AI" color="pink" icon={Key} />
+                  <SaveBtn onClick={handleSave} label="حفظ مفاتيح المساعد" color="pink" icon={Key} />
                 </div>
               </SCard>
             </div>
@@ -1431,7 +1645,7 @@ export default function Settings() {
                     <Upload className="w-4 h-4" /> استعادة من ملف
                   </button>
 
-                  <button onClick={() => { update({}); save(); toast({ title: 'تمت إعادة التعيين للإعدادات الافتراضية' }); }}
+                   <button onClick={() => { setDraft(DEFAULTS); toast({ title: 'تمت إعادة تعيين المعاينة، اضغط حفظ لتطبيقها' }); }}
                     className="w-full py-3 rounded-xl border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/5 transition flex items-center justify-center gap-2">
                     <RotateCcw className="w-4 h-4" /> إعادة تعيين لافتراضيات النظام
                   </button>
@@ -1937,6 +2151,18 @@ export default function Settings() {
             </div>
           </div>
         </div>
+      )}
+
+      {previewOpen && (
+        <SettingsPreviewModal
+          sectionId={activeSection}
+          sectionLabel={sec.label}
+          settings={s}
+          liveTime={liveTime}
+          previewKey={previewKey}
+          onClose={() => setPreviewOpen(false)}
+          onReplay={() => setPreviewKey(key => key + 1)}
+        />
       )}
     </div>
   );

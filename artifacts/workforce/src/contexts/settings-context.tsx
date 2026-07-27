@@ -123,7 +123,7 @@ export interface AppSettings {
   letterSpacing: 'tight' | 'normal' | 'wide';
 }
 
-const DEFAULTS: AppSettings = {
+export const DEFAULTS: AppSettings = {
   appName: 'WorkforceOS',
   welcomeMsg: 'أهلاً وسهلاً في نظام إدارة القوى العاملة',
   companyName: '',
@@ -241,7 +241,7 @@ function hexToRgb(hex: string) {
 interface SettingsCtx {
   s: AppSettings;
   update: (patch: Partial<AppSettings>) => void;
-  save: () => void;
+  save: (next?: AppSettings) => void;
 }
 
 const Ctx = createContext<SettingsCtx | null>(null);
@@ -293,20 +293,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const save = useCallback(() => {
+  const save = useCallback((next?: AppSettings) => {
     setS(prev => {
-      localStorage.setItem('workforce-settings', JSON.stringify(prev));
-      return prev;
+      const value = next ?? prev;
+      localStorage.setItem('workforce-settings', JSON.stringify(value));
+      return value;
     });
   }, []);
-
-  // Auto-save on every change (debounced)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('workforce-settings', JSON.stringify(s));
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [s]);
 
   return <Ctx.Provider value={{ s, update, save }}>{children}</Ctx.Provider>;
 }
