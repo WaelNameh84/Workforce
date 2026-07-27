@@ -358,10 +358,9 @@ export default function Employees() {
             <Select name="contractType" defaultValue={defaultValues?.contractType || ''}>
               <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={locale === 'ar' ? 'نوع العقد' : locale === 'sv' ? 'Välj typ' : 'Select type'} /></SelectTrigger>
               <SelectContent className="rounded-xl">
-                <SelectItem value="full-time">{locale === 'ar' ? 'دوام كامل' : locale === 'sv' ? 'Heltid' : 'Full-time'}</SelectItem>
-                <SelectItem value="part-time">{locale === 'ar' ? 'دوام جزئي' : locale === 'sv' ? 'Deltid' : 'Part-time'}</SelectItem>
-                <SelectItem value="contract">{locale === 'ar' ? 'عقد مؤقت' : locale === 'sv' ? 'Konsultavtal' : 'Contract'}</SelectItem>
-                <SelectItem value="intern">{locale === 'ar' ? 'متدرب' : locale === 'sv' ? 'Praktikant' : 'Intern'}</SelectItem>
+                <SelectItem value="monthly">{locale === 'ar' ? 'شهري' : locale === 'sv' ? 'Månadsvis' : 'Monthly'}</SelectItem>
+                <SelectItem value="daily">{locale === 'ar' ? 'يومي' : locale === 'sv' ? 'Daglig' : 'Daily'}</SelectItem>
+                <SelectItem value="hourly">{locale === 'ar' ? 'ساعي' : locale === 'sv' ? 'Timvis' : 'Hourly'}</SelectItem>
               </SelectContent>
             </Select>
           </div>
