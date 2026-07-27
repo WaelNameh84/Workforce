@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Reorder, motion, useDragControls } from 'framer-motion';
 import PullToRefresh from '@/components/pull-to-refresh';
 import { useAuth } from '@/hooks/use-auth';
 import { useSwipeBack } from '@/hooks/use-swipe-back';
@@ -12,7 +13,7 @@ import {
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
   LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User, ArrowLeft, ArrowRight, Download,
-  Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2, Zap, FolderOpen,
+  Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2, Zap, FolderOpen, GripVertical,
 } from 'lucide-react';
 import {
   useGetAttendance, getGetAttendanceQueryKey,
@@ -199,6 +200,85 @@ const navBadges: Record<string, string> = {
   '/dashboard/locations': 'SITES',
   '/dashboard/documentation': 'DOCS',
 };
+
+// ─── Badge animation helper ──────────────────────────────────────────────────
+type NavItemType = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
+
+function NavItemCard({
+  item, active, visual, badge, onNavigate,
+}: {
+  item: NavItemType;
+  active: boolean;
+  visual: { icon: string; border: string; badge: string; badgeBorder: string; glow: string };
+  badge?: string;
+  onNavigate: (href: string) => void;
+}) {
+  const dragControls = useDragControls();
+  const isDraggingRef = useRef(false);
+
+  const badgeAnimClass =
+    badge === 'LIVE' ? 'badge-live' :
+    badge === 'HOT'  ? 'badge-hot'  :
+    badge === 'AI'   ? 'badge-ai'   : '';
+
+  return (
+    <Reorder.Item
+      value={item}
+      dragControls={dragControls}
+      dragListener={false}
+      onDragStart={() => { isDraggingRef.current = true; }}
+      onDragEnd={() => { setTimeout(() => { isDraggingRef.current = false; }, 80); }}
+      className={`nav-card group relative flex items-center rounded-2xl border text-sm font-black transition-all duration-200 ${visual.border} ${visual.glow} ${active ? 'nav-card-active text-white' : 'text-slate-200'}`}
+      whileDrag={{ scale: 1.03, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', zIndex: 50 }}
+      layout
+      transition={{ layout: { duration: 0.18, ease: 'easeOut' } }}
+      style={{ listStyle: 'none' }}
+    >
+      {/* Drag handle */}
+      <div
+        onPointerDown={(e) => { e.preventDefault(); dragControls.start(e); }}
+        className="touch-none cursor-grab active:cursor-grabbing px-1.5 py-2.5 text-slate-700 hover:text-slate-400 shrink-0 select-none transition-colors"
+        aria-label="drag to reorder"
+      >
+        <GripVertical className="w-3 h-3" />
+      </div>
+
+      {/* Clickable card body */}
+      <div
+        className="flex-1 flex items-center justify-between gap-3 pr-3 py-2.5 cursor-pointer"
+        onClick={() => { if (!isDraggingRef.current) onNavigate(item.href); }}
+      >
+        <span className="relative flex min-w-0 items-center gap-3">
+          <motion.span
+            className={`nav-card-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-lg ${visual.icon} ${active ? 'nav-card-icon-active' : ''}`}
+            animate={active ? { boxShadow: ['0 0 6px 1px rgba(255,255,255,0.12)', '0 0 14px 3px rgba(255,255,255,0.22)', '0 0 6px 1px rgba(255,255,255,0.12)'] } : {}}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <item.icon className="h-4 w-4" />
+          </motion.span>
+          <span className="truncate">{item.label}</span>
+        </span>
+        {badge && (
+          <span className={`relative shrink-0 rounded-lg border px-2 py-1 text-[9px] font-black tracking-wide ${visual.badge} ${visual.badgeBorder} ${badgeAnimClass}`}>
+            {badge === 'LIVE' && (
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+            )}
+            {badge === 'HOT' && (
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+              </span>
+            )}
+            {badge}
+          </span>
+        )}
+      </div>
+    </Reorder.Item>
+  );
+}
 
 // ─── Live Clock widget ────────────────────────────────────────────────────────
 function LiveClock() {
@@ -445,6 +525,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const navGroups = isEmployee ? employeeNavGroups : adminNavGroups;
+
+  // ── Persistent nav order (saved to localStorage) ──────────────
+  const [savedOrder, setSavedOrder] = useState<Record<string, string[]>>(() => {
+    try { return JSON.parse(localStorage.getItem('nav-order') || '{}'); }
+    catch { return {}; }
+  });
+
+  const orderedNavGroups = useMemo(() => navGroups.map(group => {
+    const order = savedOrder[group.id];
+    if (!order) return group;
+    const byHref = Object.fromEntries(group.items.map(i => [i.href, i]));
+    const sorted = [
+      ...order.map(h => byHref[h]).filter(Boolean) as typeof group.items,
+      ...group.items.filter(i => !order.includes(i.href)),
+    ];
+    return { ...group, items: sorted };
+  }), [navGroups, savedOrder]);
+
+  const handleReorder = useCallback((groupId: string, newItems: NavItemType[]) => {
+    setSavedOrder(prev => {
+      const next = { ...prev, [groupId]: newItems.map(i => i.href) };
+      localStorage.setItem('nav-order', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const isActive = (href: string) =>
     href === '/dashboard' ? location === '/dashboard' : location.startsWith(href);
 
@@ -471,7 +577,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 space-y-2 overflow-y-auto scrollbar-thin" aria-label={t('dashboardSections')}>
-        {navGroups.map(group => (
+        {orderedNavGroups.map(group => (
           <div key={group.id} className="mb-3">
             <div className="flex items-center px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
               <span className="flex items-center gap-2">
@@ -479,32 +585,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {group.title}
               </span>
             </div>
-            <div className="mt-1.5 space-y-1.5">
-                {group.items.map(item => {
-                  const active = isActive(item.href);
-                  const visual = navVisuals[item.href] || navVisuals['/dashboard'];
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-current={active ? 'page' : undefined}
-                      className={`nav-card group relative flex items-center justify-between gap-3 px-3 py-2.5 rounded-2xl border text-sm font-black transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${visual.border} ${visual.glow} ${
-                        active ? 'nav-card-active text-white' : 'text-slate-200'
-                      }`}
-                    >
-                      <span className="relative flex min-w-0 items-center gap-3">
-                        <span className={`nav-card-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-lg ${visual.icon} ${active ? 'nav-card-icon-active' : ''}`}>
-                          <item.icon className="h-4 w-4" />
-                        </span>
-                        <span className="truncate">{item.label}</span>
-                      </span>
-                      <span className={`relative shrink-0 rounded-lg border px-2 py-1 text-[9px] font-black tracking-wide ${visual.badge} ${visual.badgeBorder}`}>
-                        {navBadges[item.href]}
-                      </span>
-                    </Link>
-                  );
-                })}
-            </div>
+            <Reorder.Group
+              as="div"
+              axis="y"
+              values={group.items}
+              onReorder={(newItems) => handleReorder(group.id, newItems as NavItemType[])}
+              className="mt-1.5 space-y-1.5"
+            >
+              {group.items.map((item) => (
+                <NavItemCard
+                  key={item.href}
+                  item={item}
+                  active={isActive(item.href)}
+                  visual={navVisuals[item.href] || navVisuals['/dashboard']}
+                  badge={navBadges[item.href]}
+                  onNavigate={(href) => setLocation(href)}
+                />
+              ))}
+            </Reorder.Group>
           </div>
         ))}
       </nav>
