@@ -237,6 +237,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [selectedNotifIdx, setSelectedNotifIdx] = useState<number | null>(null);
   const todayStr = new Date().toISOString().split('T')[0];
   const cid = user?.companyId || 0;
   const { data: nAttData } = useGetAttendance(
@@ -262,16 +263,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       icon: Timer, color: 'text-violet-400 bg-violet-500/15',
       title: `${a.employeeName || 'موظف'} — سجّل حضوراً متأخراً`,
       time: a.clockIn ? new Date(a.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : 'اليوم',
+      details: [
+        { label: 'الموظف', value: a.employeeName || '—' },
+        { label: 'وقت الدخول', value: a.clockIn ? new Date(a.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '—' },
+        { label: 'التاريخ', value: a.date ? new Date(a.date).toLocaleDateString('ar-SA') : 'اليوم' },
+        { label: 'الموقع', value: a.location || '—' },
+        { label: 'طريقة التسجيل', value: a.method || '—' },
+      ],
     })),
     ...pendingReqs.map((r: any) => ({
       icon: AlertCircle, color: 'text-amber-400 bg-amber-500/15',
       title: r.title || 'طلب جديد بانتظار المراجعة',
       time: r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-SA') : 'اليوم',
+      details: [
+        { label: 'نوع الطلب', value: r.type || r.title || '—' },
+        { label: 'مقدّم الطلب', value: r.employeeName || '—' },
+        { label: 'الحالة', value: r.status === 'pending' ? 'بانتظار المراجعة' : r.status },
+        { label: 'تاريخ الطلب', value: r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-SA') : '—' },
+        { label: 'الوصف', value: r.description || r.notes || '—' },
+      ],
     })),
     ...pendingLeaves.map((l: any) => ({
       icon: CalendarX, color: 'text-blue-400 bg-blue-500/15',
       title: `طلب إجازة — ${l.employeeName || 'موظف'} (${l.daysCount || '—'} أيام)`,
-      time: l.startDate || 'اليوم',
+      time: l.startDate ? new Date(l.startDate).toLocaleDateString('ar-SA') : 'اليوم',
+      details: [
+        { label: 'الموظف', value: l.employeeName || '—' },
+        { label: 'نوع الإجازة', value: l.type || '—' },
+        { label: 'من', value: l.startDate ? new Date(l.startDate).toLocaleDateString('ar-SA') : '—' },
+        { label: 'إلى', value: l.endDate ? new Date(l.endDate).toLocaleDateString('ar-SA') : '—' },
+        { label: 'عدد الأيام', value: l.daysCount ? `${l.daysCount} أيام` : '—' },
+        { label: 'السبب', value: l.reason || '—' },
+      ],
     })),
   ];
   const totalNotifs = notifItems.length;
@@ -565,18 +588,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
 
                     {/* Items */}
-                    <div className="max-h-80 overflow-y-auto">
+                    <div className="max-h-96 overflow-y-auto">
                       {notifItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-10 gap-2">
                           <CheckCircle2 className="w-8 h-8 text-green-400" />
                           <p className="text-sm font-bold text-muted-foreground">لا توجد إشعارات جديدة</p>
                         </div>
+                      ) : selectedNotifIdx !== null ? (
+                        /* ── Detail view ── */
+                        <div className="p-3">
+                          <button
+                            onClick={() => setSelectedNotifIdx(null)}
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-3"
+                          >
+                            <span className="text-base leading-none">→</span> العودة للإشعارات
+                          </button>
+                          {(() => {
+                            const n = notifItems[selectedNotifIdx];
+                            return (
+                              <div className="rounded-xl border border-white/10 overflow-hidden">
+                                <div className={`flex items-center gap-3 px-4 py-3 ${n.color.replace('text-', 'border-b border-').split(' ')[0]}/20 border-b border-white/10`}>
+                                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${n.color}`}>
+                                    <n.icon className="w-4 h-4" />
+                                  </span>
+                                  <div>
+                                    <p className="text-xs font-bold leading-snug">{n.title}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
+                                  </div>
+                                </div>
+                                <div className="divide-y divide-white/5">
+                                  {n.details.map((d, di) => (
+                                    <div key={di} className="flex items-start justify-between gap-3 px-4 py-2.5">
+                                      <span className="text-[11px] text-muted-foreground shrink-0">{d.label}</span>
+                                      <span className="text-[11px] font-semibold text-right">{d.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
                       ) : (
+                        /* ── List view ── */
                         <div className="p-2 space-y-1">
                           {notifItems.map((n, i) => (
                             <div
                               key={i}
-                              className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition cursor-pointer"
+                              onClick={() => setSelectedNotifIdx(i)}
+                              className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 active:bg-white/10 transition cursor-pointer"
                             >
                               <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${n.color}`}>
                                 <n.icon className="w-3.5 h-3.5" />
@@ -585,6 +644,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <p className="text-xs font-bold leading-snug">{n.title}</p>
                                 <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
                               </div>
+                              <span className="text-muted-foreground/50 text-lg leading-none mt-0.5">‹</span>
                             </div>
                           ))}
                         </div>

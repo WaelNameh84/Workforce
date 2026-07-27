@@ -1,6 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Space+Mono:wght@400;700&family=Cairo:wght@600;700;800&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
+
+/* ─── Native-app feel: disable text selection everywhere ────── */
+*, *::before, *::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+input, textarea, [contenteditable="true"], [contenteditable] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
