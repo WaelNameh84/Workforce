@@ -9,6 +9,7 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 input, textarea, [contenteditable="true"], [contenteditable] {
   -webkit-user-select: text;
