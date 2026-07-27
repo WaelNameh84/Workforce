@@ -497,10 +497,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div className={`lg:hidden fixed inset-0 z-50 flex ${dir === 'rtl' ? 'justify-end' : 'justify-start'}`}>
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <div
-            className={`relative z-10 w-[min(72vw,17rem)] h-full flex flex-col shadow-2xl ${dir === 'rtl' ? 'border-l' : 'border-r'} border-white/10`}
+            className={`absolute top-0 bottom-0 z-10 w-[min(72vw,17rem)] flex flex-col shadow-2xl ${dir === 'rtl' ? 'right-0 border-l' : 'left-0 border-r'} border-white/10`}
             style={{ background: 'var(--sidebar-bg)' }}
           >
             <button
