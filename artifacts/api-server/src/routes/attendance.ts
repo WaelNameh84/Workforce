@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { attendance, employees, users } from "@workspace/db";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, isNull, desc } from "drizzle-orm";
 import { authMiddleware } from "../middlewares/auth";
 
 const router = Router();
@@ -175,18 +175,16 @@ router.post("/attendance/clock-in", authMiddleware, async (req, res) => {
     }
     const today = new Date().toISOString().split("T")[0];
 
-    // Check if already clocked in today
-    const [existing] = await db
+    // Check if already clocked in (open record with no clock-out)
+    const [openRecord] = await db
       .select()
       .from(attendance)
-      .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, today)));
+      .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, today), isNull(attendance.clockOut)))
+      .orderBy(desc(attendance.id))
+      .limit(1);
 
-    if (existing) {
-      if (existing.clockOut) {
-        res.status(409).json({ error: "Attendance is already completed for today" });
-      } else {
-        res.status(409).json({ error: "Already clocked in for today" });
-      }
+    if (openRecord) {
+      res.status(409).json({ error: "Already clocked in for today" });
       return;
     }
 
@@ -228,23 +226,16 @@ router.post("/attendance/clock-out", authMiddleware, async (req, res) => {
     }
     const today = new Date().toISOString().split("T")[0];
 
+    // Find the most recent open record (clocked in but not yet out)
     const [existing] = await db
       .select()
       .from(attendance)
-      .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, today)));
+      .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, today), isNull(attendance.clockOut)))
+      .orderBy(desc(attendance.id))
+      .limit(1);
 
     if (!existing) {
       res.status(404).json({ error: "No clock-in record found for today" });
-      return;
-    }
-
-    const clockOut = new Date();
-    const clockIn = existing.clockIn ? new Date(existing.clockIn) : clockOut;
-    const totalMs = clockOut.getTime() - clockIn.getTime();
-    const totalHours = (totalMs / (1000 * 60 * 60)).toFixed(2);
-
-    if (existing.clockOut) {
-      res.status(409).json({ error: "Attendance is already completed for today" });
       return;
     }
 
@@ -252,6 +243,11 @@ router.post("/attendance/clock-out", authMiddleware, async (req, res) => {
       res.status(409).json({ error: "No clock-in time found for today" });
       return;
     }
+
+    const clockOut = new Date();
+    const clockIn = new Date(existing.clockIn);
+    const totalMs = clockOut.getTime() - clockIn.getTime();
+    const totalHours = (totalMs / (1000 * 60 * 60)).toFixed(2);
 
     const [updated] = await db
       .update(attendance)
@@ -315,12 +311,24 @@ router.get("/attendance/today", authMiddleware, async (req, res) => {
     }
     const today = new Date().toISOString().split("T")[0];
 
-    const [record] = await db
+    // Return the open record first; fall back to the most recent record of the day
+    const [openRecord] = await db
       .select()
       .from(attendance)
-      .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, today)));
+      .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, today), isNull(attendance.clockOut)))
+      .orderBy(desc(attendance.id))
+      .limit(1);
 
-    res.json(record || null);
+    if (openRecord) { res.json(openRecord); return; }
+
+    const [latestRecord] = await db
+      .select()
+      .from(attendance)
+      .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, today)))
+      .orderBy(desc(attendance.id))
+      .limit(1);
+
+    res.json(latestRecord || null);
   } catch (err) {
     req.log.error({ err }, "Today attendance error");
     res.status(500).json({ error: "Internal server error" });
