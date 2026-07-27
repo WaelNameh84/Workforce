@@ -6,6 +6,7 @@ import {
   useGetEmployees, getGetEmployeesQueryKey,
   useGetAttendance, getGetAttendanceQueryKey,
   useGetLeaves, getGetLeavesQueryKey,
+  useGetRequests, getGetRequestsQueryKey,
 } from '@workspace/api-client-react';
 import type { Payroll } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -123,6 +124,7 @@ interface EmployeePaySummary {
   hourlyRate: number;
   // Time
   workedDays: number;
+  absentDays: number;
   workedHours: number;
   overtimeHours: number;
   lateHours: number;
@@ -138,6 +140,7 @@ interface EmployeePaySummary {
   sickUnpaidDeduction: number;
   advances: number;
   purchases: number;
+  purchasesCount: number;
   otherDeductions: number;
   // Leave info
   paidLeaveDays: number;
@@ -246,15 +249,15 @@ function PayrollCard({ emp, onView, onMarkPaid, currency, dailyHours, colorIdx =
       {/* Mini stats grid */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="text-center p-2.5 rounded-xl" style={{ background: 'var(--muted-bg)' }}>
-          <div className="font-data font-bold text-sm text-green-400">{fmt(emp.basicSalary, currency)}</div>
+          <div className="font-data font-bold text-sm text-green-700 dark:text-green-400">{fmt(emp.basicSalary, currency)}</div>
           <div className="text-[10px] text-muted-foreground mt-0.5">الأساسي</div>
         </div>
         <div className="text-center p-2.5 rounded-xl" style={{ background: 'var(--muted-bg)' }}>
-          <div className="font-data font-bold text-sm text-amber-400">+{fmt(emp.overtimePay + emp.bonus + emp.additions, currency)}</div>
+          <div className="font-data font-bold text-sm text-amber-700 dark:text-amber-400">+{fmt(emp.overtimePay + emp.bonus + emp.additions, currency)}</div>
           <div className="text-[10px] text-muted-foreground mt-0.5">الإضافات</div>
         </div>
         <div className="text-center p-2.5 rounded-xl" style={{ background: 'var(--muted-bg)' }}>
-          <div className="font-data font-bold text-sm text-red-400">-{fmt(emp.totalDeductions, currency)}</div>
+          <div className="font-data font-bold text-sm text-red-700 dark:text-red-400">-{fmt(emp.totalDeductions, currency)}</div>
           <div className="text-[10px] text-muted-foreground mt-0.5">الخصومات</div>
         </div>
       </div>
@@ -334,160 +337,254 @@ function PayslipModal({
     else navigator.clipboard?.writeText(text);
   };
 
-  const dailyHours = (cfg.breakMin > 0)
-    ? (parseFloat(cfg.workEnd.split(':')[0]) - parseFloat(cfg.workStart.split(':')[0])) - cfg.breakMin / 60
-    : (parseFloat(cfg.workEnd.split(':')[0]) - parseFloat(cfg.workStart.split(':')[0]));
-
-  const deductRateLabel: Record<string, string> = {
-    hour: 'خصم ساعة بساعة',
-    half: 'خصم نصف يوم',
-    full: 'خصم يوم كامل',
+  // Format date for display
+  const formatDate = (d: string) => {
+    try {
+      return new Date(d).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch { return d; }
   };
 
-  const Row = ({ label, value, color = '', sign = '' }: { label: string; value: number; color?: string; sign?: string }) => (
-    <div className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={`font-data font-bold text-sm ${color}`}>{sign}{fmt(value, currency)}</span>
-    </div>
-  );
+  const totalAdditions = emp.overtimePay + emp.bonus + emp.additions;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-border shadow-2xl" style={{ background: 'var(--card)' }}>
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-5 border-b border-border" style={{ background: 'var(--card)' }}>
-          <div>
-            <h2 className="font-display font-bold text-lg">كشف الراتب التفصيلي</h2>
-            <p className="text-xs text-muted-foreground">{emp.employeeName} — {emp.position}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={onEmail} title="إرسال بالبريد الإلكتروني" className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
-              <Mail className="w-4 h-4" />
-            </button>
-            <button onClick={handleShare} title="مشاركة" className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
-              <Share2 className="w-4 h-4" />
-            </button>
-            <button onClick={handlePrint} title="تصدير PDF أو طباعة" className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
-              <Printer className="w-4 h-4" />
-            </button>
-            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition border border-border">
-              <X className="w-4 h-4" />
-            </button>
+    <div className="payslip-wrapper min-h-[calc(100vh-5rem)] animate-fadeIn pb-8" dir="rtl">
+      {/* ── Action bar (screen only) ── */}
+      <div className="sticky top-0 z-20 flex items-center justify-between gap-3 px-4 py-3 border-b border-border print:hidden" style={{ background: 'var(--background)' }}>
+        <button
+          onClick={onClose}
+          className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-bold transition hover:bg-white/5"
+        >
+          <ArrowDownRight className="h-4 w-4 rotate-45" /> العودة للرواتب
+        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={onEmail} title="إرسال بالبريد الإلكتروني"
+            className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-bold hover:bg-white/5 transition">
+            <Mail className="w-3.5 h-3.5" /> إيميل
+          </button>
+          <button onClick={handleShare} title="مشاركة"
+            className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-bold hover:bg-white/5 transition">
+            <Share2 className="w-3.5 h-3.5" /> مشاركة
+          </button>
+          <button onClick={handlePrint}
+            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 transition hover:opacity-90">
+            <Download className="w-3.5 h-3.5" /> تصدير PDF
+          </button>
+        </div>
+      </div>
+
+      {/* ── Payslip Document ── */}
+      <div className="payslip-doc mx-auto mt-6 w-full max-w-3xl rounded-2xl border border-border shadow-2xl overflow-hidden" style={{ background: 'var(--card)' }}>
+
+        {/* === TOP GRADIENT HEADER === */}
+        <div className="payslip-header bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 px-6 py-8 text-white relative overflow-hidden">
+          <div className="nav-card-wave" />
+          <div className="card-orb w-56 h-56 absolute -left-10 -top-10 opacity-30" />
+          <div className="card-orb w-40 h-40 absolute -right-8 -bottom-8 opacity-20" />
+
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
+            {/* Company info placeholder */}
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg">
+                  <Building className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="font-bold text-white/70 text-xs uppercase tracking-wider">كشف الراتب</p>
+                  <h1 className="font-display text-xl font-bold text-white">Payslip</h1>
+                </div>
+              </div>
+              <div className="space-y-1 text-white/80 text-sm">
+                <p>الفترة: <span className="font-bold text-white">{formatDate(dateFrom)}</span></p>
+                <p>إلى: <span className="font-bold text-white">{formatDate(dateTo)}</span></p>
+              </div>
+            </div>
+
+            {/* Net salary badge */}
+            <div className="sm:text-left text-right">
+              <p className="text-white/70 text-xs uppercase tracking-widest mb-1">صافي الراتب المستحق</p>
+              <p className="font-data text-4xl sm:text-5xl font-bold text-white drop-shadow">{fmt(emp.netSalary, currency)}</p>
+              <div className={`mt-2 inline-block rounded-full px-3 py-0.5 text-xs font-bold border ${
+                emp.status === 'paid' ? 'bg-green-500/20 text-green-200 border-green-400/40' : 'bg-amber-500/20 text-amber-200 border-amber-400/40'
+              }`}>
+                {emp.status === 'paid' ? '✓ تم الصرف' : '⏳ بانتظار الصرف'}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="p-5 space-y-5">
-          {/* Net salary hero */}
-          <div className="rounded-2xl p-6 text-center bg-gradient-to-br from-indigo-500/20 to-purple-600/20 border border-indigo-500/30">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">الراتب الصافي</p>
-            <p className="font-data font-bold text-4xl text-white">{fmt(emp.netSalary, currency)}</p>
-            <div className="flex items-center justify-center gap-4 mt-3">
-              <span className="text-xs text-muted-foreground">{dateFrom} — {dateTo}</span>
-              <span className="text-xs text-muted-foreground">•</span>
-              <span className="text-xs text-muted-foreground">{emp.workedDays} يوم عمل</span>
-              <span className="text-xs text-muted-foreground">•</span>
-              <span className="text-xs text-muted-foreground">{emp.workedHours.toFixed(1)} ساعة</span>
+        {/* === EMPLOYEE INFO ROW === */}
+        <div className="px-6 py-5 border-b border-border grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: 'اسم الموظف', value: emp.employeeName, icon: Users },
+            { label: 'المسمى الوظيفي', value: emp.position || '—', icon: Building },
+            { label: 'نوع العقد', value: emp.contractType === 'daily' ? 'عقد يومي' : 'موظف دائم', icon: FileText },
+            { label: 'الراتب الأساسي', value: fmt(emp.basicSalary, currency), icon: Banknote },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label}>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Icon className="w-3 h-3" /> {label}
+              </p>
+              <p className="font-bold text-sm">{value}</p>
             </div>
-          </div>
+          ))}
+        </div>
 
-          {/* Work time info — from attendance settings */}
-          <div className="rounded-xl p-4 border border-indigo-500/20 bg-indigo-500/5">
-            <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
-              <Settings2 className="w-4 h-4 text-indigo-400" /> قواعد الدوام المطبّقة
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { l: 'دوام الدخول',         v: cfg.workStart },
-                { l: 'دوام الخروج',          v: cfg.workEnd },
-                { l: 'ساعات العمل الصافية',  v: `${dailyHours.toFixed(1)} ساعة` },
-                { l: 'مدة الاستراحة',        v: `${cfg.breakMin} دقيقة (غير محسوبة)` },
-                { l: 'فترة السماح للتأخير',   v: `${cfg.lateGraceMin} دقيقة` },
-                { l: 'حد احتساب الإضافي',    v: `بعد ${cfg.otThresholdMin} د من نهاية الدوام` },
-                { l: 'طريقة خصم الغياب',     v: deductRateLabel[cfg.deductRate] || cfg.deductRate },
-                { l: 'أيام العمل المسجّلة',   v: `${emp.workedDays} يوم` },
-                { l: 'ساعات إضافية',         v: `${emp.overtimeHours.toFixed(2)} ساعة` },
-                { l: 'دقائق تأخير محتسبة',   v: `${(emp.lateHours * 60).toFixed(0)} دقيقة` },
-              ].map(({ l, v }) => (
-                <div key={l} className="flex flex-col">
-                  <span className="text-xs text-muted-foreground">{l}</span>
-                  <span className="font-bold text-sm font-data">{v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Income */}
-          <div className="rounded-xl p-4 border border-border">
-            <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><ArrowUpRight className="w-4 h-4 text-green-400" /> الإيرادات</h4>
-            <Row label="الراتب الأساسي" value={emp.basicSalary} color="text-green-400" />
-            <Row label="بدل العمل الإضافي (×1.5)" value={emp.overtimePay} color="text-amber-400" sign="+" />
-            <Row label="المكافآت والحوافز" value={emp.bonus} color="text-amber-400" sign="+" />
-            <Row label="إضافات أخرى" value={emp.additions} color="text-amber-400" sign="+" />
-            <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-border">
-              <span className="font-bold text-sm">إجمالي الإيرادات</span>
-              <span className="font-data font-bold text-base text-green-400">{fmt(emp.grossSalary, currency)}</span>
-            </div>
-          </div>
-
-          {/* Deductions */}
-          <div className="rounded-xl p-4 border border-border">
-            <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><ArrowDownRight className="w-4 h-4 text-red-400" /> الخصومات</h4>
-            {emp.lateDeduction > 0 && <Row label="خصم التأخير" value={emp.lateDeduction} color="text-red-400" sign="-" />}
-            {emp.earlyDeduction > 0 && <Row label="خصم الخروج المبكر" value={emp.earlyDeduction} color="text-red-400" sign="-" />}
-            {emp.unpaidLeaveDeduction > 0 && <Row label="خصم الإجازات غير المدفوعة" value={emp.unpaidLeaveDeduction} color="text-red-400" sign="-" />}
-            {emp.sickUnpaidDeduction > 0 && <Row label="خصم الإجازة المرضية غير المدفوعة" value={emp.sickUnpaidDeduction} color="text-red-400" sign="-" />}
-            {emp.advances > 0 && <Row label="السلف" value={emp.advances} color="text-red-400" sign="-" />}
-            {emp.purchases > 0 && <Row label="المشتريات" value={emp.purchases} color="text-red-400" sign="-" />}
-            {emp.otherDeductions > 0 && <Row label="خصومات أخرى" value={emp.otherDeductions} color="text-red-400" sign="-" />}
-            {emp.totalDeductions === 0 && <p className="text-xs text-muted-foreground py-2">لا توجد خصومات</p>}
-            <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-border">
-              <span className="font-bold text-sm">إجمالي الخصومات</span>
-              <span className="font-data font-bold text-base text-red-400">-{fmt(emp.totalDeductions, currency)}</span>
-            </div>
-          </div>
-
-          {/* Leaves */}
-          <div className="rounded-xl p-4 border border-border">
-            <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><CalendarRange className="w-4 h-4 text-teal-400" /> تفاصيل الإجازات</h4>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { l: 'إجازة مدفوعة', v: emp.paidLeaveDays, color: 'text-teal-400' },
-                { l: 'إجازة غير مدفوعة', v: emp.unpaidLeaveDays, color: 'text-red-400' },
-                { l: 'مرضية مدفوعة', v: emp.sickPaidDays, color: 'text-blue-400' },
-                { l: 'مرضية غير مدفوعة', v: emp.sickUnpaidDays, color: 'text-orange-400' },
-              ].map(({ l, v, color }) => (
-                <div key={l} className="p-3 rounded-xl text-center" style={{ background: 'var(--muted-bg)' }}>
-                  <div className={`font-bold text-xl font-data ${color}`}>{v}</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{l}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Net result */}
-          <div className="rounded-2xl p-5 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-widest">الراتب الصافي للصرف</p>
-                <p className="font-display font-bold text-3xl mt-1">{fmt(emp.netSalary, currency)}</p>
+        {/* === ATTENDANCE SUMMARY === */}
+        <div className="px-6 py-5 border-b border-border">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5" /> ملخص الحضور والدوام
+          </h3>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            {[
+              { label: 'أيام الحضور', value: `${emp.workedDays}`, unit: 'يوم', color: 'text-green-500 dark:text-green-400', bg: 'bg-green-500/8 border-green-500/20' },
+              { label: 'أيام الغياب', value: `${emp.absentDays}`, unit: 'يوم', color: 'text-red-500 dark:text-red-400', bg: 'bg-red-500/8 border-red-500/20' },
+              { label: 'ساعات العمل', value: emp.workedHours.toFixed(1), unit: 'ساعة', color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-500/8 border-blue-500/20' },
+              { label: 'ساعات إضافي', value: emp.overtimeHours.toFixed(1), unit: 'ساعة', color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-500/8 border-amber-500/20' },
+              { label: 'دقائق التأخير', value: (emp.lateHours * 60).toFixed(0), unit: 'د', color: 'text-orange-500 dark:text-orange-400', bg: 'bg-orange-500/8 border-orange-500/20' },
+              { label: 'إجازة (أيام)', value: `${emp.paidLeaveDays + emp.unpaidLeaveDays + emp.sickPaidDays + emp.sickUnpaidDays}`, unit: 'يوم', color: 'text-teal-500 dark:text-teal-400', bg: 'bg-teal-500/8 border-teal-500/20' },
+            ].map(({ label, value, unit, color, bg }) => (
+              <div key={label} className={`rounded-xl border p-3 text-center ${bg}`}>
+                <p className={`font-data text-2xl font-bold leading-tight ${color}`}>{value}<span className="text-xs font-normal ml-0.5">{unit}</span></p>
+                <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{label}</p>
               </div>
-              <div className="w-16 h-16 rounded-2xl bg-green-500/20 flex items-center justify-center">
-                <Banknote className="w-8 h-8 text-green-400" />
+            ))}
+          </div>
+
+          {/* Leaves detail */}
+          {(emp.paidLeaveDays > 0 || emp.unpaidLeaveDays > 0 || emp.sickPaidDays > 0 || emp.sickUnpaidDays > 0) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {emp.paidLeaveDays > 0 && <span className="text-[10px] px-2.5 py-1 rounded-full bg-teal-500/10 text-teal-500 border border-teal-500/20 font-bold">إجازة مدفوعة {emp.paidLeaveDays} يوم</span>}
+              {emp.unpaidLeaveDays > 0 && <span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-bold">إجازة غير مدفوعة {emp.unpaidLeaveDays} يوم</span>}
+              {emp.sickPaidDays > 0 && <span className="text-[10px] px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">مرضي مدفوع {emp.sickPaidDays} يوم</span>}
+              {emp.sickUnpaidDays > 0 && <span className="text-[10px] px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-bold">مرضي غير مدفوع {emp.sickUnpaidDays} يوم</span>}
+            </div>
+          )}
+        </div>
+
+        {/* === EARNINGS & DEDUCTIONS TABLE === */}
+        <div className="px-6 py-5 border-b border-border">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+            {/* Earnings */}
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-green-500 mb-3 flex items-center gap-2">
+                <ArrowUpRight className="w-3.5 h-3.5" /> الإيرادات والإضافات
+              </h3>
+              <div className="rounded-xl overflow-hidden border border-green-500/15">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {[
+                      { label: 'الراتب الأساسي', value: emp.basicSalary, main: true },
+                      ...(emp.overtimePay > 0 ? [{ label: `إضافي ×1.5 (${emp.overtimeHours.toFixed(1)}س)`, value: emp.overtimePay, main: false }] : []),
+                      ...(emp.bonus > 0 ? [{ label: 'مكافآت وحوافز', value: emp.bonus, main: false }] : []),
+                      ...(emp.additions > 0 ? [{ label: 'إضافات أخرى', value: emp.additions, main: false }] : []),
+                    ].map(({ label, value, main }, i) => (
+                      <tr key={i} className={`border-b border-green-500/10 last:border-0 ${main ? 'font-bold' : ''}`}
+                        style={{ background: i % 2 === 0 ? 'var(--muted-bg)' : 'transparent' }}>
+                        <td className="px-3 py-2.5 text-muted-foreground text-xs">{label}</td>
+                        <td className="px-3 py-2.5 text-right font-data font-bold text-green-600 dark:text-green-400 text-xs whitespace-nowrap">{fmt(value, currency)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-green-500/30 bg-green-500/8">
+                      <td className="px-3 py-2.5 font-bold text-xs">إجمالي الإيرادات</td>
+                      <td className="px-3 py-2.5 text-right font-data font-bold text-green-600 dark:text-green-400 whitespace-nowrap">{fmt(emp.grossSalary, currency)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-1 print:hidden">
-            <button onClick={handlePrint} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
-              <Printer className="h-3.5 w-3.5" /> PDF / طباعة
-            </button>
-            <button onClick={onEmail} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
-              <Mail className="h-3.5 w-3.5" /> إيميل
-            </button>
-            <button onClick={handleShare} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
-              <Share2 className="h-3.5 w-3.5" /> مشاركة
-            </button>
+            {/* Deductions */}
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-red-500 mb-3 flex items-center gap-2">
+                <ArrowDownRight className="w-3.5 h-3.5" /> الخصومات
+              </h3>
+              <div className="rounded-xl overflow-hidden border border-red-500/15">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {((): { label: string; value: number }[] => {
+                      const rows = [
+                        ...(emp.lateDeduction > 0 ? [{ label: 'خصم التأخير', value: emp.lateDeduction }] : []),
+                        ...(emp.earlyDeduction > 0 ? [{ label: 'خروج مبكر', value: emp.earlyDeduction }] : []),
+                        ...(emp.unpaidLeaveDeduction > 0 ? [{ label: 'إجازة غير مدفوعة', value: emp.unpaidLeaveDeduction }] : []),
+                        ...(emp.sickUnpaidDeduction > 0 ? [{ label: 'مرضي غير مدفوع', value: emp.sickUnpaidDeduction }] : []),
+                        ...(emp.purchases > 0 ? [{ label: `مشتريات (${emp.purchasesCount} عملية)`, value: emp.purchases }] : []),
+                        ...(emp.advances > 0 ? [{ label: 'سلف', value: emp.advances }] : []),
+                        ...(emp.otherDeductions > 0 ? [{ label: 'خصومات أخرى', value: emp.otherDeductions }] : []),
+                      ];
+                      return rows.length === 0 ? [{ label: 'لا توجد خصومات', value: 0 }] : rows;
+                    })().map(({ label, value }, i) => (
+                      <tr key={i} className="border-b border-red-500/10 last:border-0"
+                        style={{ background: i % 2 === 0 ? 'var(--muted-bg)' : 'transparent' }}>
+                        <td className="px-3 py-2.5 text-muted-foreground text-xs">{label}</td>
+                        <td className="px-3 py-2.5 text-right font-data font-bold text-red-500 dark:text-red-400 text-xs whitespace-nowrap">
+                          {value > 0 ? `-${fmt(value, currency)}` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-red-500/30 bg-red-500/8">
+                      <td className="px-3 py-2.5 font-bold text-xs">إجمالي الخصومات</td>
+                      <td className="px-3 py-2.5 text-right font-data font-bold text-red-500 dark:text-red-400 whitespace-nowrap">-{fmt(emp.totalDeductions, currency)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* === NET SALARY RESULT === */}
+        <div className="px-6 py-6">
+          <div className="rounded-2xl p-5 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 border border-green-500/25 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">الراتب الصافي للصرف</p>
+              <p className="font-display font-bold text-3xl sm:text-4xl">{fmt(emp.netSalary, currency)}</p>
+              <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                <span>الإيرادات: <span className="text-green-500 font-bold">{fmt(emp.grossSalary, currency)}</span></span>
+                <span className="text-border">−</span>
+                <span>الخصومات: <span className="text-red-500 font-bold">{fmt(emp.totalDeductions, currency)}</span></span>
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-green-500/15 border border-green-500/25 flex items-center justify-center shrink-0">
+              <Banknote className="w-8 h-8 text-green-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* === SIGNATURE AREA (for print) === */}
+        <div className="px-6 pb-6 border-t border-border pt-5 hidden print:grid grid-cols-3 gap-6 text-center text-xs text-gray-500">
+          <div>
+            <div className="h-10 border-b border-gray-300 mb-2" />
+            <p>توقيع الموظف</p>
+          </div>
+          <div>
+            <div className="h-10 border-b border-gray-300 mb-2" />
+            <p>توقيع المدير المباشر</p>
+          </div>
+          <div>
+            <div className="h-10 border-b border-gray-300 mb-2" />
+            <p>ختم الشركة</p>
+          </div>
+        </div>
+
+        {/* === BOTTOM ACTION BAR (screen only) === */}
+        <div className="px-6 pb-6 grid grid-cols-3 gap-2 print:hidden">
+          <button onClick={handlePrint}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
+            <Printer className="h-3.5 w-3.5" /> PDF / طباعة
+          </button>
+          <button onClick={onEmail}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
+            <Mail className="h-3.5 w-3.5" /> إيميل
+          </button>
+          <button onClick={handleShare}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-bold hover:bg-white/5 transition">
+            <Share2 className="h-3.5 w-3.5" /> مشاركة
+          </button>
         </div>
       </div>
     </div>
@@ -540,6 +637,7 @@ export default function PayrollPage() {
   const [viewPayslip, setViewPayslip] = useState<EmployeePaySummary | null>(null);
   const [showClockOutPopup, setShowClockOutPopup] = useState(false);
   const [reportGenerated, setReportGenerated] = useState(false);
+  const [reportRecipient, setReportRecipient] = useState<number | 'all'>('all');
 
   const cid = user?.companyId || 0;
   const period = dateFrom.slice(0, 7);
@@ -560,6 +658,10 @@ export default function PayrollPage() {
     { companyId: cid },
     { query: { enabled: !!cid, queryKey: getGetLeavesQueryKey({ companyId: cid }) } }
   );
+  const { data: requestData } = useGetRequests(
+    { companyId: cid },
+    { query: { enabled: !!cid, queryKey: getGetRequestsQueryKey({ companyId: cid }) } }
+  );
 
   const updateMutation = useUpdatePayroll();
 
@@ -567,6 +669,7 @@ export default function PayrollPage() {
   const payrollRows = payrollData?.payroll || [];
   const attendanceRows: any[] = (attData as any)?.attendance || [];
   const leaveRows: any[] = leaveData?.leaves || [];
+  const requestRows: any[] = requestData?.requests || [];
 
   // Build per-employee summaries — all rules come from attendance settings
   const summaries: EmployeePaySummary[] = useMemo(() => {
@@ -576,6 +679,7 @@ export default function PayrollPage() {
         const pr = payrollRows.find(p => p.employeeId === emp.id);
         const empAtt = attendanceRows.filter(a => a.employeeId === emp.id);
         const empLeaves = leaveRows.filter(l => l.employeeId === emp.id);
+         const empRequests = requestRows.filter(r => r.employeeId === emp.id);
 
         const basicSalary = money(emp.salary) || money(pr?.basicSalary);
         const dailyRate   = basicSalary / 30;
@@ -615,6 +719,26 @@ export default function PayrollPage() {
 
         // Leave calculations
         const lvCalc = calcLeaves(empLeaves, dateFrom, dateTo);
+         const periodDays = Math.max(
+           1,
+           Math.floor((new Date(`${dateTo}T00:00:00`).getTime() - new Date(`${dateFrom}T00:00:00`).getTime()) / 86400000) + 1,
+         );
+         const leaveDays = lvCalc.paidDays + lvCalc.unpaidDays + lvCalc.sickPaidDays + lvCalc.sickUnpaidDays;
+         const absentDays = Math.max(0, periodDays - workedDays - leaveDays);
+
+         const expenseRequests = empRequests.filter((request) => {
+           if (request.type !== 'expense' || request.status !== 'approved' || request.paymentStatus !== 'paid') return false;
+           const requestDate = String(request.approvedAt || request.createdAt || '').slice(0, 10);
+           return !requestDate || (requestDate >= dateFrom && requestDate <= dateTo);
+         });
+         const extractAmount = (value: unknown) => {
+           const match = String(value || '').replace(/,/g, '').match(/(?:SAR|ر\.س|ريال)?\s*(\d+(?:\.\d+)?)/i);
+           return match ? Number(match[1]) : 0;
+         };
+         const purchases = expenseRequests.reduce(
+           (total, request) => total + extractAmount(`${request.title} ${request.description}`),
+           0,
+         );
 
         // ── Financials ──────────────────────────────────────────────────────
         const overtimePay  = overtimeHours * hourlyRate * 1.5; // 1.5x legal multiplier
@@ -636,7 +760,6 @@ export default function PayrollPage() {
         const unpaidLeaveDeduction = lvCalc.unpaidDays     * unpaidDeductPerDay;
         const sickUnpaidDeduction  = lvCalc.sickUnpaidDays * unpaidDeductPerDay;
         const advances             = 0;
-        const purchases            = 0;
         const otherDeductions      = money(pr?.deductions);
         const totalDeductions      = lateDeduction + earlyDeduction + unpaidLeaveDeduction + sickUnpaidDeduction + advances + purchases + otherDeductions;
 
@@ -651,6 +774,7 @@ export default function PayrollPage() {
           dailyRate,
           hourlyRate,
           workedDays,
+           absentDays,
           workedHours,
           overtimeHours,
           lateHours,
@@ -664,6 +788,7 @@ export default function PayrollPage() {
           sickUnpaidDeduction,
           advances,
           purchases,
+           purchasesCount: expenseRequests.length,
           otherDeductions,
           paidLeaveDays:   lvCalc.paidDays,
           unpaidLeaveDays: lvCalc.unpaidDays,
@@ -676,7 +801,7 @@ export default function PayrollPage() {
           payrollId: pr?.id,
         };
       });
-  }, [employees, payrollRows, attendanceRows, leaveRows, dateFrom, dateTo, selectedEmpId, cfg, dailyHours]);
+   }, [employees, payrollRows, attendanceRows, leaveRows, requestRows, dateFrom, dateTo, selectedEmpId, cfg, dailyHours]);
 
   const visibleSummaries = filter === 'all' ? summaries : summaries.filter(s => s.status === filter);
 
@@ -727,6 +852,15 @@ export default function PayrollPage() {
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
+  const sendMonthlyReports = () => {
+    if (reportRecipient === 'all') {
+      exportEmail();
+      return;
+    }
+    const employee = summaries.find((summary) => summary.employeeId === reportRecipient);
+    if (employee) exportEmail(employee);
+  };
+
   const handleShare = async () => {
     const text = `تقرير الرواتب\nمن ${dateFrom} إلى ${dateTo}\nإجمالي الرواتب: ${fmt(totals.net, 'SAR')}`;
     if (navigator.share) await navigator.share({ title: 'تقرير الرواتب', text });
@@ -734,92 +868,158 @@ export default function PayrollPage() {
   };
 
   const generateReport = () => {
+    if (selectedEmpId === 'all') {
+      toast({ variant: 'destructive', title: 'اختر موظفاً أولاً لإنشاء كشف الراتب' });
+      return;
+    }
+    const employee = summaries.find((summary) => summary.employeeId === selectedEmpId);
+    if (!employee) {
+      toast({ variant: 'destructive', title: 'تعذر العثور على بيانات الموظف' });
+      return;
+    }
+    setViewPayslip(employee);
     setReportGenerated(true);
-    toast({ title: 'تم إنشاء التقرير بنجاح' });
+    toast({ title: 'تم احتساب الراتب وإنشاء الكشف بنجاح' });
   };
 
   const isLoading = payrollLoading;
 
+  if (viewPayslip) {
+    return (
+      <PayslipModal
+        emp={viewPayslip}
+        currency="SAR"
+        cfg={cfg}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onClose={() => setViewPayslip(null)}
+        onEmail={() => exportEmail(viewPayslip)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fadeIn" dir={useLanguage().locale === 'ar' ? 'rtl' : 'ltr'}>
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">إدارة الرواتب</h1>
           <p className="text-sm mt-1 text-muted-foreground">تقارير تفصيلية شاملة للرواتب والخصومات والإضافات</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+      </div>
+
+      {/* ── Monthly reports card ───────────────────────────────── */}
+      <div className="rounded-2xl border border-indigo-500/25 p-4 sm:p-5" style={{ background: 'var(--card)' }}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/15 border border-indigo-500/25">
+            <Mail className="h-6 w-6 text-indigo-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-base">إرسال التقارير الشهرية للموظفين</h2>
+            <p className="mt-1 text-xs text-muted-foreground">إرسال تقرير حضور وراتب شامل عبر البريد الإلكتروني</p>
+          </div>
           <button
-            onClick={() => setShowClockOutPopup(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition"
+            onClick={sendMonthlyReports}
+            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-600 shrink-0"
           >
-            <Timer className="w-4 h-4" /> تسجيل خروج إضافي
+            <Mail className="h-4 w-4" /> إرسال الآن
           </button>
-          <button onClick={exportPDF} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-white/5 transition">
-            <Printer className="w-4 h-4" /> PDF
-          </button>
-          <button onClick={() => exportEmail()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-white/5 transition">
-            <Mail className="w-4 h-4" /> إيميل
-          </button>
-          <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-white/5 transition">
-            <Share2 className="w-4 h-4" /> مشاركة
-          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="relative block">
+            <span className="mb-1.5 block text-xs font-bold text-muted-foreground">الشهر</span>
+            <CalendarRange className="pointer-events-none absolute right-3 bottom-3 h-4 w-4 text-muted-foreground" />
+            <input
+              type="month"
+              value={period}
+              onChange={(event) => {
+                const nextPeriod = event.target.value;
+                if (!nextPeriod) return;
+                setDateFrom(`${nextPeriod}-01`);
+                const [year, month] = nextPeriod.split('-').map(Number);
+                setDateTo(`${nextPeriod}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`);
+              }}
+              className="w-full rounded-xl border border-border px-4 py-2.5 pr-10 text-sm font-data"
+              style={{ background: 'var(--muted-bg)' }}
+            />
+          </label>
+          <label className="relative block">
+            <span className="mb-1.5 block text-xs font-bold text-muted-foreground">المستلمون</span>
+            <Users className="pointer-events-none absolute right-3 bottom-3 h-4 w-4 text-muted-foreground" />
+            <select
+              value={reportRecipient}
+              onChange={(event) => setReportRecipient(event.target.value === 'all' ? 'all' : Number(event.target.value))}
+              className="w-full appearance-none rounded-xl border border-border px-4 py-2.5 pr-10 text-sm font-medium"
+              style={{ background: 'var(--muted-bg)' }}
+            >
+              <option value="all">جميع الموظفين</option>
+              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.fullName}</option>)}
+            </select>
+          </label>
         </div>
       </div>
 
-      {/* ── Filters ────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border p-4" style={{ background: 'var(--card)' }}>
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
-          {/* Employee select */}
-          <div className="flex-1 min-w-0">
-            <label className="text-xs font-bold text-muted-foreground block mb-1.5">تحديد الموظف</label>
-            <div className="relative">
-              <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <select
-                value={selectedEmpId}
-                onChange={e => setSelectedEmpId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                className="w-full pr-9 pl-4 py-2.5 rounded-xl border border-border text-sm font-medium appearance-none"
+      {/* ── Report filters card ────────────────────────────────── */}
+      <div className="rounded-2xl border border-border p-4 sm:p-5" style={{ background: 'var(--card)' }}>
+        <div className="space-y-4">
+          <label className="relative block">
+            <span className="mb-1.5 block text-xs font-bold text-muted-foreground">الموظف</span>
+            <Users className="pointer-events-none absolute right-3 bottom-3 h-4 w-4 text-muted-foreground" />
+            <select
+              value={selectedEmpId}
+              onChange={e => setSelectedEmpId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="w-full appearance-none rounded-xl border border-border px-4 py-2.5 pr-10 text-sm font-medium"
+              style={{ background: 'var(--muted-bg)' }}
+            >
+              <option value="all">اختر موظفًا / جميع الموظفين</option>
+              {employees.map(e => (
+                <option key={e.id} value={e.id}>{e.fullName}</option>
+              ))}
+            </select>
+          </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-bold text-muted-foreground">من تاريخ</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-data"
                 style={{ background: 'var(--muted-bg)' }}
-              >
-                <option value="all">جميع الموظفين</option>
-                {employees.map(e => (
-                  <option key={e.id} value={e.id}>{e.fullName}</option>
-                ))}
-              </select>
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-bold text-muted-foreground">إلى تاريخ</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-data"
+                style={{ background: 'var(--muted-bg)' }}
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={generateReport}
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5"
+            >
+              <FileText className="w-4 h-4" /> احسب
+            </button>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={exportPDF} className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold hover:bg-white/5 transition">
+                <Printer className="w-4 h-4" /> PDF
+              </button>
+              <button onClick={() => exportEmail()} className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold hover:bg-white/5 transition">
+                <Mail className="w-4 h-4" /> إيميل
+              </button>
+              <button onClick={handleShare} className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold hover:bg-white/5 transition">
+                <Share2 className="w-4 h-4" /> مشاركة
+              </button>
             </div>
           </div>
-
-          {/* Date from */}
-          <div>
-            <label className="text-xs font-bold text-muted-foreground block mb-1.5">من تاريخ</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-border text-sm font-data"
-              style={{ background: 'var(--muted-bg)' }}
-            />
-          </div>
-
-          {/* Date to */}
-          <div>
-            <label className="text-xs font-bold text-muted-foreground block mb-1.5">إلى تاريخ</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-border text-sm font-data"
-              style={{ background: 'var(--muted-bg)' }}
-            />
-          </div>
-
-          {/* Generate */}
-          <button
-            onClick={generateReport}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition hover:-translate-y-0.5 shrink-0"
-          >
-            <FileText className="w-4 h-4" /> إنشاء التقرير
-          </button>
         </div>
       </div>
 
@@ -887,7 +1087,7 @@ export default function PayrollPage() {
           ].map(({ l, v }) => (
             <div key={l} className="p-2.5 rounded-lg border border-indigo-500/10 bg-indigo-500/5">
               <p className="text-muted-foreground">{l}</p>
-              <p className="font-bold text-white mt-0.5">{v}</p>
+              <p className="font-bold text-slate-800 dark:text-white mt-0.5">{v}</p>
             </div>
           ))}
         </div>
@@ -945,35 +1145,41 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      {/* ── Modals ────────────────────────────────────────────────── */}
-      {showClockOutPopup && (
-        <ClockOutPopup onClose={() => setShowClockOutPopup(false)} />
-      )}
-      {viewPayslip && (
-        <PayslipModal
-          emp={viewPayslip}
-          currency="SAR"
-          cfg={cfg}
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          onClose={() => setViewPayslip(null)}
-          onEmail={() => exportEmail(viewPayslip)}
-        />
-      )}
+      {/* ── Supporting interaction ─────────────────────────────────── */}
+      {showClockOutPopup && <ClockOutPopup onClose={() => setShowClockOutPopup(false)} />}
 
       {/* Print styles */}
       <style>{`
         @media print {
           .bottom-nav, header, aside, nav, button { display: none !important; }
-          body { background: white; color: black; }
+          body { background: white !important; color: black !important; }
           .rounded-2xl { border: 1px solid #ddd !important; page-break-inside: avoid; }
         }
+        /* When payslip modal is open and printing */
         @media print {
           body.printing-payslip > *:not(#root) { display: none !important; }
-          body.printing-payslip #root > *:not(:has(.fixed.inset-0)) { display: none !important; }
-          body.printing-payslip .fixed.inset-0 { position: static !important; display: block !important; background: white !important; padding: 0 !important; }
-          body.printing-payslip .fixed.inset-0 > div { max-height: none !important; max-width: none !important; border: 0 !important; box-shadow: none !important; }
-          body.printing-payslip .fixed.inset-0 [class*="print:hidden"] { display: none !important; }
+          body.printing-payslip #root > *:not(:has(.payslip-wrapper)) { display: none !important; }
+          body.printing-payslip .payslip-wrapper { min-height: auto !important; padding: 0 !important; }
+          body.printing-payslip .payslip-wrapper > *:not(.payslip-doc) { display: none !important; }
+          body.printing-payslip .payslip-doc {
+            max-width: 100% !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: none !important;
+            border-radius: 8px !important;
+            margin: 0 !important;
+          }
+          body.printing-payslip .payslip-header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed, #a21caf) !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color: white !important;
+          }
+          body.printing-payslip .payslip-header * { color: white !important; }
+          body.printing-payslip [class*="print:hidden"] { display: none !important; }
+          body.printing-payslip [class*="print:grid"] { display: grid !important; }
+          body.printing-payslip table { break-inside: avoid; }
+          body.printing-payslip .living-card { break-inside: avoid; }
+          @page { margin: 15mm; size: A4; }
         }
       `}</style>
     </div>
