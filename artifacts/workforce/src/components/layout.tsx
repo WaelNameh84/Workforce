@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import PullToRefresh from '@/components/pull-to-refresh';
 import { useAuth } from '@/hooks/use-auth';
 import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -514,7 +515,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
         {/* Header */}
         <header className="sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 border-b border-white/5" style={{ background: 'var(--background)', backdropFilter: 'blur(10px)' }}>
           <button
@@ -728,10 +729,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 page-shell w-full min-w-0 p-3 sm:p-4 lg:p-6 max-w-[1800px] mx-auto pb-20 lg:pb-6 overflow-x-hidden">
-          {children}
-        </main>
+        {/* Page content — Pull-to-refresh wraps the scrollable area */}
+        <PullToRefresh>
+          <main className="page-shell w-full min-w-0 p-3 sm:p-4 lg:p-6 max-w-[1800px] mx-auto pb-20 lg:pb-6">
+            {children}
+          </main>
+        </PullToRefresh>
       </div>
     </div>
   );
