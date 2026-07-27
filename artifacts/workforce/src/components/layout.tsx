@@ -201,7 +201,7 @@ const navBadges: Record<string, string> = {
   '/dashboard/documentation': 'DOCS',
 };
 
-// ─── Badge animation helper ──────────────────────────────────────────────────
+// ─── Nav item drag + animation ───────────────────────────────────────────────
 type NavItemType = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
 
 function NavItemCard({
@@ -227,49 +227,49 @@ function NavItemCard({
       dragControls={dragControls}
       dragListener={false}
       onDragStart={() => { isDraggingRef.current = true; }}
-      onDragEnd={() => { setTimeout(() => { isDraggingRef.current = false; }, 80); }}
-      className={`nav-card group relative flex items-center rounded-2xl border text-sm font-black transition-all duration-200 ${visual.border} ${visual.glow} ${active ? 'nav-card-active text-white' : 'text-slate-200'}`}
-      whileDrag={{ scale: 1.03, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', zIndex: 50 }}
-      layout
-      transition={{ layout: { duration: 0.18, ease: 'easeOut' } }}
-      style={{ listStyle: 'none' }}
+      onDragEnd={() => { setTimeout(() => { isDraggingRef.current = false; }, 100); }}
+      className={`nav-card group relative flex items-center rounded-2xl border text-sm font-black ${visual.border} ${visual.glow} ${active ? 'nav-card-active text-white' : 'text-slate-200'}`}
+      whileDrag={{ scale: 1.04, boxShadow: '0 16px 48px rgba(0,0,0,0.6)', zIndex: 60, opacity: 0.96 }}
+      layout="position"
+      transition={{ layout: { duration: 0.15, ease: 'easeOut' } }}
+      style={{ listStyle: 'none', userSelect: 'none' } as React.CSSProperties}
     >
-      {/* Drag handle */}
+      {/* ── Drag handle — big touch target, overrides global CSS ── */}
       <div
-        onPointerDown={(e) => { e.preventDefault(); dragControls.start(e); }}
-        className="touch-none cursor-grab active:cursor-grabbing px-1.5 py-2.5 text-slate-700 hover:text-slate-400 shrink-0 select-none transition-colors"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragControls.start(e);
+        }}
+        style={{ touchAction: 'none', cursor: 'grab' } as React.CSSProperties}
+        className="flex items-center justify-center w-8 h-full min-h-[44px] text-slate-600 hover:text-slate-300 shrink-0 active:text-slate-200 transition-colors"
         aria-label="drag to reorder"
       >
-        <GripVertical className="w-3 h-3" />
+        <GripVertical className="w-4 h-4 pointer-events-none" />
       </div>
 
-      {/* Clickable card body */}
+      {/* ── Clickable card body ── */}
       <div
-        className="flex-1 flex items-center justify-between gap-3 pr-3 py-2.5 cursor-pointer"
+        className="flex-1 flex items-center justify-between gap-3 pr-3 py-2.5 min-w-0"
+        style={{ cursor: 'pointer' }}
         onClick={() => { if (!isDraggingRef.current) onNavigate(item.href); }}
       >
         <span className="relative flex min-w-0 items-center gap-3">
-          <motion.span
-            className={`nav-card-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-lg ${visual.icon} ${active ? 'nav-card-icon-active' : ''}`}
-            animate={active ? { boxShadow: ['0 0 6px 1px rgba(255,255,255,0.12)', '0 0 14px 3px rgba(255,255,255,0.22)', '0 0 6px 1px rgba(255,255,255,0.12)'] } : {}}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          >
+          {/* Icon — always animated */}
+          <span className={`nav-icon-wrap flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-lg ${visual.icon} ${active ? 'nav-icon-active' : 'nav-icon-idle'}`}>
             <item.icon className="h-4 w-4" />
-          </motion.span>
+          </span>
           <span className="truncate">{item.label}</span>
         </span>
+
+        {/* Badge */}
         {badge && (
           <span className={`relative shrink-0 rounded-lg border px-2 py-1 text-[9px] font-black tracking-wide ${visual.badge} ${visual.badgeBorder} ${badgeAnimClass}`}>
-            {badge === 'LIVE' && (
+            {/* Live / Hot dot indicator */}
+            {(badge === 'LIVE' || badge === 'HOT') && (
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-              </span>
-            )}
-            {badge === 'HOT' && (
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${badge === 'LIVE' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${badge === 'LIVE' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
               </span>
             )}
             {badge}
