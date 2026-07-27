@@ -173,8 +173,7 @@ export default function Attendance() {
   }, [locations, selectedLocationId]);
 
   useEffect(() => {
-    if (checkMethod === 'gps') detectGPS();
-    else setGpsCoords(null);
+    if (checkMethod !== 'gps') setGpsCoords(null);
   }, [checkMethod]);
 
   /* ── justification dialogs ── */
