@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLogin } from '@workspace/api-client-react';
 import { useAuth, type ExtendedAuthUser } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -6,10 +6,136 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link, useLocation } from 'wouter';
-import { Globe, Moon, Sun, ShieldCheck, Users, Activity, Fingerprint, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Globe, Moon, Sun, ShieldCheck, Users, Activity, Fingerprint, Eye, EyeOff, UserPlus, ImagePlus } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 
 const BIOMETRIC_KEY = 'biometric_saved_email';
+
+// ── Read settings from localStorage (login page has no SettingsProvider) ──────
+function useLoginSettings() {
+  const [cfg, setCfg] = useState(() => {
+    try {
+      const raw = localStorage.getItem('workforce-settings');
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
+
+  const saveLogoUrl = (dataUrl: string) => {
+    try {
+      const raw = localStorage.getItem('workforce-settings');
+      const parsed = raw ? JSON.parse(raw) : {};
+      const next = { ...parsed, logoUrl: dataUrl };
+      localStorage.setItem('workforce-settings', JSON.stringify(next));
+      setCfg(next);
+    } catch { /* ignore */ }
+  };
+
+  return {
+    logoUrl:    (cfg.logoUrl    || '') as string,
+    appName:    (cfg.appName    || 'WorkforceOS') as string,
+    clockColor: (cfg.clockColor || '#6366f1') as string,
+    show12h:    Boolean(cfg.show12h),
+    showSec:    cfg.showSeconds !== false,
+    showDate:   cfg.showDate    !== false,
+    clockSize:  (cfg.clockSize  || 'medium') as 'small' | 'medium' | 'large',
+    saveLogoUrl,
+  };
+}
+
+// ── Compact analog + digital clock for login page ─────────────────────────────
+function LoginClock({ now, locale, color, show12h, showSec, showDate }: {
+  now: Date; locale: string; color: string; show12h: boolean; showSec: boolean; showDate: boolean;
+}) {
+  const sec  = now.getSeconds();
+  const min  = now.getMinutes();
+  const hr12 = now.getHours() % 12;
+  const secAngle  = sec * 6;
+  const minAngle  = min * 6 + sec * 0.1;
+  const hourAngle = hr12 * 30 + min * 0.5;
+
+  const hand = (angle: number, len: number, width: number, stroke: string) => {
+    const rad = ((angle - 90) * Math.PI) / 180;
+    return (
+      <line
+        x1="50" y1="50"
+        x2={50 + len * Math.cos(rad)}
+        y2={50 + len * Math.sin(rad)}
+        strokeWidth={width} stroke={stroke} strokeLinecap="round"
+      />
+    );
+  };
+
+  const intl = locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US';
+  const timeStr = now.toLocaleTimeString(intl, {
+    hour: '2-digit', minute: '2-digit',
+    second: showSec ? '2-digit' : undefined,
+    hour12: show12h,
+  });
+  const dateStr = now.toLocaleDateString(intl, { weekday: 'short', day: 'numeric', month: 'short' });
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative">
+        <svg viewBox="0 0 100 100" className="w-28 h-28 drop-shadow-xl">
+          <defs>
+            <radialGradient id="lf" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stopColor="rgba(30,27,75,0.97)" />
+              <stop offset="100%" stopColor="rgba(10,9,40,0.99)" />
+            </radialGradient>
+          </defs>
+          {/* Outer glow ring */}
+          <circle cx="50" cy="50" r="48" fill="none" stroke={color} strokeWidth="1" strokeOpacity="0.3" />
+          <circle cx="50" cy="50" r="47" fill="url(#lf)" />
+          {/* Hour ticks */}
+          {Array.from({ length: 12 }, (_, i) => {
+            const a = ((i * 30 - 90) * Math.PI) / 180;
+            return (
+              <line key={i}
+                x1={50 + 40 * Math.cos(a)} y1={50 + 40 * Math.sin(a)}
+                x2={50 + 44 * Math.cos(a)} y2={50 + 44 * Math.sin(a)}
+                stroke={color} strokeWidth="2" strokeLinecap="round" strokeOpacity="0.7"
+              />
+            );
+          })}
+          {/* Minute ticks */}
+          {Array.from({ length: 60 }, (_, i) => {
+            if (i % 5 === 0) return null;
+            const a = ((i * 6 - 90) * Math.PI) / 180;
+            return (
+              <line key={i}
+                x1={50 + 42 * Math.cos(a)} y1={50 + 42 * Math.sin(a)}
+                x2={50 + 44 * Math.cos(a)} y2={50 + 44 * Math.sin(a)}
+                stroke={color} strokeWidth="0.7" strokeLinecap="round" strokeOpacity="0.25"
+              />
+            );
+          })}
+          {hand(hourAngle, 25, 3.5, color)}
+          {hand(minAngle,  34, 2.5, '#a5b4fc')}
+          {hand(secAngle,  38, 1.2, '#f43f5e')}
+          <circle cx="50" cy="50" r="3.5" fill={color} />
+          <circle cx="50" cy="50" r="1.5" fill="#fff" />
+        </svg>
+        {/* LIVE dot */}
+        <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
+          <span className="relative h-2 w-2 rounded-full bg-emerald-400" />
+        </span>
+      </div>
+      {/* Digital readout */}
+      <div className="text-center leading-none">
+        <div
+          className="font-mono text-2xl font-black tracking-widest"
+          style={{ color, fontVariantNumeric: 'tabular-nums' }}
+        >
+          {timeStr}
+        </div>
+        {showDate && (
+          <div className="text-xs font-bold text-muted-foreground mt-1">{dateStr}</div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Login() {
   const { t, locale, setLocale, dir } = useLanguage();
@@ -18,55 +144,51 @@ export default function Login() {
   const { login } = useAuth();
   const [, setLocation] = useLocation();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState('');
+  const [rememberMe, setRememberMe]     = useState(false);
+  const [error, setError]               = useState('');
   const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricLoading, setBiometricLoading] = useState(false);
-  const [biometricSaved, setBiometricSaved] = useState(false);
+  const [biometricLoading, setBiometricLoading]     = useState(false);
+  const [biometricSaved, setBiometricSaved]         = useState(false);
 
-  // Read logo + app name from saved settings
-  const [logoUrl, setLogoUrl] = useState('');
-  const [appName, setAppName] = useState('WorkforceOS');
+  // Live clock
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('workforce-settings');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.logoUrl) setLogoUrl(parsed.logoUrl);
-        if (parsed.appName) setAppName(parsed.appName);
-      }
-    } catch { /* ignore */ }
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
   }, []);
+
+  // Settings from localStorage
+  const settings = useLoginSettings();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => settings.saveLogoUrl(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
 
   // Load remembered email on mount
   useEffect(() => {
     const saved = localStorage.getItem('remembered_email');
-    if (saved) {
-      setEmail(saved);
-      setRememberMe(true);
-    }
+    if (saved) { setEmail(saved); setRememberMe(true); }
     const savedBiometric = localStorage.getItem(BIOMETRIC_KEY);
     if (savedBiometric) setBiometricSaved(true);
-
-    // Check biometric availability
     if (window.PublicKeyCredential) {
       window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        .then(available => setBiometricAvailable(available))
-        .catch(() => setBiometricAvailable(false));
+        .then(ok => setBiometricAvailable(ok)).catch(() => {});
     }
   }, []);
 
   const doLogin = async (emailVal: string, passwordVal: string) => {
     const result = await loginMutation.mutateAsync({ data: { email: emailVal, password: passwordVal } });
     if (result.token && result.user) {
-      if (rememberMe) {
-        localStorage.setItem('remembered_email', emailVal);
-      } else {
-        localStorage.removeItem('remembered_email');
-      }
+      if (rememberMe) localStorage.setItem('remembered_email', emailVal);
+      else localStorage.removeItem('remembered_email');
       login(result.user as ExtendedAuthUser, result.token);
       setLocation('/dashboard');
     }
@@ -77,16 +199,12 @@ export default function Login() {
     setError('');
     try {
       await doLogin(email, password);
-      // After successful login, offer to save biometric if available
-      if (biometricAvailable && !biometricSaved) {
-        await registerBiometric(email);
-      }
+      if (biometricAvailable && !biometricSaved) await registerBiometric(email);
     } catch (err: any) {
       setError(err?.error || err?.message || 'فشل تسجيل الدخول');
     }
   };
 
-  // Register biometric credential (WebAuthn)
   const registerBiometric = async (userEmail: string) => {
     try {
       const challenge = new Uint8Array(32);
@@ -95,67 +213,38 @@ export default function Login() {
         publicKey: {
           challenge,
           rp: { name: 'WorkforceOS', id: window.location.hostname },
-          user: {
-            id: new TextEncoder().encode(userEmail),
-            name: userEmail,
-            displayName: userEmail,
-          },
+          user: { id: new TextEncoder().encode(userEmail), name: userEmail, displayName: userEmail },
           pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'required',
-          },
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
           timeout: 60000,
         },
       });
-      if (credential) {
-        localStorage.setItem(BIOMETRIC_KEY, userEmail);
-        setBiometricSaved(true);
-      }
-    } catch {
-      // User cancelled or not supported — silent
-    }
+      if (credential) { localStorage.setItem(BIOMETRIC_KEY, userEmail); setBiometricSaved(true); }
+    } catch { /* silent */ }
   };
 
-  // Login with biometric
   const handleBiometric = async () => {
     const savedEmail = localStorage.getItem(BIOMETRIC_KEY);
     if (!savedEmail) return;
-
     setBiometricLoading(true);
     setError('');
     try {
       const challenge = new Uint8Array(32);
       crypto.getRandomValues(challenge);
       const assertion = await navigator.credentials.get({
-        publicKey: {
-          challenge,
-          rpId: window.location.hostname,
-          userVerification: 'required',
-          timeout: 60000,
-        },
+        publicKey: { challenge, rpId: window.location.hostname, userVerification: 'required', timeout: 60000 },
       });
       if (assertion) {
-        // Biometric confirmed — auto-fill email and prompt password if not saved, or use saved creds
         setEmail(savedEmail);
-        // Try to log in using saved session token if exists
         const savedToken = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
+        const savedUser  = localStorage.getItem('user');
         if (savedToken && savedUser) {
-          try {
-            login(JSON.parse(savedUser) as ExtendedAuthUser, savedToken);
-            setLocation('/dashboard');
-            return;
-          } catch { /* fall through */ }
+          try { login(JSON.parse(savedUser) as ExtendedAuthUser, savedToken); setLocation('/dashboard'); return; } catch { /* fall */ }
         }
-        // No saved session — fill email and focus password
-        setEmail(savedEmail);
         setTimeout(() => document.getElementById('password')?.focus(), 100);
       }
     } catch (err: any) {
-      if (err.name !== 'NotAllowedError') {
-        setError('فشل التحقق بالبصمة');
-      }
+      if (err.name !== 'NotAllowedError') setError('فشل التحقق بالبصمة');
     } finally {
       setBiometricLoading(false);
     }
@@ -166,14 +255,49 @@ export default function Login() {
     setLocale(order[(order.indexOf(locale) + 1) % order.length]);
   };
 
+  // Shared logo node
+  const LogoArea = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+    const dim = size === 'lg' ? 'h-16 w-16' : size === 'md' ? 'h-12 w-12' : 'h-10 w-10';
+    return (
+      <>
+        <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+        <button
+          type="button"
+          onClick={() => logoInputRef.current?.click()}
+          title="اضغط لرفع الشعار"
+          className="relative group shrink-0"
+        >
+          {settings.logoUrl ? (
+            <img
+              src={settings.logoUrl}
+              alt={settings.appName}
+              className={`${dim} rounded-2xl object-contain border border-white/10 bg-white/5 p-1 shadow-lg group-hover:opacity-75 transition-opacity`}
+            />
+          ) : (
+            <div className={`${dim} rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center gap-0.5 shadow-lg group-hover:opacity-80 transition-opacity`}>
+              <ImagePlus className="h-5 w-5 text-white/70" />
+              <span className="text-[8px] font-black text-white/50 leading-none">شعار</span>
+            </div>
+          )}
+          {settings.logoUrl && (
+            <span className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+              <ImagePlus className="h-4 w-4 text-white" />
+            </span>
+          )}
+        </button>
+      </>
+    );
+  };
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background relative overflow-hidden" dir={dir}>
       <div className="absolute inset-0 z-0 lg:hidden bg-animated-gradient opacity-10" />
       <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[50%] bg-purple-600/20 blur-[120px] rounded-full z-0 lg:hidden" />
 
-      {/* Brand Panel */}
+      {/* ── Desktop Brand Panel ─────────────────────────────────────── */}
       <div className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden text-white bg-animated-gradient z-10">
         <div className="absolute inset-0 bg-black/10" />
+        {/* Floating stat cards */}
         <div className="absolute -right-12 top-1/4 w-80 h-48 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl animate-float p-6 flex flex-col justify-between" style={{ transform: 'rotate(-5deg)' }}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><Users className="w-6 h-6 text-white" /></div>
@@ -188,20 +312,24 @@ export default function Login() {
           </div>
           <div className="flex gap-2"><div className="h-6 w-full bg-white/20 rounded-md" /><div className="h-6 w-2/3 bg-white/20 rounded-md" /><div className="h-6 w-1/3 bg-white/20 rounded-md" /></div>
         </div>
+
+        {/* Top: logo + name */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
-            {logoUrl ? (
-              <img src={logoUrl} alt="logo" className="h-12 w-12 rounded-xl object-contain bg-white/10 p-1 shadow-lg" />
+            {settings.logoUrl ? (
+              <img src={settings.logoUrl} alt="logo" className="h-12 w-12 rounded-xl object-contain bg-white/10 p-1 shadow-lg" />
             ) : (
               <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg">
                 <ShieldCheck className="h-6 w-6 text-indigo-600" />
               </div>
             )}
-            <span className="text-3xl font-display font-bold tracking-tight">{appName}</span>
+            <span className="text-3xl font-display font-bold tracking-tight">{settings.appName}</span>
           </div>
           <h1 className="text-5xl font-display font-bold leading-tight mb-6 max-w-lg">{t('heroTitle')}</h1>
           <p className="text-white/80 text-xl max-w-md leading-relaxed">{t('heroSubtitle')}</p>
         </div>
+
+        {/* Bottom: stats */}
         <div className="relative z-10 space-y-8">
           <div className="flex gap-12">
             <div><div className="text-4xl font-bold font-data mb-2">99.9%</div><div className="text-sm font-bold uppercase tracking-widest text-white/60">Uptime</div></div>
@@ -211,35 +339,49 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Form Panel */}
+      {/* ── Form Panel ─────────────────────────────────────────────── */}
       <div className="flex flex-col p-6 lg:p-12 relative z-10">
+        {/* Top-right controls */}
         <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
-          <button className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-sm hover:scale-105 transition-transform" onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
+          <button
+            className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-sm hover:scale-105 transition-transform"
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          >
             {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
-          <button className="h-10 px-4 rounded-full bg-card border border-border flex items-center gap-2 shadow-sm font-bold text-xs uppercase tracking-widest hover:scale-105 transition-transform" onClick={toggleLanguage}>
-            <Globe className="h-4 w-4" />
-            {locale}
+          <button
+            className="h-10 px-4 rounded-full bg-card border border-border flex items-center gap-2 shadow-sm font-bold text-xs uppercase tracking-widest hover:scale-105 transition-transform"
+            onClick={toggleLanguage}
+          >
+            <Globe className="h-4 w-4" />{locale}
           </button>
         </div>
 
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-[420px] glass p-8 sm:p-10 rounded-[2rem]">
-            {/* Mobile logo */}
-            <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
-              {logoUrl ? (
-                <img src={logoUrl} alt="logo" className="h-14 w-14 rounded-2xl object-contain border border-white/10 bg-slate-900/40 p-1 shadow-lg shadow-indigo-900/20" />
-              ) : (
-                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-900/20">
-                  <ShieldCheck className="h-7 w-7 text-white" />
-                </div>
-              )}
-              <span className="text-3xl font-display font-bold">{appName}</span>
+
+            {/* ── Logo + Clock header (mobile-first) ── */}
+            <div className="flex flex-col items-center gap-4 mb-8">
+              {/* Logo row */}
+              <div className="flex items-center gap-3">
+                <LogoArea size="md" />
+                <span className="text-2xl font-display font-bold">{settings.appName}</span>
+              </div>
+
+              {/* Live clock */}
+              <LoginClock
+                now={now}
+                locale={locale}
+                color={settings.clockColor}
+                show12h={settings.show12h}
+                showSec={settings.showSec}
+                showDate={settings.showDate}
+              />
             </div>
 
-            <div className="mb-8 text-center lg:text-left">
-              <h2 className="text-3xl font-display font-bold mb-2">{t('loginTitle')}</h2>
-              <p className="text-muted-foreground font-medium">{t('loginSubtitle')}</p>
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-display font-bold mb-1">{t('loginTitle')}</h2>
+              <p className="text-muted-foreground text-sm font-medium">{t('loginSubtitle')}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -247,14 +389,8 @@ export default function Login() {
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-bold ml-1">{t('email')}</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
+                  id="email" name="email" type="email" autoComplete="email"
+                  placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required
                   className="h-14 rounded-xl bg-background/50 backdrop-blur-sm border-border focus:bg-background"
                 />
               </div>
@@ -264,13 +400,8 @@ export default function Login() {
                 <Label htmlFor="password" className="font-bold ml-1">{t('password')}</Label>
                 <div className="relative">
                   <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
+                    id="password" name="password" type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required
                     className="h-14 rounded-xl bg-background/50 backdrop-blur-sm border-border focus:bg-background pr-12"
                   />
                   <button
@@ -284,15 +415,11 @@ export default function Login() {
               </div>
 
               {/* Remember me */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center pt-1">
                 <label className="flex items-center gap-2.5 cursor-pointer select-none group">
                   <div
                     onClick={() => setRememberMe(p => !p)}
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                      rememberMe
-                        ? 'bg-indigo-500 border-indigo-500'
-                        : 'border-border group-hover:border-indigo-400'
-                    }`}
+                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-indigo-500 border-indigo-500' : 'border-border group-hover:border-indigo-400'}`}
                   >
                     {rememberMe && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -305,12 +432,9 @@ export default function Login() {
               </div>
 
               {error && (
-                <div className="p-4 text-sm font-bold text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl">
-                  {error}
-                </div>
+                <div className="p-4 text-sm font-bold text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl">{error}</div>
               )}
 
-              {/* Login button */}
               <Button
                 type="submit"
                 className="w-full h-14 rounded-xl text-base font-bold shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-transform mt-2"
@@ -322,7 +446,7 @@ export default function Login() {
               </Button>
             </form>
 
-            {/* Biometric button */}
+            {/* Biometric */}
             {biometricAvailable && (
               <div className="mt-4">
                 <div className="relative flex items-center gap-3 my-2">
@@ -331,20 +455,12 @@ export default function Login() {
                   <div className="flex-1 h-px bg-border" />
                 </div>
                 <button
-                  type="button"
-                  onClick={handleBiometric}
-                  disabled={biometricLoading}
-                  className={`w-full h-14 rounded-xl border-2 flex items-center justify-center gap-3 font-bold text-sm transition-all hover:-translate-y-0.5 ${
-                    biometricSaved
-                      ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'
-                      : 'border-border bg-card/50 text-muted-foreground hover:border-indigo-500/30 hover:text-foreground'
-                  }`}
+                  type="button" onClick={handleBiometric} disabled={biometricLoading}
+                  className={`w-full h-14 rounded-xl border-2 flex items-center justify-center gap-3 font-bold text-sm transition-all hover:-translate-y-0.5 ${biometricSaved ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20' : 'border-border bg-card/50 text-muted-foreground hover:border-indigo-500/30 hover:text-foreground'}`}
                 >
-                  {biometricLoading ? (
-                    <div className="w-5 h-5 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
-                  ) : (
-                    <Fingerprint className={`w-6 h-6 ${biometricSaved ? 'text-indigo-400' : 'text-muted-foreground'}`} />
-                  )}
+                  {biometricLoading
+                    ? <div className="w-5 h-5 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+                    : <Fingerprint className={`w-6 h-6 ${biometricSaved ? 'text-indigo-400' : 'text-muted-foreground'}`} />}
                   {biometricSaved ? 'الدخول بالبصمة' : 'تفعيل بصمة الهاتف'}
                 </button>
                 {!biometricSaved && (
@@ -355,7 +471,7 @@ export default function Login() {
               </div>
             )}
 
-            {/* Divider + Create account */}
+            {/* Create account */}
             <div className="mt-6 pt-6 border-t border-border/50">
               <Link href="/register">
                 <button
