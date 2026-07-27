@@ -320,6 +320,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null;
 
   const toggleLanguage = () => {
+    setSidebarOpen(false);
     const order: typeof locale[] = ['en', 'ar', 'sv'];
     setLocale(order[(order.indexOf(locale) + 1) % order.length]);
   };
