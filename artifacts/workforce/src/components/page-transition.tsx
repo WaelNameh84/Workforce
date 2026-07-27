@@ -32,8 +32,8 @@ export default function PageTransition({ children }: { children: React.ReactNode
     <div
       style={{
         opacity:    phase === 'in' ? 1 : 0,
-        transform:  phase === 'in' ? 'translateY(0)' : 'translateY(8px)',
-        transition: 'opacity 0.2s ease, transform 0.2s ease',
+        transform:  phase === 'in' ? 'translateX(0)' : 'translateX(18px)',
+        transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(.22,1,.36,1)',
         willChange: 'opacity, transform',
       }}
     >

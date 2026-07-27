@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { RefreshCw } from 'lucide-react';
+import { ArrowUp, RefreshCw } from 'lucide-react';
 
 const THRESHOLD   = 72;   // px to pull before releasing triggers refresh
 const MAX_PULL    = 110;  // max visual pull distance
@@ -11,6 +11,7 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
   const [pullY,       setPullY]       = useState(0);   // current pull distance (px)
   const [refreshing,  setRefreshing]  = useState(false);
   const [released,    setReleased]    = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const startYRef    = useRef<number | null>(null);
   const pulling      = useRef(false);
@@ -69,12 +70,15 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    const onScroll = () => setShowScrollTop(el.scrollTop > 360);
+    el.addEventListener('scroll', onScroll, { passive: true });
 
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchmove',  onTouchMove,  { passive: false });
     el.addEventListener('touchend',   onTouchEnd,   { passive: true });
 
     return () => {
+      el.removeEventListener('scroll', onScroll);
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove',  onTouchMove);
       el.removeEventListener('touchend',   onTouchEnd);
@@ -131,6 +135,17 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
       >
         {children}
       </div>
+
+      {showScrollTop && (
+        <button
+          type="button"
+          aria-label="Scroll to top"
+          onClick={() => containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-indigo-400/30 bg-indigo-500 text-white shadow-xl shadow-indigo-500/30 transition hover:-translate-y-1 active:scale-95 lg:bottom-6"
+        >
+          <ArrowUp className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }

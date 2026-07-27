@@ -13,7 +13,7 @@ const BIOMETRIC_KEY = 'biometric_saved_email';
 
 export default function Login() {
   const { t, locale, setLocale, dir } = useLanguage();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const loginMutation = useLogin();
   const { login } = useAuth();
   const [, setLocation] = useLocation();
@@ -196,8 +196,8 @@ export default function Login() {
       {/* Form Panel */}
       <div className="flex flex-col p-6 lg:p-12 relative z-10">
         <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
-          <button className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-sm hover:scale-105 transition-transform" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          <button className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-sm hover:scale-105 transition-transform" onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
+            {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
           <button className="h-10 px-4 rounded-full bg-card border border-border flex items-center gap-2 shadow-sm font-bold text-xs uppercase tracking-widest hover:scale-105 transition-transform" onClick={toggleLanguage}>
             <Globe className="h-4 w-4" />

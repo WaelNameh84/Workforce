@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { useLocation } from 'wouter';
 import {
   useGetEmployees, useGetDepartments, useCreateEmployee, useUpdateEmployee, useDeleteEmployee,
   getGetEmployeesQueryKey, getGetDepartmentsQueryKey,
@@ -13,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Search, Plus, MoreHorizontal, Edit, Trash2, Eye,
+  Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Copy, Share2, Clock3,
   Mail, Phone, MapPin, Calendar, Clock, Building2,
   User, Briefcase, DollarSign, FileText, Users, Shield,
   ClipboardList, UserCheck, CalendarDays
@@ -103,6 +105,7 @@ function StatBadge({ icon: Icon, label, value, color }: { icon: React.ElementTyp
 export default function Employees() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -115,6 +118,9 @@ export default function Employees() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [workDaysAdd, setWorkDaysAdd] = useState('Sun, Mon, Tue, Wed, Thu');
   const [workDaysEdit, setWorkDaysEdit] = useState('Sun, Mon, Tue, Wed, Thu');
+  const [longPressEmployee, setLongPressEmployee] = useState<Employee | null>(null);
+  const longPressTimers = useRef(new Map<number, number>());
+  const longPressFired = useRef(false);
 
 
   const cid = user?.companyId || 0;
@@ -217,6 +223,49 @@ export default function Employees() {
   const openEdit = (emp: Employee) => {
     setEditEmployee(emp);
     setWorkDaysEdit(emp.workDays || 'Sun, Mon, Tue, Wed, Thu');
+  };
+
+  const copyEmployee = async (emp: Employee) => {
+    const text = `${emp.fullName} — ${emp.position || 'Employee'}${emp.email ? ` — ${emp.email}` : ''}${emp.phone ? ` — ${emp.phone}` : ''}`;
+    try {
+      await navigator.clipboard?.writeText(text);
+      toast({ title: locale === 'ar' ? 'تم نسخ بيانات الموظف' : 'Employee details copied' });
+    } catch {
+      toast({ variant: 'destructive', title: locale === 'ar' ? 'تعذر النسخ' : 'Could not copy details' });
+    }
+  };
+
+  const shareEmployee = async (emp: Employee) => {
+    const text = `${emp.fullName} — ${emp.position || 'Employee'}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: emp.fullName || 'Employee', text });
+      } catch (error) {
+        if ((error as DOMException).name !== 'AbortError') {
+          toast({ variant: 'destructive', title: locale === 'ar' ? 'تعذرت المشاركة' : 'Could not share' });
+        }
+      }
+      return;
+    }
+    await copyEmployee(emp);
+  };
+
+  const startLongPress = (emp: Employee) => {
+    if (!emp.id) return;
+    longPressFired.current = false;
+    const timer = window.setTimeout(() => {
+      longPressFired.current = true;
+      setLongPressEmployee(emp);
+      navigator.vibrate?.(12);
+    }, 520);
+    longPressTimers.current.set(emp.id, timer);
+  };
+
+  const cancelLongPress = (emp: Employee) => {
+    if (!emp.id) return;
+    const timer = longPressTimers.current.get(emp.id);
+    if (timer !== undefined) window.clearTimeout(timer);
+    longPressTimers.current.delete(emp.id);
   };
 
   const employees = employeesData?.employees || [];
@@ -449,15 +498,29 @@ export default function Employees() {
             </div>
             <p className="font-bold text-lg text-muted-foreground">{t('noEmployeesFound')}</p>
           </div>
-        ) : employees.map((emp, index) => {
+          ) : employees.map((emp, index) => {
           const color = deptGradients[(emp.departmentId || index) % deptGradients.length];
           const statusVariant = emp.status === 'active' ? 'success' : emp.status === 'on-leave' ? 'warning' : 'secondary';
           const statusLabel = emp.status === 'active' ? t('active') : emp.status === 'on-leave' ? t('onLeaveStatus') : t('inactive');
-
           return (
             <div
               key={emp.id}
               data-testid={`card-employee-${emp.id}`}
+              onPointerDown={() => startLongPress(emp)}
+              onPointerUp={() => cancelLongPress(emp)}
+              onPointerLeave={() => cancelLongPress(emp)}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                cancelLongPress(emp);
+                setLongPressEmployee(emp);
+              }}
+              onClick={() => {
+                if (longPressFired.current) {
+                  longPressFired.current = false;
+                  return;
+                }
+                setProfileEmployee(emp);
+              }}
               className={`card-3d flex flex-col overflow-hidden animate-fadeIn stagger-${(index % 6) + 1} group`}
             >
               {/* Gradient Banner */}
@@ -559,6 +622,59 @@ export default function Employees() {
           );
         })}
       </div>
+
+      <BottomSheet
+        open={!!longPressEmployee}
+        onClose={() => setLongPressEmployee(null)}
+        title={longPressEmployee ? `${longPressEmployee.fullName}` : undefined}
+      >
+        {longPressEmployee && (
+          <div className="grid grid-cols-2 gap-2" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+            <button
+              type="button"
+              onClick={() => { setLongPressEmployee(null); setProfileEmployee(longPressEmployee); }}
+              className="flex items-center gap-3 rounded-2xl border border-border p-4 text-sm font-bold transition hover:bg-accent"
+            >
+              <Eye className="h-4 w-4 text-violet-500" /> {t('viewProfile')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLongPressEmployee(null); setLocation('/dashboard/attendance'); }}
+              className="flex items-center gap-3 rounded-2xl border border-border p-4 text-sm font-bold transition hover:bg-accent"
+            >
+              <Clock3 className="h-4 w-4 text-emerald-500" /> {locale === 'ar' ? 'سجل حضور' : 'Attendance'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { const employee = longPressEmployee; setLongPressEmployee(null); void copyEmployee(employee); }}
+              className="flex items-center gap-3 rounded-2xl border border-border p-4 text-sm font-bold transition hover:bg-accent"
+            >
+              <Copy className="h-4 w-4 text-blue-500" /> {locale === 'ar' ? 'نسخ' : 'Copy'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { const employee = longPressEmployee; setLongPressEmployee(null); void shareEmployee(employee); }}
+              className="flex items-center gap-3 rounded-2xl border border-border p-4 text-sm font-bold transition hover:bg-accent"
+            >
+              <Share2 className="h-4 w-4 text-indigo-500" /> {locale === 'ar' ? 'مشاركة' : 'Share'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { const employee = longPressEmployee; setLongPressEmployee(null); openEdit(employee); }}
+              className="flex items-center gap-3 rounded-2xl border border-border p-4 text-sm font-bold transition hover:bg-accent"
+            >
+              <Edit className="h-4 w-4 text-amber-500" /> {t('edit')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setDeleteId(longPressEmployee.id || null); setLongPressEmployee(null); }}
+              className="flex items-center gap-3 rounded-2xl border border-red-500/20 p-4 text-sm font-bold text-red-500 transition hover:bg-red-500/10"
+            >
+              <Trash2 className="h-4 w-4" /> {t('delete')}
+            </button>
+          </div>
+        )}
+      </BottomSheet>
 
       {/* ===================== ADD DIALOG ===================== */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>

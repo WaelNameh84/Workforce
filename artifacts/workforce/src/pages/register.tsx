@@ -12,7 +12,7 @@ import { useTheme } from '@/components/theme-provider';
 
 export default function Register() {
   const { t, locale, setLocale, dir } = useLanguage();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const registerMutation = useRegister();
   const { login } = useAuth();
   const [, setLocation] = useLocation();
@@ -51,8 +51,8 @@ export default function Register() {
       {/* Form Panel */}
       <div className="flex flex-col p-6 lg:p-12 relative order-2 lg:order-1">
         <div className="absolute top-6 right-6 flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          <Button variant="ghost" size="icon" onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
+            {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
           <Button variant="ghost" size="sm" onClick={toggleLanguage} className="gap-2">
             <Globe className="h-4 w-4" />

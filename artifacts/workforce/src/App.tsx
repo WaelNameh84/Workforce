@@ -12,6 +12,7 @@ import Login from '@/pages/login';
 import Register from '@/pages/register';
 import DashboardLayout from '@/components/layout';
 import PageTransition from '@/components/page-transition';
+import SplashScreen from '@/components/splash-screen';
 
 import {
   ActionCenter,
@@ -109,9 +110,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" storageKey="workforce-theme">
+      <ThemeProvider defaultTheme="system" storageKey="workforce-theme">
         <LanguageProvider>
           <TooltipProvider>
+            <SplashScreen />
             <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, '') || ''}>
               <AuthProvider>
                 <Router />

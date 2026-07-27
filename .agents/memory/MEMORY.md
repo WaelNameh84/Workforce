@@ -1,3 +1,4 @@
 - [Workspace validation](workspace-validation.md) — keep utility packages' workspace dependencies, TypeScript references, and lockfile in sync so full validation covers the whole monorepo.
 - [Vite runtime errors](vite-runtime-errors.md) — the development overlay can obscure the underlying app when it only reports an unknown runtime error.
 - [Payroll approval state](payroll-approval-state.md) — keep approval and payment decisions separate so payroll only uses explicitly paid approvals.
+- [Native interaction layer](native-interaction-layer.md) — keep mobile-native behaviors shared at the shell and degrade safely on desktop browsers.

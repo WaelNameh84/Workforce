@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import PullToRefresh from '@/components/pull-to-refresh';
 import { useAuth } from '@/hooks/use-auth';
+import { useSwipeBack } from '@/hooks/use-swipe-back';
+import { useInstallPrompt } from '@/hooks/use-install-prompt';
 import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useTheme } from '@/components/theme-provider';
@@ -9,7 +11,7 @@ import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
-  LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User,
+  LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User, ArrowLeft, ArrowRight, Download,
   Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2, Zap, FolderOpen,
 } from 'lucide-react';
 import {
@@ -233,12 +235,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isLoading, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const { t, locale, setLocale, dir } = useLanguage();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const { canInstall, install } = useInstallPrompt();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [selectedNotifIdx, setSelectedNotifIdx] = useState<number | null>(null);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine);
+  const drawerStartX = useRef<number | null>(null);
   const todayStr = new Date().toISOString().split('T')[0];
   const cid = user?.companyId || 0;
   const { data: nAttData } = useGetAttendance(
@@ -303,12 +308,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isEmployee = user?.role === 'employee';
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
 
+  const goBack = useCallback(() => {
+    if (location !== '/dashboard') window.history.back();
+  }, [location]);
+  useSwipeBack(goBack);
+
   useEffect(() => {
     if (!isLoading && !user) setLocation('/login');
   }, [user, isLoading, setLocation]);
 
   // Close sidebar on route change
   useEffect(() => { setSidebarOpen(false); }, [location]);
+
+  useEffect(() => {
+    const onOffline = () => setIsOffline(true);
+    const onOnline = () => setIsOffline(false);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    return () => {
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (sidebarOpen) setSidebarOpen(false);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [sidebarOpen]);
 
   if (isLoading) {
     return (
@@ -397,9 +440,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const navGroups = isEmployee ? employeeNavGroups : adminNavGroups;
-
   const isActive = (href: string) =>
     href === '/dashboard' ? location === '/dashboard' : location.startsWith(href);
+
+  const currentNavItem = navGroups
+    .flatMap(group => group.items)
+    .find(item => isActive(item.href));
+  const isSubpage = location !== '/dashboard';
 
   const roleBadge = isEmployee
     ? { label: 'موظف', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
@@ -471,6 +518,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </nav>
 
       {/* User info at bottom */}
+      {canInstall && (
+        <div className="px-4 pb-3 lg:hidden">
+          <button
+            type="button"
+            onClick={() => { void install(); setSidebarOpen(false); }}
+            className="flex w-full items-center gap-3 rounded-2xl border border-indigo-400/30 bg-indigo-500/10 px-3 py-3 text-sm font-bold text-indigo-200 transition hover:bg-indigo-500/20 active:scale-[.98]"
+          >
+            <Download className="h-4 w-4" />
+            تثبيت WorkforceOS على الهاتف
+          </button>
+        </div>
+      )}
       <div className="px-4 py-4 border-t border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
@@ -502,6 +561,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div
             className={`absolute top-0 bottom-0 z-10 w-[min(72vw,17rem)] flex flex-col shadow-2xl ${dir === 'rtl' ? 'right-0 border-l' : 'left-0 border-r'} border-white/10`}
             style={{ background: 'var(--sidebar-bg)' }}
+            onTouchStart={(event) => { drawerStartX.current = event.touches[0]?.clientX ?? null; }}
+            onTouchEnd={(event) => {
+              if (drawerStartX.current === null) return;
+              const dx = event.changedTouches[0]?.clientX - drawerStartX.current;
+              drawerStartX.current = null;
+              if ((dir === 'rtl' && dx > 80) || (dir !== 'rtl' && dx < -80)) setSidebarOpen(false);
+            }}
           >
             <button
               onClick={() => setSidebarOpen(false)}
@@ -520,14 +586,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Header */}
         <header className="sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 border-b border-white/5"
           style={{ background: 'var(--background)', backdropFilter: 'blur(10px)', paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open navigation menu"
-            aria-expanded={sidebarOpen}
-            className="lg:hidden p-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 transition"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 lg:hidden">
+            {isSubpage && (
+              <button
+                onClick={goBack}
+                aria-label="Go back"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-200 transition hover:bg-white/10 active:scale-90"
+              >
+                {dir === 'rtl' ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
+              </button>
+            )}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={sidebarOpen}
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-200 transition hover:bg-white/10 active:scale-90"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="min-w-0 flex-1 lg:hidden">
+            <p className="truncate text-sm font-black">{currentNavItem?.label || s.appName}</p>
+            <p className="truncate text-[10px] text-muted-foreground">{s.appName}</p>
+          </div>
 
           {/* Search */}
           <div className="flex-1 max-w-sm hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-muted-foreground">
@@ -550,8 +632,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button onClick={toggleLanguage} className="p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
               <Globe className="w-4 h-4" />
             </button>
-            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
+              {resolvedTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <div className="relative">
               <button
@@ -731,10 +813,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
+        {isOffline && <div className="sticky top-0 z-20 flex items-center justify-center gap-2 border-b border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300 animate-fadeIn"><span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />لا يوجد اتصال بالإنترنت — بعض البيانات قد لا تكون محدثة</div>}
+
         {/* Page content — Pull-to-refresh wraps the scrollable area */}
         <PullToRefresh>
           <main className="page-shell w-full min-w-0 p-3 sm:p-4 lg:p-6 max-w-[1800px] mx-auto"
-                style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
+                style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}>
             {children}
           </main>
         </PullToRefresh>
