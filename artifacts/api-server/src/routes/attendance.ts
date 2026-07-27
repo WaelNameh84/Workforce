@@ -188,9 +188,15 @@ router.post("/attendance/clock-in", authMiddleware, async (req, res) => {
       return;
     }
 
-    // Create new attendance record
+    // Fetch employee's configured work start time
+    const [empRow] = await db
+      .select({ workStart: employees.workStart })
+      .from(employees)
+      .where(eq(employees.id, employeeId))
+      .limit(1);
+    const workStartStr = empRow?.workStart || "09:00";
     const clockInTime = new Date();
-    const workStart = new Date(`${today}T09:00:00`);
+    const workStart = new Date(`${today}T${workStartStr}:00`);
     const isLate = clockInTime > workStart;
 
     const [record] = await db
@@ -281,8 +287,8 @@ router.patch("/attendance/:id", authMiddleware, async (req, res) => {
               justificationApprovedBy: req.user?.userId,
               justificationApprovedAt: new Date(),
               paymentStatus: justificationStatus === "approved"
-                ? (paymentStatus === "unpaid" ? "unpaid" : "paid")
-                : "pending",
+                ? "paid"
+                : "deducted",
             }
           : {}),
       })

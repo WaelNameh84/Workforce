@@ -3,7 +3,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import {
   useGetAttendance, useGetTodayAttendance, useClockIn, useClockOut, useUpdateAttendance,
-  useGetLocations, getGetAttendanceQueryKey, getGetTodayAttendanceQueryKey, getGetLocationsQueryKey,
+  useGetLocations, useGetEmployee, getGetAttendanceQueryKey, getGetTodayAttendanceQueryKey,
+  getGetLocationsQueryKey, getGetEmployeeQueryKey,
 } from '@workspace/api-client-react';
 import type { Attendance as AttendanceRecord } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -25,8 +26,11 @@ import {
 } from '@/components/ui/dialog';
 
 /* ─── helpers ─────────────────────────────────────────────── */
-const WORK_END_HOUR = 17;   // 17:00 = end of work day
-const OVERTIME_THRESHOLD = 18; // 18:00+ counts as late clock-out
+function parseHour(t?: string | null): number {
+  if (!t) return 17;
+  const [h] = t.split(':').map(Number);
+  return Number.isFinite(h) ? h : 17;
+}
 
 type LateOutReason = 'overtime' | 'forgot' | 'other';
 
@@ -158,6 +162,15 @@ export default function Attendance() {
     { companyId: user?.companyId || 0 },
     { query: { enabled: !!user?.companyId, queryKey: getGetLocationsQueryKey({ companyId: user?.companyId || 0 }) } },
   );
+  const empId = user?.employeeId || 0;
+  const { data: employeeData } = useGetEmployee(
+    empId,
+    { query: { enabled: !!empId, queryKey: getGetEmployeeQueryKey(empId) } },
+  );
+  const WORK_END_HOUR      = parseHour(employeeData?.workEnd   ?? '17:00');
+  const WORK_START_HOUR    = parseHour(employeeData?.workStart ?? '09:00');
+  const OVERTIME_THRESHOLD = WORK_END_HOUR + 1;
+
   const clockInMutation   = useClockIn();
   const clockOutMutation  = useClockOut();
   const updateMutation    = useUpdateAttendance();
@@ -167,7 +180,7 @@ export default function Attendance() {
   const isClockedIn  = !!(todayRecord?.clockIn && !todayRecord?.clockOut);
   const locations = locationsData?.locations || [];
   const selectedLocation = locations.find(location => String(location.id) === selectedLocationId);
-  const attendanceEmployeeId = user?.employeeId || 0;
+  const attendanceEmployeeId = empId;
 
   useEffect(() => {
     if (!locations.length) {
@@ -244,8 +257,8 @@ export default function Attendance() {
         description: ar ? `الموقع: ${selectedLocation.name}` : `Location: ${selectedLocation.name}`,
       });
       if (rec?.isLate) {
-        const work9 = new Date(); work9.setHours(9, 0, 0, 0);
-        setLateMinutes(differenceInMinutes(new Date(rec.clockIn!), work9));
+        const workStartTime = new Date(); workStartTime.setHours(WORK_START_HOUR, 0, 0, 0);
+        setLateMinutes(differenceInMinutes(new Date(rec.clockIn!), workStartTime));
         setPendingRecId(rec.id ?? null);
         setJustText('');
         setShowLateIn(true);
@@ -983,7 +996,7 @@ export default function Attendance() {
             <div>
               <div>{ar ? 'مبرر الخروج المبكر' : 'Early Departure'}</div>
               <div className="text-xs font-normal text-muted-foreground mt-0.5">
-                {ar ? 'خرجت قبل انتهاء الدوام الرسمي' : `Before ${WORK_END_HOUR}:00`}
+                {ar ? `قبل ${WORK_END_HOUR}:00 — وقت انتهاء الدوام` : `Before ${WORK_END_HOUR}:00 — end of shift`}
               </div>
             </div>
           </div>
@@ -1017,7 +1030,7 @@ export default function Attendance() {
             <div>
               <div>{ar ? 'سبب الخروج المتأخر' : 'Late Clock-out'}</div>
               <div className="text-xs font-normal text-muted-foreground mt-0.5">
-                {ar ? 'سجّلت الخروج بعد الوقت الرسمي' : `After ${OVERTIME_THRESHOLD}:00`}
+                {ar ? `بعد ${OVERTIME_THRESHOLD}:00 — خارج وقت الدوام` : `After ${OVERTIME_THRESHOLD}:00 — outside shift`}
               </div>
             </div>
           </div>
