@@ -13,51 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Building2, Plus, Trash2, Users, Search, ImageOff } from 'lucide-react';
 
-/* ── Keyword map: Arabic department names → English Unsplash search terms ── */
-const KEYWORD_MAP: Array<[string | RegExp, string]> = [
-  [/نجار|نجارة|خشب/,           'carpenter woodworking workshop'],
-  [/حداد|حدادة|لحام/,          'blacksmith metalwork forge'],
-  [/كهرباء|كهربائي/,           'electrician electrical wiring'],
-  [/سباك|سباكة|مياه/,          'plumber plumbing pipe'],
-  [/بناء|مقاول|إنشاء/,         'construction building site'],
-  [/محاسب|محاسبة|مالي|مال/,    'accounting finance office'],
-  [/مبيعات|بيع/,               'sales business meeting'],
-  [/تسويق|ماركتنج/,            'marketing creative advertising'],
-  [/هندسة|مهندس/,              'engineering technology blueprint'],
-  [/تقنية|برمجة|حاسوب|آي تي|it/i, 'technology computer programming'],
-  [/طبي|طب|صحة|مستشفى/,       'medical healthcare hospital'],
-  [/أمن|حراسة|حراس/,           'security guard patrol'],
-  [/نظافة|تنظيف|جلي/,          'cleaning service janitor'],
-  [/مطبخ|طعام|وجبات/,          'kitchen restaurant food'],
-  [/طباخ|طهي|شيف/,             'chef cooking restaurant'],
-  [/زراع|مزارع|زراعة/,         'agriculture farm crops'],
-  [/نقل|توصيل|شحن|سائق/,       'transportation truck logistics'],
-  [/موارد بشرية|hr|إدارة/,      'human resources management office'],
-  [/مستودع|مخزن|تخزين/,        'warehouse storage shelves'],
-  [/تصميم|ديزاين|جرافيك/,      'design creative studio'],
-  [/قانون|محامي|قضاء/,         'law legal justice'],
-  [/خدمة عملاء|كول سنتر/,      'customer service call center'],
-  [/صيانة|ميكانيك|تصليح/,      'mechanic maintenance workshop'],
-  [/طيران|مطار/,               'aviation airport plane'],
-  [/فندق|ضيافة|سياحة/,         'hotel hospitality tourism'],
-  [/تعليم|مدرسة|معلم/,         'education school teaching'],
-  [/إعلام|صحافة|تصوير/,        'media journalism photography'],
-  [/رياضة|جيم|لياقة/,          'sports gym fitness'],
-  [/موسيقى|فن|إبداع/,          'music art creative'],
-];
-
 function getDeptImageUrl(name: string): string {
-  const lower = name.toLowerCase();
-  for (const [pattern, keyword] of KEYWORD_MAP) {
-    const match = typeof pattern === 'string'
-      ? lower.includes(pattern)
-      : pattern.test(lower);
-    if (match) {
-      return `https://loremflickr.com/600/240/${encodeURIComponent(keyword)}`;
-    }
-  }
-  // Fallback: use the name itself as search keyword
-  return `https://loremflickr.com/600/240/${encodeURIComponent('office,work,team')}`;
+  return `/api/images/dept?name=${encodeURIComponent(name)}`;
 }
 
 /* ── Placeholder colours for fallback banner ── */
@@ -90,7 +47,7 @@ function DeptBanner({ name, index }: { name: string; index: number }) {
         alt={name}
         className="w-full h-full object-cover"
         onError={() => setImgError(true)}
-        loading="lazy"
+        referrerPolicy="no-referrer"
       />
       {/* Overlay so card text is readable */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
