@@ -6,13 +6,13 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, Plus, Trash2, Search, Navigation } from 'lucide-react';
+import { MapPin, Plus, Trash2, Search, Navigation, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { BottomSheet } from '@/components/bottom-sheet';
 
 const locColors = [
   { bg: 'from-emerald-500 to-teal-600', light: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-600 dark:text-emerald-400' },
@@ -47,8 +47,7 @@ export default function Locations() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetLocationsQueryKey({ companyId: cid }) });
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdd = async () => {
     if (!locName.trim()) return;
     try {
       await createMutation.mutateAsync({ data: { name: locName.trim(), companyId: cid, address: locAddress.trim() || undefined, city: locCity.trim() || undefined } as LocationInput });
@@ -178,56 +177,60 @@ export default function Locations() {
         </div>
       )}
 
-      {/* Add Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="rounded-3xl border-0 card-3d max-w-md overflow-y-auto max-h-[90dvh]">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                <Plus className="h-4 w-4 text-white" />
-              </div>
-               {t('addLocation')}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAdd} className="space-y-4 mt-2">
-            <div className="space-y-1.5">
-               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('locationNameRequired')}</Label>
-              <Input
-                value={locName}
-                onChange={e => setLocName(e.target.value)}
-                 placeholder={t('exampleLocation')}
-                required
-                className="rounded-xl h-11"
-              />
+      {/* Add BottomSheet */}
+      <BottomSheet
+        open={isAddOpen}
+        onClose={() => { setIsAddOpen(false); setLocName(''); setLocAddress(''); setLocCity(''); }}
+        title={
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <Plus className="h-4 w-4 text-white" />
             </div>
-            <div className="space-y-1.5">
-               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('cityOptional')}</Label>
-              <Input
-                value={locCity}
-                onChange={e => setLocCity(e.target.value)}
-                 placeholder={t('exampleCity')}
-                className="rounded-xl h-11"
-              />
-            </div>
-            <div className="space-y-1.5">
-               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('detailedAddressOptional')}</Label>
-              <Input
-                value={locAddress}
-                onChange={e => setLocAddress(e.target.value)}
-                 placeholder={t('exampleAddress')}
-                className="rounded-xl h-11"
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full rounded-xl h-11 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0 font-bold"
-              disabled={createMutation.isPending || !locName.trim()}
-            >
-               {t('save')}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+            {t('addLocation')}
+          </div>
+        }
+        footer={
+          <Button
+            type="button"
+            onClick={handleAdd}
+            className="w-full rounded-2xl h-12 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0 font-bold text-base"
+            disabled={createMutation.isPending || !locName.trim()}
+          >
+            {createMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : t('save')}
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('locationNameRequired')}</Label>
+            <Input
+              value={locName}
+              onChange={e => setLocName(e.target.value)}
+              placeholder={t('exampleLocation')}
+              className="rounded-xl h-11"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('cityOptional')}</Label>
+            <Input
+              value={locCity}
+              onChange={e => setLocCity(e.target.value)}
+              placeholder={t('exampleCity')}
+              className="rounded-xl h-11"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('detailedAddressOptional')}</Label>
+            <Input
+              value={locAddress}
+              onChange={e => setLocAddress(e.target.value)}
+              placeholder={t('exampleAddress')}
+              className="rounded-xl h-11"
+            />
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Delete Confirm */}
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
