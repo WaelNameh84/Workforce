@@ -21,7 +21,7 @@ export default function Profile() {
     <div className="mx-auto max-w-2xl animate-fadeIn space-y-5" dir={isArabic ? 'rtl' : 'ltr'}>
       <button
         type="button"
-        onClick={() => window.history.back()}
+        onClick={() => setLocation('/dashboard')}
         className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-bold text-muted-foreground transition hover:bg-muted"
       >
         {isArabic ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}

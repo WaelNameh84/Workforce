@@ -147,6 +147,13 @@ const navVisuals: Record<string, {
     badgeBorder: 'border-purple-300/30',
     glow: 'shadow-purple-400/20',
   },
+  '/dashboard/profile': {
+    icon: 'text-cyan-200 bg-cyan-950/70 border-cyan-300/40',
+    border: 'border-cyan-400/30',
+    badge: 'text-cyan-100 bg-cyan-950/80',
+    badgeBorder: 'border-cyan-300/30',
+    glow: 'shadow-cyan-400/20',
+  },
   '/dashboard/departments': {
     icon: 'text-blue-300 bg-blue-950/70 border-blue-400/40',
     border: 'border-blue-500/30',
@@ -196,6 +203,7 @@ const navBadges: Record<string, string> = {
   '/dashboard/security': 'AES-256',
   '/dashboard/developers': 'API',
   '/dashboard/settings': 'CONFIG',
+  '/dashboard/profile': 'ACCOUNT',
   '/dashboard/departments': 'DEPTS',
   '/dashboard/locations': 'SITES',
   '/dashboard/documentation': 'DOCS',
@@ -359,8 +367,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
 
   const goBack = useCallback(() => {
-    if (location !== '/dashboard') window.history.back();
-  }, [location]);
+    // Never delegate app navigation to the browser history. A page opened
+    // directly on the preview can otherwise leave the app and render blank.
+    if (location !== '/dashboard') setLocation('/dashboard');
+  }, [location, setLocation]);
   useSwipeBack(goBack);
 
   useEffect(() => {
@@ -460,6 +470,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       id: 'account',
        title: t('account'),
       items: [
+        { href: '/dashboard/profile', label: locale === 'ar' ? 'الملف الشخصي' : locale === 'sv' ? 'Profil' : 'Profile', icon: User },
         { href: '/dashboard/settings', label: t('settings'), icon: Settings },
       ],
     },
@@ -504,6 +515,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       id: 'system',
        title: t('system'),
       items: [
+        { href: '/dashboard/profile', label: locale === 'ar' ? 'الملف الشخصي' : locale === 'sv' ? 'Profil' : 'Profile', icon: User },
         { href: '/dashboard/settings', label: t('settings'), icon: Settings },
       ],
     },
