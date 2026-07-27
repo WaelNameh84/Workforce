@@ -56,6 +56,37 @@ input, textarea, [contenteditable="true"], [contenteditable] {
   border-color: rgba(236,72,153,0.5) !important;
 }
 
+/* ─── Nav card wave shimmer (living wave inside card) ─────── */
+@keyframes nav-card-wave-sweep {
+  0%   { transform: translateX(-130%) skewX(-12deg); opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateX(260%) skewX(-12deg); opacity: 0; }
+}
+
+.nav-card-wave {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 55%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent        0%,
+    rgba(255,255,255,0.0)  20%,
+    rgba(255,255,255,0.045) 42%,
+    rgba(255,255,255,0.12)  50%,
+    rgba(255,255,255,0.045) 58%,
+    rgba(255,255,255,0.0)  80%,
+    transparent        100%
+  );
+  animation: nav-card-wave-sweep 5.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  mix-blend-mode: screen;
+  z-index: 1;
+}
+
 /* ─── Nav icon animations (all icons float, active icons glow) ── */
 @keyframes nav-icon-float {
   0%, 100% { transform: translateY(0px) scale(1);    filter: brightness(1);   }

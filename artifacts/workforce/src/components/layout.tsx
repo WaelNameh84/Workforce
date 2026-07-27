@@ -205,13 +205,14 @@ const navBadges: Record<string, string> = {
 type NavItemType = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
 
 function NavItemCard({
-  item, active, visual, badge, onNavigate,
+  item, active, visual, badge, onNavigate, waveDelay = 0,
 }: {
   item: NavItemType;
   active: boolean;
   visual: { icon: string; border: string; badge: string; badgeBorder: string; glow: string };
   badge?: string;
   onNavigate: (href: string) => void;
+  waveDelay?: number;
 }) {
   const dragControls = useDragControls();
   const isDraggingRef = useRef(false);
@@ -234,6 +235,15 @@ function NavItemCard({
       transition={{ layout: { duration: 0.15, ease: 'easeOut' } }}
       style={{ listStyle: 'none', userSelect: 'none' } as React.CSSProperties}
     >
+      {/* ── Wave shimmer layer ── */}
+      {!active && (
+        <span
+          aria-hidden="true"
+          className="nav-card-wave"
+          style={{ animationDelay: `${waveDelay}s` } as React.CSSProperties}
+        />
+      )}
+
       {/* ── Drag handle — big touch target, overrides global CSS ── */}
       <div
         onPointerDown={(e) => {
@@ -592,7 +602,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onReorder={(newItems) => handleReorder(group.id, newItems as NavItemType[])}
               className="mt-1.5 space-y-1.5"
             >
-              {group.items.map((item) => (
+              {group.items.map((item, idx) => (
                 <NavItemCard
                   key={item.href}
                   item={item}
@@ -600,6 +610,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   visual={navVisuals[item.href] || navVisuals['/dashboard']}
                   badge={navBadges[item.href]}
                   onNavigate={(href) => setLocation(href)}
+                  waveDelay={-(idx * 1.3)}
                 />
               ))}
             </Reorder.Group>
