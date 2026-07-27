@@ -313,7 +313,8 @@ input, textarea, [contenteditable="true"], [contenteditable] {
   --secondary: #10B981;
   --secondary-foreground: #FFFFFF;
   --muted-bg: #1A1A2E;
-  --muted: #64748B;
+  /* Keep supporting copy readable against the deep navy surfaces. */
+  --muted: #A8B4C7;
   --accent: #1E1E35;
   --accent-foreground: #E2E8F0;
   --destructive: #F43F5E;
@@ -328,6 +329,16 @@ input, textarea, [contenteditable="true"], [contenteditable] {
   --sidebar-fg: #E2E8F0;
   --sidebar-border: #1E1E35;
   --sidebar-accent: #1E1E35;
+}
+
+/* Secondary labels should remain legible in dark mode even when a component
+   also uses a small font size. Decorative icons can still opt into opacity. */
+.dark .text-muted-foreground {
+  color: var(--muted);
+}
+
+.dark .text-muted-foreground.opacity-70 {
+  opacity: 0.9;
 }
 
 /* ─── Base ────────────────────────────────────────────────────── */

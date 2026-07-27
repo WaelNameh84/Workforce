@@ -107,7 +107,7 @@ function CombinedExportModal({
               <a.icon className="w-5 h-5 shrink-0" />
               <div className="text-right flex-1">
                 <div className="font-bold text-sm">{a.label}</div>
-                <div className="text-xs opacity-70">{a.sub}</div>
+                <div className="text-xs text-muted-foreground">{a.sub}</div>
               </div>
               <ChevronRight className="w-4 h-4 opacity-50" />
             </button>
