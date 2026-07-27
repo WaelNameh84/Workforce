@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useSettings } from '@/contexts/settings-context';
 import { useGetDashboardStats, useGetAttendance, useGetEmployees, useGetLeaves, useGetPayroll, useGetRequests, getGetDashboardStatsQueryKey, getGetAttendanceQueryKey, getGetEmployeesQueryKey, getGetLeavesQueryKey, getGetPayrollQueryKey, getGetRequestsQueryKey } from '@workspace/api-client-react';
@@ -9,8 +9,87 @@ import {
   CreditCard, Inbox, FileText, Bot, MessageSquare, TrendingUp,
   Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, AlertCircle,
   ChevronDown, UserRound, UserX, Stethoscope, Timer, X, ChevronLeft,
-  BarChart3, Banknote, TimerReset, Calendar, Activity, ArrowUpRight,
+  BarChart3, Banknote, TimerReset, Calendar, Activity, ArrowUpRight, ImagePlus,
 } from 'lucide-react';
+
+// ── Analog + Digital live clock ──────────────────────────────────────────────
+function LiveClockWidget({ now, locale }: { now: Date; locale: string }) {
+  const sec  = now.getSeconds();
+  const min  = now.getMinutes();
+  const hr12 = now.getHours() % 12;
+  const secAngle  = sec * 6;
+  const minAngle  = min * 6 + sec * 0.1;
+  const hourAngle = hr12 * 30 + min * 0.5;
+
+  const hand = (angle: number, len: number, width: number, color: string) => {
+    const rad = ((angle - 90) * Math.PI) / 180;
+    const x2 = 50 + len * Math.cos(rad);
+    const y2 = 50 + len * Math.sin(rad);
+    return <line x1="50" y1="50" x2={x2} y2={y2} strokeWidth={width} stroke={color} strokeLinecap="round" />;
+  };
+
+  const intlLocale = locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US';
+  const timeStr = now.toLocaleTimeString(intlLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateStr = now.toLocaleDateString(intlLocale, { weekday: 'long', day: 'numeric', month: 'long' });
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      {/* Analog face */}
+      <div className="relative">
+        <svg viewBox="0 0 100 100" className="w-40 h-40 drop-shadow-2xl">
+          {/* Outer ring */}
+          <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(99,102,241,0.3)" strokeWidth="1.5" />
+          {/* Face gradient */}
+          <defs>
+            <radialGradient id="clockFace" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stopColor="rgba(30,27,75,0.95)" />
+              <stop offset="100%" stopColor="rgba(15,13,55,0.99)" />
+            </radialGradient>
+            <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="rgba(99,102,241,0.15)" />
+              <stop offset="100%" stopColor="rgba(99,102,241,0)" />
+            </radialGradient>
+          </defs>
+          <circle cx="50" cy="50" r="47" fill="url(#clockFace)" />
+          <circle cx="50" cy="50" r="47" fill="url(#glow)" />
+          {/* Hour ticks */}
+          {Array.from({ length: 12 }, (_, i) => {
+            const a = ((i * 30 - 90) * Math.PI) / 180;
+            const x1 = 50 + 40 * Math.cos(a); const y1 = 50 + 40 * Math.sin(a);
+            const x2 = 50 + 44 * Math.cos(a); const y2 = 50 + 44 * Math.sin(a);
+            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(99,102,241,0.7)" strokeWidth="2" strokeLinecap="round" />;
+          })}
+          {/* Minute ticks */}
+          {Array.from({ length: 60 }, (_, i) => {
+            if (i % 5 === 0) return null;
+            const a = ((i * 6 - 90) * Math.PI) / 180;
+            const x1 = 50 + 42 * Math.cos(a); const y1 = 50 + 42 * Math.sin(a);
+            const x2 = 50 + 44 * Math.cos(a); const y2 = 50 + 44 * Math.sin(a);
+            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(99,102,241,0.25)" strokeWidth="0.8" strokeLinecap="round" />;
+          })}
+          {/* Hands */}
+          {hand(hourAngle, 26, 3.5, '#818cf8')}
+          {hand(minAngle,  36, 2.5, '#a5b4fc')}
+          {hand(secAngle,  40, 1.2, '#f43f5e')}
+          {/* Center dot */}
+          <circle cx="50" cy="50" r="3.5" fill="#6366f1" />
+          <circle cx="50" cy="50" r="1.5" fill="#fff" />
+        </svg>
+        {/* LIVE badge */}
+        <span className="absolute top-1 right-1 flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-300">
+          <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400" />LIVE
+        </span>
+      </div>
+      {/* Digital time */}
+      <div className="text-center">
+        <div className="font-mono text-3xl font-black text-white tracking-widest" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {timeStr}
+        </div>
+        <div className="text-xs font-bold text-indigo-300 mt-1">{dateStr}</div>
+      </div>
+    </div>
+  );
+}
 
 type AdminDetailCard = {
   id: string;
@@ -26,13 +105,26 @@ type AdminDetailCard = {
 // Admin dashboard — a touch-first live operations screen, not a navigation page.
 function AdminDashboard() {
   const { user } = useAuth();
-  const { s } = useSettings();
-  const { t, intlLocale, formatDate, formatTime, formatCurrency, translateText } = useLanguage();
+  const { s, update, save } = useSettings();
+  const { t, intlLocale, locale, formatDate, formatTime, formatCurrency, translateText } = useLanguage();
   const [, setLocation] = useLocation();
   const companyId = user?.companyId || 0;
   const todayStr = new Date().toISOString().split('T')[0];
   const [now, setNow] = useState(() => new Date());
   const [selectedCard, setSelectedCard] = useState<AdminDetailCard | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      update({ logoUrl: dataUrl });
+      save({ ...s, logoUrl: dataUrl });
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -270,48 +362,61 @@ function AdminDashboard() {
 
   return (
     <div className="mobile-dashboard max-w-xl mx-auto space-y-4 animate-fadeIn pb-8">
+      {/* Header: Logo + Greeting + Avatar */}
       <div className="flex items-center justify-between px-1">
-        <div>
-           <p className="text-xs font-bold text-indigo-300 mb-1">{translateText('مركز المتابعة الحي')}</p>
-           <h1 className="font-display text-2xl font-extrabold text-white">{translateText('مرحباً،')} {displayName}</h1>
-           {s.welcomeMsg && s.welcomeMsg !== 'أهلاً وسهلاً في نظام إدارة القوى العاملة' && (
-             <p className="text-xs text-indigo-300 font-medium mt-0.5">{s.welcomeMsg}</p>
-           )}
-          <p className="text-xs text-slate-400 mt-1">{dateLabel}</p>
+        {/* Logo area */}
+        <div className="flex items-center gap-3">
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleLogoUpload}
+          />
+          <button
+            type="button"
+            onClick={() => logoInputRef.current?.click()}
+            title={translateText('اضغط لرفع الشعار')}
+            className="relative shrink-0 group"
+          >
+            {s.logoUrl ? (
+              <img
+                src={s.logoUrl}
+                alt="logo"
+                className="h-14 w-14 rounded-2xl object-contain border border-white/10 bg-slate-900/60 p-1 shadow-lg group-hover:opacity-80 transition-opacity"
+              />
+            ) : (
+              <div className="h-14 w-14 rounded-2xl border-2 border-dashed border-indigo-400/40 bg-indigo-500/5 flex flex-col items-center justify-center gap-1 group-hover:border-indigo-400/70 group-hover:bg-indigo-500/10 transition-all shadow-inner">
+                <ImagePlus className="h-5 w-5 text-indigo-400/60 group-hover:text-indigo-400 transition-colors" />
+                <span className="text-[8px] font-black text-indigo-400/50 group-hover:text-indigo-400 transition-colors leading-none">{translateText('شعار')}</span>
+              </div>
+            )}
+            {/* Edit overlay */}
+            {s.logoUrl && (
+              <span className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <ImagePlus className="h-4 w-4 text-white" />
+              </span>
+            )}
+          </button>
+
+          <div>
+            <p className="text-xs font-bold text-indigo-300 mb-0.5">{translateText('مركز المتابعة الحي')}</p>
+            <h1 className="font-display text-xl font-extrabold text-white">{translateText('مرحباً،')} {displayName}</h1>
+            {s.welcomeMsg && s.welcomeMsg !== 'أهلاً وسهلاً في نظام إدارة القوى العاملة' && (
+              <p className="text-[10px] text-indigo-300 font-medium mt-0.5">{s.welcomeMsg}</p>
+            )}
+          </div>
         </div>
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-          <span className="text-white font-bold text-lg">{user?.fullName?.charAt(0) || 'U'}</span>
+
+        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
+          <span className="text-white font-bold text-base">{user?.fullName?.charAt(0) || 'U'}</span>
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setSelectedCard({
-          id: 'clock',
-           title: translateText('الساعة المباشرة'),
-          value: timeLabel,
-           subtitle: translateText('الوقت المحلي للنظام'),
-          icon: Clock,
-          tone: 'from-cyan-500/25 to-blue-950/90 border-cyan-400/35',
-          iconTone: 'bg-cyan-500 text-white shadow-cyan-500/40',
-           items: [{ name: translateText('حالة النظام'), meta: translateText('تتحدث كل ثانية'), status: translateText('LIVE') }],
-        })}
-        className="mobile-dashboard-card group w-full flex items-center justify-between rounded-3xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/20 via-blue-950/70 to-indigo-950/90 p-5 text-right shadow-xl shadow-cyan-950/30"
-      >
-        <span className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500 text-white shadow-lg shadow-cyan-500/40 group-hover:scale-110 transition-transform">
-            <Clock className="h-6 w-6 animate-pulse" />
-          </span>
-          <span>
-             <span className="block text-xs font-bold text-cyan-200">{translateText('الساعة الآن')}</span>
-            <span className="mt-1 block font-data text-2xl font-black text-white">{timeLabel}</span>
-          </span>
-        </span>
-        <span className="flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2 py-1 text-[10px] font-black text-emerald-300">
-          <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-300" />
-           {translateText('LIVE')}
-        </span>
-      </button>
+      {/* Live Clock Widget */}
+      <div className="rounded-3xl border border-indigo-400/25 bg-gradient-to-br from-indigo-950/80 via-slate-950/95 to-purple-950/80 p-6 shadow-2xl shadow-indigo-950/40">
+        <LiveClockWidget now={now} locale={locale} />
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         {cardDetails.map((card) => {

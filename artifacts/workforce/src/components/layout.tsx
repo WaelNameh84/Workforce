@@ -464,12 +464,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-sm">{(s.appName || 'W')[0].toUpperCase()}</span>
-          </div>
-          <div>
-            <div className="font-display font-bold text-sm text-white">{s.appName}</div>
-                    <div className="text-[10px] text-muted-foreground">{t('company')}</div>
+          {s.logoUrl ? (
+            <img
+              src={s.logoUrl}
+              alt={s.appName}
+              className="w-9 h-9 rounded-lg object-contain bg-white/5 p-0.5 border border-white/10 shadow-lg shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shrink-0">
+              <span className="text-white font-bold text-sm">{(s.appName || 'W')[0].toUpperCase()}</span>
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="font-display font-bold text-sm text-white truncate">{s.appName}</div>
+            <div className="text-[10px] text-muted-foreground">{t('company')}</div>
           </div>
         </div>
       </div>

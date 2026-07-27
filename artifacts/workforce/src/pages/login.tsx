@@ -27,6 +27,20 @@ export default function Login() {
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [biometricSaved, setBiometricSaved] = useState(false);
 
+  // Read logo + app name from saved settings
+  const [logoUrl, setLogoUrl] = useState('');
+  const [appName, setAppName] = useState('WorkforceOS');
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('workforce-settings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.logoUrl) setLogoUrl(parsed.logoUrl);
+        if (parsed.appName) setAppName(parsed.appName);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   // Load remembered email on mount
   useEffect(() => {
     const saved = localStorage.getItem('remembered_email');
@@ -176,10 +190,14 @@ export default function Login() {
         </div>
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
-            <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg">
-              <ShieldCheck className="h-6 w-6 text-indigo-600" />
-            </div>
-            <span className="text-3xl font-display font-bold tracking-tight">{t('appName')}</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt="logo" className="h-12 w-12 rounded-xl object-contain bg-white/10 p-1 shadow-lg" />
+            ) : (
+              <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg">
+                <ShieldCheck className="h-6 w-6 text-indigo-600" />
+              </div>
+            )}
+            <span className="text-3xl font-display font-bold tracking-tight">{appName}</span>
           </div>
           <h1 className="text-5xl font-display font-bold leading-tight mb-6 max-w-lg">{t('heroTitle')}</h1>
           <p className="text-white/80 text-xl max-w-md leading-relaxed">{t('heroSubtitle')}</p>
@@ -209,10 +227,14 @@ export default function Login() {
           <div className="w-full max-w-[420px] glass p-8 sm:p-10 rounded-[2rem]">
             {/* Mobile logo */}
             <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-900/20">
-                <ShieldCheck className="h-7 w-7 text-white" />
-              </div>
-              <span className="text-3xl font-display font-bold">{t('appName')}</span>
+              {logoUrl ? (
+                <img src={logoUrl} alt="logo" className="h-14 w-14 rounded-2xl object-contain border border-white/10 bg-slate-900/40 p-1 shadow-lg shadow-indigo-900/20" />
+              ) : (
+                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-900/20">
+                  <ShieldCheck className="h-7 w-7 text-white" />
+                </div>
+              )}
+              <span className="text-3xl font-display font-bold">{appName}</span>
             </div>
 
             <div className="mb-8 text-center lg:text-left">
