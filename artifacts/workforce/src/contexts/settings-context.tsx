@@ -203,7 +203,7 @@ export const DEFAULTS: AppSettings = {
 
   language: 'ar',
   calendarType: 'gregorian',
-  currencyCode: 'SAR',
+  currencyCode: 'SEK',
   timezone: 'Asia/Riyadh',
   dateFormat: 'DD/MM/YYYY',
   numberFormat: 'western',

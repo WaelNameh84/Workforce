@@ -228,7 +228,9 @@ export default function PayrollPage() {
 
   const formatMoney = (val: string | number) => {
     const num = typeof val === 'string' ? parseFloat(val) || 0 : val;
-    return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: settings.currencyCode || 'SAR', maximumFractionDigits: 2 }).format(num);
+    const code = settings.currencyCode || 'SEK';
+    if (code === 'LOY') return `${new Intl.NumberFormat('ar-SA', { maximumFractionDigits: 2 }).format(num)} نق.`;
+    return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: code, maximumFractionDigits: 2 }).format(num);
   };
 
   const getStatusBadge = (status: string) => {

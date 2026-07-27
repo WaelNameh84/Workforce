@@ -67,9 +67,9 @@ export default function ReportsPage() {
 
   const formatMoney = (val: string | number) => {
     const num = typeof val === 'string' ? parseFloat(val) || 0 : val;
-    return new Intl.NumberFormat('ar-SA', {
-      style: 'currency', currency: settings.currencyCode || 'SAR', maximumFractionDigits: 0,
-    }).format(num);
+    const code = settings.currencyCode || 'SEK';
+    if (code === 'LOY') return `${new Intl.NumberFormat('ar-SA', { maximumFractionDigits: 0 }).format(num)} نق.`;
+    return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(num);
   };
 
   // ── Missing data count ─────────────────────────────────────────────────────

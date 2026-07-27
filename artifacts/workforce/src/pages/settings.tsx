@@ -450,7 +450,7 @@ function PreviewSample({ settings, sectionId, liveTime, previewKey = 0 }: { sett
     return <div className="rounded-2xl p-5 border border-teal-500/20 bg-teal-500/5 space-y-2 text-sm">
       <p className="font-bold text-teal-300">معاينة التنسيق</p>
       <p className="text-muted-foreground">التاريخ: {new Date().toLocaleDateString(previewLocale)}</p>
-      <p className="text-muted-foreground">{new Intl.NumberFormat(previewLocale, { style: 'currency', currency: settings.currencyCode, maximumFractionDigits: 0 }).format(15000)}</p>
+      <p className="text-muted-foreground">{settings.currencyCode === 'LOY' ? `${new Intl.NumberFormat(previewLocale, { maximumFractionDigits: 0 }).format(15000)} نق.` : new Intl.NumberFormat(previewLocale, { style: 'currency', currency: settings.currencyCode, maximumFractionDigits: 0 }).format(15000)}</p>
       <p className="text-xs text-muted-foreground">المنطقة الزمنية: {settings.timezone}</p>
     </div>;
   }
@@ -1281,16 +1281,9 @@ export default function Settings() {
 
                   <Field label="العملة">
                     <Sel value={s.currencyCode} onChange={e => update({ currencyCode: e.target.value })}>
-                      <option value="SAR">ريال سعودي (SAR)</option>
-                      <option value="AED">درهم إماراتي (AED)</option>
-                      <option value="USD">دولار أمريكي (USD)</option>
+                      <option value="SEK">كرون سويدي (SEK)</option>
+                      <option value="LOY">نقاط الولاء (LOY)</option>
                       <option value="EUR">يورو (EUR)</option>
-                      <option value="GBP">جنيه إسترليني (GBP)</option>
-                      <option value="KWD">دينار كويتي (KWD)</option>
-                      <option value="QAR">ريال قطري (QAR)</option>
-                      <option value="BHD">دينار بحريني (BHD)</option>
-                      <option value="OMR">ريال عُماني (OMR)</option>
-                      <option value="JOD">دينار أردني (JOD)</option>
                     </Sel>
                   </Field>
 
@@ -1324,7 +1317,7 @@ export default function Settings() {
                       التاريخ: {new Date().toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US')}
                     </p>
                     <p className="text-muted-foreground">
-                      المبلغ: {new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', { style: 'currency', currency: s.currencyCode, maximumFractionDigits: 0 }).format(15000)}
+                      المبلغ: {s.currencyCode === 'LOY' ? `${new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', { maximumFractionDigits: 0 }).format(15000)} نق.` : new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', { style: 'currency', currency: s.currencyCode, maximumFractionDigits: 0 }).format(15000)}
                     </p>
                   </div>
 
