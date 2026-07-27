@@ -593,7 +593,7 @@ function AdminDashboard() {
 function EmployeeDashboard() {
   const { user } = useAuth();
   const { s } = useSettings();
-  const { t } = useLanguage();
+  const { t, formatCurrency } = useLanguage();
   const [, setLocation] = useLocation();
 
   const empId = (user as any)?.employeeId;
@@ -705,7 +705,7 @@ function EmployeeDashboard() {
             </span>
           </div>
           <div className="font-data font-bold text-3xl text-emerald-400">
-            {parseFloat(latestPayroll.netSalary || '0').toLocaleString('ar-SA')} SAR
+            {formatCurrency(latestPayroll.netSalary, s.currencyCode)}
           </div>
           <Link href="/dashboard/payroll" className="mt-2 inline-flex text-sm text-muted-foreground hover:text-foreground transition-colors">
             عرض تفاصيل الراتب ←

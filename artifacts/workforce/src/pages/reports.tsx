@@ -25,7 +25,7 @@ import {
   FileText, Download, Printer, Share2,
   TrendingUp, Clock, AlertTriangle,
   Coins, CheckCircle2, PieChart as PieChartIcon, Table as TableIcon, LayoutGrid,
-  Search, Lock as LockIcon,
+  Lock as LockIcon,
 } from 'lucide-react';
 
 // ── Month / Year options ────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ export default function ReportsPage() {
   const [deptFilter,         setDeptFilter]         = useState('all');
   const [contractTypeFilter, setContractTypeFilter] = useState('all');
   const [statusFilter,       setStatusFilter]       = useState('all');
-  const [search, setSearch] = useState('');
+  const [employeeFilter,     setEmployeeFilter]     = useState('all');
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: statsData }     = useGetPayrollStats({ companyId: cid, period });
@@ -75,10 +75,12 @@ export default function ReportsPage() {
   // ── Missing data count ─────────────────────────────────────────────────────
   const missingDataCount = useMemo(() => {
     if (!employeesData?.employees || !payrollData?.payroll) return 0;
-    const emps = employeesData.employees.filter(e => e.status === 'active');
+    const emps = employeesData.employees
+      .filter(e => e.status === 'active')
+      .filter(e => employeeFilter === 'all' || e.id?.toString() === employeeFilter);
     const ids  = payrollData.payroll.map(p => p.employeeId);
     return emps.filter(e => !ids.includes(e.id)).length;
-  }, [employeesData, payrollData]);
+  }, [employeesData, payrollData, employeeFilter]);
 
   // ── Table data (all employees, base filters: dept + search) ───────────────
   const tableData = useMemo(() => {
@@ -87,8 +89,8 @@ export default function ReportsPage() {
     let emps = employeesData.employees;
     if (deptFilter !== 'all')
       emps = emps.filter(e => e.departmentId?.toString() === deptFilter);
-    if (search)
-      emps = emps.filter(e => e.fullName?.includes(search) || e.employeeCode?.includes(search));
+    if (employeeFilter !== 'all')
+      emps = emps.filter(e => e.id?.toString() === employeeFilter);
 
     return emps.map(emp => {
       const p    = payrollData?.payroll?.find(x => x.employeeId === emp.id);
@@ -115,7 +117,7 @@ export default function ReportsPage() {
         status:        p?.status || 'none',
       };
     });
-  }, [employeesData, payrollData, attendanceData, deptFilter, search]);
+  }, [employeesData, payrollData, attendanceData, deptFilter, employeeFilter]);
 
   // ── Filtered table data (contractType + status secondary filters) ──────────
   const filteredTableData = useMemo(() => {
@@ -127,11 +129,39 @@ export default function ReportsPage() {
     return data;
   }, [tableData, contractTypeFilter, statusFilter]);
 
+  // Keep overview cards connected to the same employee filter as the table.
+  // The API stats endpoint is company-wide, so calculate the selected employee
+  // view from the already loaded payroll rows instead of showing misleading
+  // company totals.
+  const visibleStats = useMemo(() => {
+    if (employeeFilter === 'all' || !filteredTableData.length) return statsData;
+    const rows = filteredTableData;
+    const sum = (key: keyof typeof rows[number]) => rows.reduce((total, row) => total + Number(row[key] || 0), 0);
+    const nets = rows.map(row => Number(row.netSalary || 0));
+    return {
+      totalNet: sum('netSalary'),
+      totalGross: sum('earnings'),
+      totalDeductions: sum('deductions'),
+      totalWorkedHours: sum('workedHours'),
+      totalOvertimeHours: sum('overtimeHours'),
+      totalBonus: 0,
+      totalAllowances: 0,
+      averageSalary: nets.length ? sum('netSalary') / nets.length : 0,
+      maxSalary: nets.length ? Math.max(...nets) : 0,
+      minSalary: nets.length ? Math.min(...nets) : 0,
+      headcount: rows.length,
+      approvedCount: rows.filter(row => row.status === 'approved').length,
+    };
+  }, [employeeFilter, filteredTableData, statsData]);
+
   // ── Chart: dept distribution ───────────────────────────────────────────────
   const deptChartData = useMemo(() => {
     if (!deptData?.departments || !payrollData?.payroll) return [];
     return deptData.departments.map(d => {
-      const empIds = employeesData?.employees?.filter(e => e.departmentId === d.id).map(e => e.id) || [];
+      const empIds = employeesData?.employees
+        ?.filter(e => e.departmentId === d.id)
+        .filter(e => employeeFilter === 'all' || e.id?.toString() === employeeFilter)
+        .map(e => e.id) || [];
       const deptPay = payrollData.payroll!.filter(p => empIds.includes(p.employeeId));
       const net      = deptPay.reduce((s, p) => s + parseFloat(p.netSalary     || '0'), 0);
       const earn     = deptPay.reduce((s, p) => s + parseFloat(p.totalEarnings  || '0'), 0);
@@ -139,12 +169,14 @@ export default function ReportsPage() {
       const overtime = deptPay.reduce((s, p) => s + parseFloat(p.overtimeHours  || '0'), 0);
       return { name: d.name, net, earnings: earn, deductions: ded, overtime };
     });
-  }, [deptData, payrollData, employeesData]);
+  }, [deptData, payrollData, employeesData, employeeFilter]);
 
   // ── Chart: attendance pie ──────────────────────────────────────────────────
   const attPieData = useMemo(() => {
     let present = 0, absent = 0;
-    attendanceData?.attendance?.forEach(a => {
+    attendanceData?.attendance
+      ?.filter(a => employeeFilter === 'all' || a.employeeId?.toString() === employeeFilter)
+      .forEach(a => {
       if (a.status === 'present' || a.status === 'late') present++;
       if (a.status === 'absent') absent++;
     });
@@ -152,22 +184,23 @@ export default function ReportsPage() {
       { name: 'حضور', value: present, color: '#10b981' },
       { name: 'غياب', value: absent,  color: '#f43f5e' },
     ];
-  }, [attendanceData]);
+  }, [attendanceData, employeeFilter]);
 
   // ── Chart: deductions breakdown pie ───────────────────────────────────────
   const deductionsPieData = useMemo(() => {
-    if (!payrollData?.payroll?.length) return [];
-    const late     = payrollData.payroll.reduce((s, p) => s + parseFloat(p.lateDeduction     || '0'), 0);
-    const absence  = payrollData.payroll.reduce((s, p) => s + parseFloat(p.absenceDeduction  || '0'), 0);
-    const advances = payrollData.payroll.reduce((s, p) => s + parseFloat(p.advances          || '0'), 0);
-    const fines    = payrollData.payroll.reduce((s, p) => s + parseFloat(p.fines             || '0'), 0);
+    const rows = payrollData?.payroll?.filter(p => employeeFilter === 'all' || p.employeeId?.toString() === employeeFilter) || [];
+    if (!rows.length) return [];
+    const late     = rows.reduce((s, p) => s + parseFloat(p.lateDeduction     || '0'), 0);
+    const absence  = rows.reduce((s, p) => s + parseFloat(p.absenceDeduction  || '0'), 0);
+    const advances = rows.reduce((s, p) => s + parseFloat(p.advances          || '0'), 0);
+    const fines    = rows.reduce((s, p) => s + parseFloat(p.fines             || '0'), 0);
     return [
       { name: 'تأخير / مبكر', value: late,     color: '#f59e0b' },
       { name: 'غياب',         value: absence,  color: '#f43f5e' },
       { name: 'سلف مستردة',   value: advances, color: '#6366f1' },
       { name: 'غرامات',       value: fines,    color: '#8b5cf6' },
     ].filter(x => x.value > 0);
-  }, [payrollData]);
+  }, [payrollData, employeeFilter]);
 
   // ── Chart: trend (last 6 months – uses current figure as base) ────────────
   const trendData = useMemo(() => {
@@ -226,11 +259,18 @@ export default function ReportsPage() {
 
       {/* FILTERS */}
       <div className="flex flex-wrap gap-3 p-4 rounded-xl glass print:hidden">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث بالاسم أو الرقم..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
-        </div>
+        {/* Employee selector */}
+        <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+          <SelectTrigger className="flex-1 min-w-[180px]"><SelectValue placeholder="اسم الموظف" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">كل الموظفين</SelectItem>
+            {employeesData?.employees?.map(e => (
+              <SelectItem key={e.id} value={e.id!.toString()}>
+                {e.fullName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Year */}
         <Select value={yearSel} onValueChange={setYearSel}>
@@ -301,21 +341,21 @@ export default function ReportsPage() {
         {/* TAB 1: OVERVIEW */}
         <TabsContent value="overview" className="space-y-6 animate-fadeIn">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatCard title="إجمالي الرواتب الصافية"    value={formatMoney(statsData?.totalNet        || 0)} icon={<Coins       className="w-5 h-5" />} color="emerald" />
-            <StatCard title="إجمالي الرواتب الإجمالية"  value={formatMoney(statsData?.totalGross      || 0)} icon={<TrendingUp   className="w-5 h-5" />} color="indigo"  />
-            <StatCard title="إجمالي الخصومات"           value={formatMoney(statsData?.totalDeductions || 0)} icon={<AlertTriangle className="w-5 h-5" />} color="rose"    />
-            <StatCard title="ساعات العمل"               value={(statsData?.totalWorkedHours?.toString()   || '0')} icon={<Clock className="w-5 h-5" />} color="blue"   />
-            <StatCard title="ساعات الإضافي"             value={(statsData?.totalOvertimeHours?.toString() || '0')} icon={<Clock className="w-5 h-5" />} color="amber"  />
-            <StatCard title="إجمالي البدلات والمكافآت"  value={formatMoney((statsData?.totalBonus || 0) + (statsData?.totalAllowances || 0))} icon={<CheckCircle2 className="w-5 h-5" />} color="purple" />
+            <StatCard title="إجمالي الرواتب الصافية"    value={formatMoney(visibleStats?.totalNet        || 0)} icon={<Coins       className="w-5 h-5" />} color="emerald" />
+            <StatCard title="إجمالي الرواتب الإجمالية"  value={formatMoney(visibleStats?.totalGross      || 0)} icon={<TrendingUp   className="w-5 h-5" />} color="indigo"  />
+            <StatCard title="إجمالي الخصومات"           value={formatMoney(visibleStats?.totalDeductions || 0)} icon={<AlertTriangle className="w-5 h-5" />} color="rose"    />
+            <StatCard title="ساعات العمل"               value={(visibleStats?.totalWorkedHours?.toString()   || '0')} icon={<Clock className="w-5 h-5" />} color="blue"   />
+            <StatCard title="ساعات الإضافي"             value={(visibleStats?.totalOvertimeHours?.toString() || '0')} icon={<Clock className="w-5 h-5" />} color="amber"  />
+            <StatCard title="إجمالي البدلات والمكافآت"  value={formatMoney((visibleStats?.totalBonus || 0) + (visibleStats?.totalAllowances || 0))} icon={<CheckCircle2 className="w-5 h-5" />} color="purple" />
           </div>
 
           <h3 className="text-xl font-bold font-display mt-8 mb-4">إحصائيات الموظفين</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <MiniStat title="متوسط الراتب"   value={formatMoney(statsData?.averageSalary || 0)} />
-            <MiniStat title="أعلى راتب"      value={formatMoney(statsData?.maxSalary     || 0)} />
-            <MiniStat title="أقل راتب"       value={formatMoney(statsData?.minSalary     || 0)} />
-            <MiniStat title="عدد الموظفين"   value={(statsData?.headcount    || 0).toString()} />
-            <MiniStat title="رواتب معتمدة"   value={(statsData?.approvedCount|| 0).toString()} color="text-emerald-500" />
+            <MiniStat title="متوسط الراتب"   value={formatMoney(visibleStats?.averageSalary || 0)} />
+            <MiniStat title="أعلى راتب"      value={formatMoney(visibleStats?.maxSalary     || 0)} />
+            <MiniStat title="أقل راتب"       value={formatMoney(visibleStats?.minSalary     || 0)} />
+            <MiniStat title="عدد الموظفين"   value={(visibleStats?.headcount    || 0).toString()} />
+            <MiniStat title="رواتب معتمدة"   value={(visibleStats?.approvedCount|| 0).toString()} color="text-emerald-500" />
             <MiniStat title="بيانات ناقصة"   value={missingDataCount.toString()}               color="text-rose-500"   />
           </div>
         </TabsContent>

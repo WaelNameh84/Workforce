@@ -131,8 +131,20 @@ export function LanguageProvider({ children, initialLocale = 'en' }: { children:
     new Intl.DateTimeFormat(intlLocale, options).format(new Date(value));
   const formatTime = (value: Date | string | number, options?: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(intlLocale, { hour: '2-digit', minute: '2-digit', ...options }).format(new Date(value));
-  const formatCurrency = (value: number | string | null | undefined, currency = 'SAR') =>
-    new Intl.NumberFormat(intlLocale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(Number(value || 0));
+  const formatCurrency = (value: number | string | null | undefined, currency?: string) => {
+    // Use caller-supplied currency → then stored setting → then SAR
+    const effectiveCurrency = currency || (() => {
+      try {
+        const stored = localStorage.getItem('workforce-settings');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.currencyCode) return parsed.currencyCode as string;
+        }
+      } catch { /* ignore */ }
+      return 'SAR';
+    })();
+    return new Intl.NumberFormat(intlLocale, { style: 'currency', currency: effectiveCurrency, maximumFractionDigits: 0 }).format(Number(value || 0));
+  };
 
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
 

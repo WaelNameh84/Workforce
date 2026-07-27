@@ -11,10 +11,15 @@ import {
   useApprovePayroll,
   useLockPayroll,
   useGetPayrollStats,
+  getGetPayrollQueryKey,
+  getGetPayrollStatsQueryKey,
+  getGetDashboardStatsQueryKey,
+  getGetAttendanceQueryKey,
   Employee,
   Payroll
 } from '@workspace/api-client-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppSettings } from '@/contexts/settings-context';
 import { useToast } from '@/components/ui/use-toast';
 import { buildPayrollSummary, EmployeePaySummary } from '@/lib/payroll-engine';
@@ -30,7 +35,6 @@ import { downloadExcel } from '@/lib/download';
 import { ar } from 'date-fns/locale';
 import { 
   Calculator, 
-  Search, 
   FileText, 
   Download, 
   Printer, 
@@ -53,12 +57,13 @@ export default function PayrollPage() {
   const { user } = useAuth();
   const settings = useAppSettings();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const cid = user?.companyId || 0;
   
   const today = new Date();
   const [period, setPeriod] = useState(format(today, 'yyyy-MM'));
-  const [search, setSearch] = useState('');
+  const [employeeFilter, setEmployeeFilter] = useState('all');
   const [deptFilter, setDeptFilter] = useState('all');
   const [contractTypeFilter, setContractTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -108,10 +113,8 @@ export default function PayrollPage() {
     
     let filteredEmployees = employeesData.employees;
     
-    if (search) {
-      filteredEmployees = filteredEmployees.filter(e => 
-        e.fullName?.includes(search) || e.employeeCode?.includes(search)
-      );
+    if (employeeFilter !== 'all') {
+      filteredEmployees = filteredEmployees.filter(e => e.id?.toString() === employeeFilter);
     }
     if (deptFilter !== 'all') {
       filteredEmployees = filteredEmployees.filter(e => e.departmentId?.toString() === deptFilter);
@@ -141,7 +144,7 @@ export default function PayrollPage() {
     }
 
     return results;
-  }, [employeesData, attendanceData, leavesData, requestsData, payrollData, settings, period, search, deptFilter, contractTypeFilter, statusFilter]);
+  }, [employeesData, attendanceData, leavesData, requestsData, payrollData, settings, period, employeeFilter, deptFilter, contractTypeFilter, statusFilter]);
 
   const saveOneSummary = async (sum: EmployeePaySummary) => {
     if (sum.status === 'locked') return;
@@ -169,12 +172,21 @@ export default function PayrollPage() {
     }
   };
 
+  const refreshConnectedSections = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getGetPayrollQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getGetPayrollStatsQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey() }),
+    ]);
+  };
+
   const handleCalculateAll = async () => {
     toast({ title: 'جاري احتساب الرواتب...', description: 'يرجى الانتظار.' });
     for (const sum of summaries) {
       await saveOneSummary(sum);
     }
-    refetchPayroll();
+    await refreshConnectedSections();
     toast({ title: 'تم', description: 'تم تحديث كافة المسودات بنجاح.', variant: 'default' });
   };
 
@@ -267,10 +279,17 @@ export default function PayrollPage() {
       </div>
 
       <div className="flex flex-wrap gap-3 p-4 rounded-xl glass">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث بالاسم أو الرقم..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-9" />
-        </div>
+        <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+          <SelectTrigger className="flex-1 min-w-[180px]"><SelectValue placeholder="كل الموظفين" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">كل الموظفين</SelectItem>
+            {employeesData?.employees?.map(e => (
+              <SelectItem key={e.id} value={e.id!.toString()}>
+                {e.fullName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={deptFilter} onValueChange={setDeptFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="القسم" /></SelectTrigger>
           <SelectContent>
@@ -354,7 +373,7 @@ export default function PayrollPage() {
         onClose={() => setSelectedPayslip(null)} 
         formatMoney={formatMoney}
         getStatusBadge={getStatusBadge}
-        onSave={() => refetchPayroll()}
+        onSave={refreshConnectedSections}
       />
     </div>
   );

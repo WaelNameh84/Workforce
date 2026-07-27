@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { useAppSettings } from '@/contexts/settings-context';
 import {
   useGetAttendance, useGetTodayAttendance, useClockIn, useClockOut, useUpdateAttendance,
   useGetLocations, useGetEmployee, getGetAttendanceQueryKey, getGetTodayAttendanceQueryKey,
@@ -52,6 +53,7 @@ function hoursLabel(h?: string | null, locale?: string) {
 export default function Attendance() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const appSettings = useAppSettings();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const ar = locale === 'ar';
@@ -59,7 +61,8 @@ export default function Attendance() {
   const docPhotoInputRef = useRef<HTMLInputElement>(null);
 
   /* ── check method ── */
-  const [checkMethod, setCheckMethod] = useState<'gps' | 'wifi' | 'bluetooth' | 'qr'>('gps');
+  const initialMethod = appSettings.locationMode === 'gps' ? 'gps' : 'wifi';
+  const [checkMethod, setCheckMethod] = useState<'gps' | 'wifi' | 'bluetooth' | 'qr'>(initialMethod);
   const methods = [
     { id: 'gps'       as const, icon: Navigation, label: 'GPS'  },
     { id: 'wifi'      as const, icon: Wifi,       label: 'WiFi' },
@@ -168,8 +171,10 @@ export default function Attendance() {
     empId,
     { query: { enabled: !!empId, queryKey: getGetEmployeeQueryKey(empId) } },
   );
-  const WORK_END_HOUR      = parseHour(employeeData?.workEnd   ?? '17:00');
-  const WORK_START_HOUR    = parseHour(employeeData?.workStart ?? '09:00');
+  // Global settings take priority; per-employee schedule is a fallback
+  const WORK_END_HOUR      = parseHour(appSettings.workEnd   || employeeData?.workEnd   || '17:00');
+  const WORK_START_HOUR    = parseHour(appSettings.workStart || employeeData?.workStart || '09:00');
+  const LATE_GRACE_MIN     = parseInt(appSettings.lateGrace  || '15', 10);
   const OVERTIME_THRESHOLD = WORK_END_HOUR + 1;
 
   const clockInMutation   = useClockIn();
@@ -182,6 +187,17 @@ export default function Attendance() {
   const locations = locationsData?.locations || [];
   const selectedLocation = locations.find(location => String(location.id) === selectedLocationId);
   const attendanceEmployeeId = empId;
+  const locationRequired = appSettings.requireLocationOnClock;
+  const gpsRequired = locationRequired && appSettings.locationMode !== 'manual';
+  const availableMethods = appSettings.locationMode === 'gps'
+    ? methods.filter(method => method.id === 'gps')
+    : methods;
+
+  useEffect(() => {
+    if (appSettings.locationMode === 'gps' && checkMethod !== 'gps') {
+      setCheckMethod('gps');
+    }
+  }, [appSettings.locationMode, checkMethod]);
 
   useEffect(() => {
     if (!locations.length) {
@@ -221,7 +237,7 @@ export default function Attendance() {
       });
       return;
     }
-    if (!selectedLocation) {
+    if (locationRequired && !selectedLocation) {
       toast({
         variant: 'destructive',
         title: ar ? 'اختر موقعاً أولاً' : 'Select a location first',
@@ -229,7 +245,7 @@ export default function Attendance() {
       });
       return;
     }
-    if (checkMethod === 'gps' && !gpsCoords) {
+    if (gpsRequired && checkMethod === 'gps' && !gpsCoords) {
       toast({
         variant: 'destructive',
         title: ar ? 'يجب تحديد الموقع الجغرافي أولاً' : 'GPS location required',
@@ -242,7 +258,7 @@ export default function Attendance() {
       const rec = await clockInMutation.mutateAsync({
         data: {
           employeeId: attendanceEmployeeId,
-          location: selectedLocation.name,
+          location: selectedLocation?.name || appSettings.locationAddress || 'غير محدد',
           method: checkMethod,
           ...(gpsCoords ? {
             gpsLatitude: gpsCoords.lat,
@@ -255,7 +271,9 @@ export default function Attendance() {
       invalidate();
       toast({
         title: ar ? 'تم تسجيل الدخول بنجاح ✓' : 'Clock-in successful ✓',
-        description: ar ? `الموقع: ${selectedLocation.name}` : `Location: ${selectedLocation.name}`,
+        description: ar
+          ? `الموقع: ${selectedLocation?.name || appSettings.locationAddress || 'غير محدد'}`
+          : `Location: ${selectedLocation?.name || appSettings.locationAddress || 'Not specified'}`,
       });
       if (rec?.isLate) {
         const workStartTime = new Date(); workStartTime.setHours(WORK_START_HOUR, 0, 0, 0);
@@ -411,7 +429,7 @@ export default function Attendance() {
             {/* Location selector */}
             <div className="w-full">
               <label className="text-slate-300 text-xs font-semibold mb-1.5 block text-left">
-                {ar ? 'اختر الموقع' : 'Select Location'}
+                {ar ? `اختر الموقع${locationRequired ? '' : ' (اختياري)'}` : `Select Location${locationRequired ? '' : ' (optional)'}`}
               </label>
               <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
                 <SelectTrigger className="bg-slate-900/80 border-slate-600 text-white rounded-xl h-10 text-sm">
@@ -429,13 +447,13 @@ export default function Attendance() {
                   ))}
                 </SelectContent>
               </Select>
-              {!locationsLoading && locations.length === 0 && (
+              {!locationsLoading && locations.length === 0 && locationRequired && (
                 <p className="mt-2 text-xs text-amber-300">
                   {ar ? 'لا توجد مواقع مضافة. اطلب من المدير إضافة موقع من قسم مواقع العمل.' : 'No work locations are configured yet. Ask an administrator to add one.'}
                 </p>
               )}
               {/* GPS detect button — always visible when GPS method is selected */}
-              {checkMethod === 'gps' && (
+              {gpsRequired && checkMethod === 'gps' && (
                 <button
                   type="button"
                   onClick={detectGPS}
@@ -455,7 +473,7 @@ export default function Attendance() {
                 </button>
               )}
               {/* GPS status detail row */}
-              {checkMethod === 'gps' && (
+              {gpsRequired && appSettings.showMapOnAttendance && checkMethod === 'gps' && (
                 <div className="mt-2 rounded-xl bg-slate-900/75 border border-slate-700 text-xs overflow-hidden">
                   <div className="px-3 py-2 flex items-center gap-2 flex-wrap">
                     {gpsLoading ? (
@@ -493,7 +511,7 @@ export default function Attendance() {
                 {ar ? 'طريقة التسجيل' : 'Check-in Method'}
               </label>
               <div className="grid grid-cols-4 gap-2">
-                {methods.map(m => (
+                {availableMethods.map(m => (
                   <button
                     key={m.id}
                     onClick={() => setCheckMethod(m.id)}
@@ -562,7 +580,7 @@ export default function Attendance() {
             </div>
 
             <p className="text-xs text-slate-300 flex items-center gap-1.5">
-              <MapPin className="w-3 h-3" /> {selectedLocation?.name || (ar ? 'لم يتم اختيار موقع' : 'No location selected')}
+              <MapPin className="w-3 h-3" /> {selectedLocation?.name || appSettings.locationAddress || (ar ? 'لم يتم اختيار موقع' : 'No location selected')}
             </p>
           </div>
         </div>
