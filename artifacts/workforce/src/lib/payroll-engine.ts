@@ -16,7 +16,6 @@ export function calcRates(
   const hourlyRate = dailyHoursScheduled > 0 ? dailyRate / dailyHoursScheduled : 0;
   const minuteRate = hourlyRate / 60;
   const secondRate = minuteRate / 60;
-
   return { dailyRate, hourlyRate, minuteRate, secondRate };
 }
 
@@ -28,18 +27,42 @@ function parseTimeToMinutes(timeStr: string): number {
   return h * 60 + m;
 }
 
+export interface WorkedTimeResult {
+  workedDays: number;
+  absentDays: number;
+  workedSeconds: number;
+  workedMinutes: number;
+  workedHours: number;
+  lateMinutes: number;
+  earlyMinutes: number;
+  /** Regular overtime hours (weekday, within normal multiplier) */
+  overtimeHours: number;
+  /** Overtime hours that fall on weekend days */
+  weekendOvertimeHours: number;
+  /** Night-shift hours worked between nightStart and nightEnd */
+  nightHours: number;
+}
+
 export function calcWorkedTime(
   attendanceRows: Attendance[],
   workStart: string,
   workEnd: string,
   breakMin: number,
   lateGrace: number = 0,
-  otThreshold: number = 0
-) {
+  otThreshold: number = 0,
+  /** Weekend day numbers: 0=Sun,1=Mon,5=Fri,6=Sat. Default [5,6] (Fri/Sat) */
+  weekendDays: number[] = [5, 6],
+  /** Night shift start hour (24h). Default 22 */
+  nightStartHour: number = 22,
+  /** Night shift end hour (24h). Default 6 */
+  nightEndHour: number = 6
+): WorkedTimeResult {
   let workedSeconds = 0;
   let lateMinutesTotal = 0;
   let earlyMinutesTotal = 0;
   let overtimeMinutesTotal = 0;
+  let weekendOvertimeMinutesTotal = 0;
+  let nightMinutesTotal = 0;
   let workedDaysCount = 0;
   let absentDaysCount = 0;
 
@@ -57,6 +80,8 @@ export function calcWorkedTime(
 
     const inDate = new Date(row.clockIn);
     const inMin = inDate.getHours() * 60 + inDate.getMinutes();
+    const dayOfWeek = inDate.getDay();
+    const isWeekend = weekendDays.includes(dayOfWeek);
 
     let outMin = endMin;
     let outDate = inDate;
@@ -65,26 +90,40 @@ export function calcWorkedTime(
       outMin = outDate.getHours() * 60 + outDate.getMinutes();
     }
 
-    // Calculate exact duration
+    // Exact duration minus break
     let durationSeconds = (outDate.getTime() - inDate.getTime()) / 1000;
-    
-    // subtract break
-    durationSeconds = Math.max(0, durationSeconds - (breakMin * 60));
+    durationSeconds = Math.max(0, durationSeconds - breakMin * 60);
     workedSeconds += durationSeconds;
 
-    // Late calculation
+    // Late
     if (inMin > startMin + lateGrace) {
-      lateMinutesTotal += (inMin - startMin);
+      lateMinutesTotal += inMin - startMin;
     }
 
-    // Early calculation
+    // Early leave
     if (outMin < endMin && row.clockOut) {
-      earlyMinutesTotal += (endMin - outMin);
+      earlyMinutesTotal += endMin - outMin;
     }
 
-    // Overtime calculation
+    // Overtime
     if (outMin > endMin + otThreshold) {
-      overtimeMinutesTotal += (outMin - endMin);
+      const otMin = outMin - endMin;
+      if (isWeekend) {
+        weekendOvertimeMinutesTotal += otMin;
+      } else {
+        overtimeMinutesTotal += otMin;
+      }
+    }
+
+    // Night hours: count minutes within [nightStartHour, 24) ∪ [0, nightEndHour)
+    const startHour = inDate.getHours();
+    const endHour = outDate.getHours();
+    // Simple approximation: count hours between nightStartHour and nightEndHour
+    for (let h = startHour; h < endHour + 1; h++) {
+      const normalizedH = h % 24;
+      if (normalizedH >= nightStartHour || normalizedH < nightEndHour) {
+        nightMinutesTotal += 60;
+      }
     }
   });
 
@@ -97,6 +136,8 @@ export function calcWorkedTime(
     lateMinutes: lateMinutesTotal,
     earlyMinutes: earlyMinutesTotal,
     overtimeHours: Math.floor((overtimeMinutesTotal / 60) * 10) / 10,
+    weekendOvertimeHours: Math.floor((weekendOvertimeMinutesTotal / 60) * 10) / 10,
+    nightHours: Math.floor((nightMinutesTotal / 60) * 10) / 10,
   };
 }
 
@@ -109,7 +150,7 @@ export interface LeaveCalcResult {
 
 export function calcLeaveDeductions(
   leaveRows: Leave[],
-  periodPrefix: string // e.g. "2023-10"
+  periodPrefix: string
 ): LeaveCalcResult {
   let paidLeaveDays = 0;
   let unpaidLeaveDays = 0;
@@ -118,16 +159,14 @@ export function calcLeaveDeductions(
 
   leaveRows.forEach((leave) => {
     if (leave.status !== 'approved') return;
-    if (!leave.startDate?.startsWith(periodPrefix)) return; // naive check for simplicity
+    if (!leave.startDate?.startsWith(periodPrefix)) return;
 
     const days = leave.daysCount || 0;
-    
+
     if (leave.type === 'unpaid') {
       unpaidLeaveDays += days;
     } else if (leave.type === 'sick') {
-      // simplified: assume first 3 days paid, rest unpaid or based on policy
-      // We'll just assume all sick are paid for now unless marked otherwise.
-      sickPaidDays += days; 
+      sickPaidDays += days;
     } else {
       paidLeaveDays += days;
     }
@@ -144,12 +183,37 @@ export interface PayrollConfig {
   breakMin: number;
   lateGrace: number;
   otThreshold: number;
+  /** Weekday overtime multiplier (e.g. 1.5 = 150%) */
   overtimeMultiplier: number;
+  /** Weekend overtime multiplier (e.g. 2.0 = 200%) */
+  overtimeWeekendMultiplier: number;
+  /** Night shift differential multiplier (extra on top of hourly, e.g. 0.25 = 25% extra) */
+  nightDifferential: number;
   lateDeductMultiplier: number;
+  /** Weekend day numbers: 0=Sun … 6=Sat. Default [5,6] */
+  weekendDays: number[];
+  /** Night start hour (24h). Default 22 */
+  nightStartHour: number;
+  /** Night end hour (24h). Default 6 */
+  nightEndHour: number;
+  /** Default monthly loan installment; per-employee value comes from payroll metadata */
+  installmentAmount: number;
 }
 
 export interface EmployeePaySummary extends Omit<Payroll, 'id'> {
   employeeId: number;
+  /** Weekday overtime hours */
+  weekdayOvertimeHours?: number;
+  /** Weekend overtime hours */
+  weekendOvertimeHours?: number;
+  /** Night shift hours */
+  nightHours?: number;
+  /** Weekend overtime pay */
+  weekendOvertimePay?: number;
+  /** Night shift differential pay */
+  nightDifferentialPay?: number;
+  /** Monthly loan installment deduction for display/edit in modal */
+  installmentAmount?: number;
 }
 
 export function buildPayrollSummary(
@@ -161,35 +225,38 @@ export function buildPayrollSummary(
   period: string,
   cfg: PayrollConfig
 ): EmployeePaySummary {
-  // 1. Employee Basics
   const contractType = (employee.contractType || 'monthly') as any;
   const basicSalary = parseFloat(employee.salary || '0') || 0;
-  
-  // 2. Rates
+
   const rates = calcRates(basicSalary, cfg.workDaysPerMonth, cfg.dailyHoursScheduled);
-  
-  // 3. Time Metrics
+
   const time = calcWorkedTime(
-    attendanceRows, 
-    employee.workStart || cfg.workStart, 
-    employee.workEnd || cfg.workEnd, 
-    cfg.breakMin, 
-    cfg.lateGrace, 
-    cfg.otThreshold
+    attendanceRows,
+    employee.workStart || cfg.workStart,
+    employee.workEnd || cfg.workEnd,
+    cfg.breakMin,
+    cfg.lateGrace,
+    cfg.otThreshold,
+    cfg.weekendDays,
+    cfg.nightStartHour,
+    cfg.nightEndHour
   );
 
-  // 4. Leave Metrics
   const leaves = calcLeaveDeductions(leaveRows, period);
 
-  // 5. Calculate Deductions & Additions (base logic)
-  let lateDeduction = time.lateMinutes * rates.minuteRate * cfg.lateDeductMultiplier;
-  let earlyDeduction = time.earlyMinutes * rates.minuteRate * cfg.lateDeductMultiplier;
+  // Deduction components
+  let lateDeductionAmt = time.lateMinutes * rates.minuteRate * cfg.lateDeductMultiplier;
+  let earlyDeductionAmt = time.earlyMinutes * rates.minuteRate * cfg.lateDeductMultiplier;
   let absenceDeduction = time.absentDays * rates.dailyRate;
   let unpaidLeaveDeduction = (leaves.unpaidLeaveDays + leaves.sickUnpaidDays) * rates.dailyRate;
-  
-  let overtimePay = time.overtimeHours * rates.hourlyRate * cfg.overtimeMultiplier;
 
-  // Merge with existing overrides
+  // Multi-rate overtime
+  const weekdayOvertimePay = time.overtimeHours * rates.hourlyRate * cfg.overtimeMultiplier;
+  const weekendOvertimePay = time.weekendOvertimeHours * rates.hourlyRate * cfg.overtimeWeekendMultiplier;
+  const nightDifferentialPay = time.nightHours * rates.hourlyRate * cfg.nightDifferential;
+  const overtimePay = weekdayOvertimePay + weekendOvertimePay;
+
+  // Manual overrides from existing payroll record
   let bonus = 0;
   let allowances = 0;
   let commissions = 0;
@@ -199,6 +266,9 @@ export function buildPayrollSummary(
   let insuranceRate = 0;
   let notes = '';
   let status = 'draft' as any;
+  // Installment: read from per-payroll metadata
+  let installmentAmount =
+    (existingPayroll as any)?.metadata?.installmentAmount ?? cfg.installmentAmount ?? 0;
 
   if (existingPayroll) {
     bonus = parseFloat(existingPayroll.bonus || '0') || 0;
@@ -210,9 +280,13 @@ export function buildPayrollSummary(
     insuranceRate = parseFloat(existingPayroll.insurance || '0') || 0;
     notes = existingPayroll.notes || '';
     if (existingPayroll.status) status = existingPayroll.status;
+    // Overwrite installment if stored in advances field (legacy) — no, keep separate
+    if ((existingPayroll as any)?.metadata?.installmentAmount !== undefined) {
+      installmentAmount = (existingPayroll as any).metadata.installmentAmount;
+    }
   }
 
-  // Adjust for contract types
+  // Contract-type adjustments
   let actualBasic = basicSalary;
   if (contractType === 'daily') {
     actualBasic = time.workedDays * rates.dailyRate;
@@ -220,19 +294,21 @@ export function buildPayrollSummary(
   } else if (contractType === 'hourly') {
     actualBasic = time.workedHours * rates.hourlyRate;
     absenceDeduction = 0;
-    lateDeduction = 0;
-    earlyDeduction = 0;
+    lateDeductionAmt = 0;
+    earlyDeductionAmt = 0;
   }
 
-  const grossSalary = actualBasic + overtimePay + bonus + allowances + commissions;
-  
+  const grossSalary = actualBasic + overtimePay + nightDifferentialPay + bonus + allowances + commissions;
+
   const taxDeduction = grossSalary * (taxRate / 100);
   const insuranceDeduction = grossSalary * (insuranceRate / 100);
-  
-  const baseDeductions = lateDeduction + earlyDeduction + absenceDeduction + unpaidLeaveDeduction;
-  const manualDeductions = advances + fines + taxDeduction + insuranceDeduction;
+
+  // lateDeduction in DB = late + early combined (no separate earlyDeduction column)
+  const combinedLateDeduction = lateDeductionAmt + earlyDeductionAmt;
+  const baseDeductions = combinedLateDeduction + absenceDeduction + unpaidLeaveDeduction;
+  const manualDeductions = advances + fines + installmentAmount + taxDeduction + insuranceDeduction;
   const totalDeductions = baseDeductions + manualDeductions;
-  
+
   const totalEarnings = grossSalary;
   const netSalary = Math.max(0, totalEarnings - totalDeductions);
 
@@ -256,18 +332,18 @@ export function buildPayrollSummary(
     absentDays: time.absentDays.toString(),
     lateMinutes: time.lateMinutes.toString(),
     earlyMinutes: time.earlyMinutes.toString(),
-    overtimeHours: time.overtimeHours.toString(),
+    overtimeHours: (time.overtimeHours + time.weekendOvertimeHours).toString(),
     overtimeRate: cfg.overtimeMultiplier.toString(),
     overtime: overtimePay.toFixed(2),
     bonus: bonus.toFixed(2),
     allowances: allowances.toFixed(2),
     commissions: commissions.toFixed(2),
     grossSalary: grossSalary.toFixed(2),
-    lateDeduction: lateDeduction.toFixed(2),
+    lateDeduction: combinedLateDeduction.toFixed(2), // late + early combined
     absenceDeduction: absenceDeduction.toFixed(2),
     advances: advances.toFixed(2),
     fines: fines.toFixed(2),
-    deductions: baseDeductions.toFixed(2), // store base deductions here
+    deductions: baseDeductions.toFixed(2),
     tax: taxRate.toString(),
     insurance: insuranceRate.toString(),
     totalEarnings: totalEarnings.toFixed(2),
@@ -277,5 +353,12 @@ export function buildPayrollSummary(
     unpaidLeaveDays: leaves.unpaidLeaveDays.toString(),
     notes,
     status,
+    // Extra fields
+    installmentAmount,
+    weekdayOvertimeHours: time.overtimeHours,
+    weekendOvertimeHours: time.weekendOvertimeHours,
+    nightHours: time.nightHours,
+    weekendOvertimePay,
+    nightDifferentialPay,
   };
 }
