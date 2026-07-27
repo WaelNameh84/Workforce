@@ -2,12 +2,13 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-/* ─── Native-app feel: disable text selection everywhere ────── */
+/* ─── Native-app feel: disable text selection & link callout ── */
 *, *::before, *::after {
   -webkit-user-select: none;
   -moz-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 input, textarea, [contenteditable="true"], [contenteditable] {
   -webkit-user-select: text;
