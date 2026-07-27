@@ -16,6 +16,29 @@ input, textarea, [contenteditable="true"], [contenteditable] {
   -moz-user-select: text;
   user-select: text;
 }
+
+/* ─── Safe area (iPhone notch / home indicator) ───────────── */
+:root {
+  --sat: env(safe-area-inset-top);
+  --sar: env(safe-area-inset-right);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+}
+
+/* ─── Page transition & bottom-sheet animations ───────────── */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* ─── Momentum scrolling on iOS ───────────────────────────── */
+.overflow-y-auto, .overflow-y-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));

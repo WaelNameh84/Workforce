@@ -517,7 +517,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 border-b border-white/5" style={{ background: 'var(--background)', backdropFilter: 'blur(10px)' }}>
+        <header className="sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 border-b border-white/5"
+          style={{ background: 'var(--background)', backdropFilter: 'blur(10px)', paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}>
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Open navigation menu"
@@ -731,7 +732,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Page content — Pull-to-refresh wraps the scrollable area */}
         <PullToRefresh>
-          <main className="page-shell w-full min-w-0 p-3 sm:p-4 lg:p-6 max-w-[1800px] mx-auto pb-20 lg:pb-6">
+          <main className="page-shell w-full min-w-0 p-3 sm:p-4 lg:p-6 max-w-[1800px] mx-auto"
+                style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
             {children}
           </main>
         </PullToRefresh>

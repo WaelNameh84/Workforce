@@ -13,7 +13,8 @@ import {
   CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass, ExternalLink, Download
 } from 'lucide-react';
 import { format, differenceInMinutes } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { BottomSheet } from '@/components/bottom-sheet';
+import { useHaptic } from '@/hooks/use-haptic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -155,6 +156,7 @@ export default function Attendance() {
   const clockInMutation   = useClockIn();
   const clockOutMutation  = useClockOut();
   const updateMutation    = useUpdateAttendance();
+  const { trigger: haptic } = useHaptic();
 
   const todayRecord  = Array.isArray(todayStatus) ? todayStatus[0] : todayStatus;
   const isClockedIn  = !!(todayRecord?.clockIn && !todayRecord?.clockOut);
@@ -215,6 +217,7 @@ export default function Attendance() {
       });
       return;
     }
+    haptic('medium');
     try {
       const rec = await clockInMutation.mutateAsync({
         data: { employeeId: attendanceEmployeeId, location: selectedLocation.name, method: checkMethod },
@@ -250,10 +253,12 @@ export default function Attendance() {
       });
       return;
     }
+    haptic('medium');
     try {
       const rec = await clockOutMutation.mutateAsync({ data: { employeeId: attendanceEmployeeId } });
       queryClient.setQueryData(getGetTodayAttendanceQueryKey({ employeeId: attendanceEmployeeId }), rec);
       invalidate();
+      haptic('success');
       toast({ title: ar ? 'تم تسجيل الخروج بنجاح ✓' : 'Clock-out successful ✓' });
       const outHour = new Date(rec.clockOut!).getHours();
       setPendingRecId(rec.id ?? null);
@@ -822,131 +827,128 @@ export default function Attendance() {
         </div>
       </div>
 
-      {/* ════════════════ DIALOG — Late Arrival Justification ════════════════ */}
-      <Dialog open={showLateIn} onOpenChange={setShowLateIn}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-full bg-amber-500/15 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
+      {/* ════ BOTTOM SHEET — Late Arrival ════ */}
+      <BottomSheet
+        open={showLateIn}
+        onClose={() => { setShowLateIn(false); setJustText(''); }}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-amber-500/15 flex items-center justify-center">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
             </div>
-            <DialogHeader className="space-y-0.5">
-              <DialogTitle>{ar ? 'تبرير الدخول المتأخر' : 'Late Arrival Justification'}</DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                {ar ? `تأخرت ${lateMinutes} دقيقة عن موعد الدوام` : `You are ${lateMinutes} minute(s) late`}
-              </p>
-            </DialogHeader>
+            <div>
+              <div>{ar ? 'تبرير الدخول المتأخر' : 'Late Arrival Justification'}</div>
+              <div className="text-xs font-normal text-muted-foreground mt-0.5">
+                {ar ? `تأخرت ${lateMinutes} دقيقة` : `${lateMinutes} minutes late`}
+              </div>
+            </div>
           </div>
-          <Textarea
-            value={justText}
-            onChange={e => setJustText(e.target.value)}
-            placeholder={ar ? 'اكتب سبب التأخير…' : 'Enter your reason for being late…'}
-            className="resize-none min-h-[100px]"
-          />
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setShowLateIn(false); setJustText(''); }}>
-              {ar ? 'تخطي' : 'Skip'}
-            </Button>
+        }
+        footer={
+          <>
             <Button onClick={handleLateInSubmit} disabled={updateMutation.isPending}
-                    className="bg-amber-500 hover:bg-amber-600 text-white">
-              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {ar ? 'إرسال التبرير' : 'Submit Justification'}
+                    className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white text-base font-bold rounded-2xl">
+              {updateMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (ar ? 'إرسال التبرير' : 'Submit')}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ════════════════ DIALOG — Early Departure ════════════════ */}
-      <Dialog open={showEarlyOut} onOpenChange={setShowEarlyOut}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-full bg-orange-500/15 flex items-center justify-center flex-shrink-0">
-              <LogOut className="w-5 h-5 text-orange-500" />
-            </div>
-            <DialogHeader className="space-y-0.5">
-              <DialogTitle>{ar ? 'مبرر الخروج المبكر' : 'Early Departure Justification'}</DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                {ar ? 'خرجت قبل انتهاء وقت الدوام الرسمي' : `You clocked out before the end of the workday (${WORK_END_HOUR}:00)`}
-              </p>
-            </DialogHeader>
-          </div>
-          <Textarea
-            value={justText}
-            onChange={e => setJustText(e.target.value)}
-            placeholder={ar ? 'اكتب سبب الخروج المبكر…' : 'Enter your reason for leaving early…'}
-            className="resize-none min-h-[100px]"
-          />
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setShowEarlyOut(false); setJustText(''); }}>
+            <Button variant="ghost" onClick={() => { setShowLateIn(false); setJustText(''); }} className="w-full text-muted-foreground">
               {ar ? 'تخطي' : 'Skip'}
             </Button>
+          </>
+        }
+      >
+        <Textarea value={justText} onChange={e => setJustText(e.target.value)}
+          placeholder={ar ? 'اكتب سبب التأخير…' : 'Enter reason for being late…'}
+          className="resize-none min-h-[110px]" />
+      </BottomSheet>
+
+      {/* ════ BOTTOM SHEET — Early Departure ════ */}
+      <BottomSheet
+        open={showEarlyOut}
+        onClose={() => { setShowEarlyOut(false); setJustText(''); }}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center">
+              <LogOut className="w-4 h-4 text-orange-500" />
+            </div>
+            <div>
+              <div>{ar ? 'مبرر الخروج المبكر' : 'Early Departure'}</div>
+              <div className="text-xs font-normal text-muted-foreground mt-0.5">
+                {ar ? 'خرجت قبل انتهاء الدوام الرسمي' : `Before ${WORK_END_HOUR}:00`}
+              </div>
+            </div>
+          </div>
+        }
+        footer={
+          <>
             <Button onClick={handleEarlyOutSubmit} disabled={updateMutation.isPending}
-                    className="bg-orange-500 hover:bg-orange-600 text-white">
-              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {ar ? 'إرسال المبرر' : 'Submit Reason'}
+                    className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-base font-bold rounded-2xl">
+              {updateMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (ar ? 'إرسال المبرر' : 'Submit')}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ════════════════ DIALOG — Late Clock-out ════════════════ */}
-      <Dialog open={showLateOut} onOpenChange={setShowLateOut}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-full bg-purple-500/15 flex items-center justify-center flex-shrink-0">
-              <Hourglass className="w-5 h-5 text-purple-500" />
-            </div>
-            <DialogHeader className="space-y-0.5">
-              <DialogTitle>{ar ? 'سبب الخروج المتأخر' : 'Late Clock-out Reason'}</DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                {ar ? 'سجّلت الخروج بعد الوقت الرسمي' : `You clocked out after ${OVERTIME_THRESHOLD}:00`}
-              </p>
-            </DialogHeader>
-          </div>
-
-          <div className="space-y-3">
-            {/* Reason selector */}
-            {([
-              { value: 'overtime', labelEn: 'Overtime work (counts as overtime)', labelAr: 'عمل إضافي (يُحتسب)' },
-              { value: 'forgot',   labelEn: 'Forgot to clock out (not overtime)',  labelAr: 'نسيت تسجيل الخروج (لا يُحتسب إضافياً)' },
-              { value: 'other',    labelEn: 'Other reason…',                       labelAr: 'سبب آخر…' },
-            ] as Array<{ value: LateOutReason; labelEn: string; labelAr: string }>).map(opt => (
-              <button key={opt.value}
-                      onClick={() => setLateOutReason(opt.value)}
-                      className={`w-full text-left px-4 py-3 rounded-xl border transition text-sm font-medium flex items-center gap-3
-                        ${lateOutReason === opt.value
-                          ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400'
-                          : 'border-border bg-muted/30 text-foreground hover:bg-muted/60'}`}>
-                <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center
-                  ${lateOutReason === opt.value ? 'border-purple-500' : 'border-muted-foreground/40'}`}>
-                  {lateOutReason === opt.value && <span className="w-2 h-2 rounded-full bg-purple-500" />}
-                </span>
-                {ar ? opt.labelAr : opt.labelEn}
-              </button>
-            ))}
-
-            {/* Other textarea */}
-            {lateOutReason === 'other' && (
-              <Textarea
-                value={justText}
-                onChange={e => setJustText(e.target.value)}
-                placeholder={ar ? 'اكتب سبب الخروج المتأخر…' : 'Describe your reason…'}
-                className="resize-none min-h-[80px]"
-              />
-            )}
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setShowLateOut(false); setJustText(''); setLateOutReason('overtime'); }}>
+            <Button variant="ghost" onClick={() => { setShowEarlyOut(false); setJustText(''); }} className="w-full text-muted-foreground">
               {ar ? 'تخطي' : 'Skip'}
             </Button>
+          </>
+        }
+      >
+        <Textarea value={justText} onChange={e => setJustText(e.target.value)}
+          placeholder={ar ? 'اكتب سبب الخروج المبكر…' : 'Enter reason for leaving early…'}
+          className="resize-none min-h-[110px]" />
+      </BottomSheet>
+
+      {/* ════ BOTTOM SHEET — Late Clock-out ════ */}
+      <BottomSheet
+        open={showLateOut}
+        onClose={() => { setShowLateOut(false); setJustText(''); setLateOutReason('overtime'); }}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-purple-500/15 flex items-center justify-center">
+              <Hourglass className="w-4 h-4 text-purple-500" />
+            </div>
+            <div>
+              <div>{ar ? 'سبب الخروج المتأخر' : 'Late Clock-out'}</div>
+              <div className="text-xs font-normal text-muted-foreground mt-0.5">
+                {ar ? 'سجّلت الخروج بعد الوقت الرسمي' : `After ${OVERTIME_THRESHOLD}:00`}
+              </div>
+            </div>
+          </div>
+        }
+        footer={
+          <>
             <Button onClick={handleLateOutSubmit} disabled={updateMutation.isPending}
-                    className="bg-purple-600 hover:bg-purple-700 text-white">
-              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {ar ? 'تأكيد' : 'Confirm'}
+                    className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white text-base font-bold rounded-2xl">
+              {updateMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (ar ? 'تأكيد' : 'Confirm')}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button variant="ghost" onClick={() => { setShowLateOut(false); setJustText(''); setLateOutReason('overtime'); }} className="w-full text-muted-foreground">
+              {ar ? 'تخطي' : 'Skip'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2.5">
+          {([
+            { value: 'overtime', labelAr: 'عمل إضافي (يُحتسب)', labelEn: 'Overtime work' },
+            { value: 'forgot',   labelAr: 'نسيت تسجيل الخروج (لا يُحتسب)', labelEn: 'Forgot to clock out' },
+            { value: 'other',    labelAr: 'سبب آخر…', labelEn: 'Other reason…' },
+          ] as Array<{ value: LateOutReason; labelAr: string; labelEn: string }>).map(opt => (
+            <button key={opt.value} onClick={() => setLateOutReason(opt.value)}
+                    className={`w-full text-right px-4 py-3.5 rounded-2xl border transition-all text-sm font-semibold flex items-center gap-3
+                      ${lateOutReason === opt.value
+                        ? 'border-purple-500 bg-purple-500/10 text-purple-400'
+                        : 'border-white/10 bg-white/5 text-foreground'}`}>
+              <span className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ml-auto
+                ${lateOutReason === opt.value ? 'border-purple-500' : 'border-white/30'}`}>
+                {lateOutReason === opt.value && <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />}
+              </span>
+              {ar ? opt.labelAr : opt.labelEn}
+            </button>
+          ))}
+          {lateOutReason === 'other' && (
+            <Textarea value={justText} onChange={e => setJustText(e.target.value)}
+              placeholder={ar ? 'اكتب السبب…' : 'Describe your reason…'}
+              className="resize-none min-h-[80px] mt-2" />
+          )}
+        </div>
+      </BottomSheet>
     </div>
   );
 }

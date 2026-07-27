@@ -11,6 +11,7 @@ import { setAuthTokenGetter } from '@workspace/api-client-react';
 import Login from '@/pages/login';
 import Register from '@/pages/register';
 import DashboardLayout from '@/components/layout';
+import PageTransition from '@/components/page-transition';
 
 import {
   ActionCenter,
@@ -53,7 +54,9 @@ function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { 
         if (adminOnly && user.role === 'employee') return <Redirect to="/dashboard" />;
         return (
           <DashboardLayout>
-            <Component />
+            <PageTransition>
+              <Component />
+            </PageTransition>
           </DashboardLayout>
         );
       }}
