@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -677,55 +678,67 @@ export default function Employees() {
         )}
       </BottomSheet>
 
-      {/* ===================== ADD DIALOG ===================== */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="rounded-3xl border-0 card-3d max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl flex items-center gap-2">
+      {/* ===================== ADD DRAWER ===================== */}
+      <Drawer open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DrawerContent className="max-h-[92dvh] flex flex-col">
+          <DrawerHeader className="border-b border-border/50 pb-3 flex-shrink-0">
+            <DrawerTitle className="font-display text-xl flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
                 <Plus className="h-4 w-4 text-white" />
               </div>
               {t('addEmployee')}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAddSubmit} className="space-y-5 mt-2">
-            {employeeFormFields(undefined, false)}
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <form id="add-emp-form" onSubmit={handleAddSubmit} className="space-y-5">
+              {employeeFormFields(undefined, false)}
+            </form>
+          </div>
+          <div className="flex-shrink-0 px-4 py-3 border-t border-border/50" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}>
             <Button
               type="submit"
+              form="add-emp-form"
               className="w-full rounded-xl h-11 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white border-0 font-bold"
               disabled={createMutation.isPending}
             >
               {t('save')}
             </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
-      {/* ===================== EDIT DIALOG ===================== */}
-      <Dialog open={!!editEmployee} onOpenChange={(open) => { if (!open) setEditEmployee(null); }}>
-        <DialogContent className="rounded-3xl border-0 card-3d max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl flex items-center gap-2">
+      {/* ===================== EDIT DRAWER ===================== */}
+      <Drawer open={!!editEmployee} onOpenChange={(open) => { if (!open) setEditEmployee(null); }}>
+        <DrawerContent className="max-h-[92dvh] flex flex-col">
+          <DrawerHeader className="border-b border-border/50 pb-3 flex-shrink-0">
+            <DrawerTitle className="font-display text-xl flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
                 <Edit className="h-4 w-4 text-white" />
               </div>
               {t('editEmployee')}
-            </DialogTitle>
-          </DialogHeader>
+            </DrawerTitle>
+          </DrawerHeader>
           {editEmployee && (
-            <form onSubmit={handleEditSubmit} className="space-y-5 mt-2">
-              {employeeFormFields(editEmployee, true)}
-              <Button
-                type="submit"
-                className="w-full rounded-xl h-11 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white border-0 font-bold"
-                disabled={updateMutation.isPending}
-              >
-                {t('save')}
-              </Button>
-            </form>
+            <>
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                <form id="edit-emp-form" onSubmit={handleEditSubmit} className="space-y-5">
+                  {employeeFormFields(editEmployee, true)}
+                </form>
+              </div>
+              <div className="flex-shrink-0 px-4 py-3 border-t border-border/50" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}>
+                <Button
+                  type="submit"
+                  form="edit-emp-form"
+                  className="w-full rounded-xl h-11 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white border-0 font-bold"
+                  disabled={updateMutation.isPending}
+                >
+                  {t('save')}
+                </Button>
+              </div>
+            </>
           )}
-        </DialogContent>
-      </Dialog>
+        </DrawerContent>
+      </Drawer>
 
       {/* ===================== EMPLOYEE PROFILE SHEET ===================== */}
       <Sheet open={!!profileEmployee} onOpenChange={(open) => !open && setProfileEmployee(null)}>
