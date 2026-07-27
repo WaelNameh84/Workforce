@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Building2, Plus, Trash2, Users, Search, ImageOff } from 'lucide-react';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 function getDeptImageUrl(name: string): string {
   return `/api/images/dept?name=${encodeURIComponent(name)}`;
@@ -59,7 +60,7 @@ function DeptBanner({ name, index }: { name: string; index: number }) {
 }
 
 /* ── Preview banner (shown while typing in the Add dialog) ── */
-function PreviewBanner({ name }: { name: string }) {
+function PreviewBanner({ name, emptyLabel }: { name: string; emptyLabel: string }) {
   const [imgError, setImgError] = useState(false);
   const url = name.trim() ? getDeptImageUrl(name) : '';
 
@@ -67,7 +68,7 @@ function PreviewBanner({ name }: { name: string }) {
     return (
       <div className="h-28 rounded-xl bg-muted/50 border border-dashed border-border flex items-center justify-center gap-2 text-muted-foreground text-sm">
         <ImageOff className="h-4 w-4" />
-        اكتب اسم القسم لمعاينة الصورة
+         {emptyLabel}
       </div>
     );
   }
@@ -99,6 +100,8 @@ export default function Departments() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const fmt = (key: Parameters<typeof t>[0], count?: number) => t(key).replace('{count}', String(count ?? 0));
   const cid = user?.companyId || 0;
 
   const [search, setSearch] = useState('');
@@ -121,12 +124,12 @@ export default function Departments() {
     if (!name.trim()) return;
     try {
       await createMutation.mutateAsync({ data: { name: name.trim(), companyId: cid, description: description.trim() || undefined } as DepartmentInput });
-      toast({ title: 'تم إضافة القسم بنجاح' });
+      toast({ title: t('departmentCreated') });
       setIsAddOpen(false);
       setName(''); setDescription('');
       invalidate();
     } catch {
-      toast({ variant: 'destructive', title: 'خطأ', description: 'فشل في إضافة القسم' });
+      toast({ variant: 'destructive', title: t('error'), description: t('departmentCreateFailed') });
     }
   };
 
@@ -134,11 +137,11 @@ export default function Departments() {
     if (!deleteId) return;
     try {
       await deleteMutation.mutateAsync({ id: deleteId });
-      toast({ title: 'تم حذف القسم' });
+      toast({ title: t('departmentDeleted') });
       setDeleteId(null);
       invalidate();
     } catch {
-      toast({ variant: 'destructive', title: 'خطأ', description: 'فشل في حذف القسم' });
+      toast({ variant: 'destructive', title: t('error'), description: t('departmentDeleteFailed') });
     }
   };
 
@@ -151,14 +154,14 @@ export default function Departments() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">الأقسام</h1>
-          <p className="text-sm mt-1 text-muted-foreground">{data?.departments?.length || 0} قسم مسجل</p>
+             <h1 className="font-display text-3xl font-bold tracking-tight">{t('departments')}</h1>
+             <p className="text-sm mt-1 text-muted-foreground">{fmt('departmentsRegistered', data?.departments?.length || 0)}</p>
         </div>
         <Button
           onClick={() => setIsAddOpen(true)}
           className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white border-0"
         >
-          <Plus className="h-4 w-4" /> إضافة قسم
+           <Plus className="h-4 w-4" /> {t('addDepartment')}
         </Button>
       </div>
 
@@ -167,7 +170,7 @@ export default function Departments() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="البحث في الأقسام..."
+             placeholder={t('searchDepartments')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-9 rounded-xl border-border bg-background h-11"
@@ -188,10 +191,10 @@ export default function Departments() {
             <Building2 className="w-10 h-10 text-muted-foreground opacity-40" />
           </div>
           <p className="font-bold text-lg text-muted-foreground">
-            {search ? 'لا توجد نتائج للبحث' : 'لا توجد أقسام بعد'}
+             {search ? t('noSearchResults') : t('noDepartmentsYet')}
           </p>
           {!search && (
-            <p className="text-sm text-muted-foreground mt-1">أضف قسمًا جديدًا للبدء</p>
+             <p className="text-sm text-muted-foreground mt-1">{t('addDepartmentToStart')}</p>
           )}
         </div>
       ) : (
@@ -215,7 +218,7 @@ export default function Departments() {
                   <div className={`mt-auto flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r ${colorClass} bg-opacity-10`}>
                     <div className="flex items-center gap-2">
                       <Users className="h-3.5 w-3.5 text-white" />
-                      <span className="text-xs font-bold text-white">قسم نشط</span>
+                       <span className="text-xs font-bold text-white">{t('activeDepartment')}</span>
                     </div>
                     <button
                       type="button"
@@ -223,7 +226,7 @@ export default function Departments() {
                       className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-white/80 hover:text-white hover:bg-white/20 transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      حذف
+                       {t('delete')}
                     </button>
                   </div>
                 </div>
@@ -237,33 +240,33 @@ export default function Departments() {
       <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) { setName(''); setDescription(''); } }}>
         <DialogContent className="rounded-3xl border-0 card-3d max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl flex items-center gap-2">
+           <DialogTitle className="font-display text-xl flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                 <Plus className="h-4 w-4 text-white" />
               </div>
-              إضافة قسم جديد
+               {t('addDepartment')}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4 mt-2">
             {/* Live image preview */}
-            <PreviewBanner name={name} />
+             <PreviewBanner name={name} emptyLabel={t('exampleDepartment')} />
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">اسم القسم *</Label>
+               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('departmentNameRequired')}</Label>
               <Input
                 value={name}
                 onChange={e => { setName(e.target.value); }}
-                placeholder="مثال: نجار، محاسبة، هندسة"
+                 placeholder={t('exampleDepartment')}
                 required
                 className="rounded-xl h-11"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الوصف (اختياري)</Label>
+               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('departmentDescriptionOptional')}</Label>
               <Input
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                placeholder="وصف مختصر للقسم"
+                 placeholder={t('shortDepartmentDescription')}
                 className="rounded-xl h-11"
               />
             </div>
@@ -272,7 +275,7 @@ export default function Departments() {
               className="w-full rounded-xl h-11 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white border-0 font-bold"
               disabled={createMutation.isPending || !name.trim()}
             >
-              {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
+               {createMutation.isPending ? t('saving') : t('save')}
             </Button>
           </form>
         </DialogContent>
@@ -282,16 +285,16 @@ export default function Departments() {
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent className="rounded-3xl border-0 card-3d">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-display">تأكيد الحذف</AlertDialogTitle>
-            <AlertDialogDescription>هل أنت متأكد من حذف هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
+             <AlertDialogTitle className="font-display">{t('confirmDelete')}</AlertDialogTitle>
+             <AlertDialogDescription>{t('confirmDeleteDepartment')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4">
-            <AlertDialogCancel className="rounded-xl h-11">إلغاء</AlertDialogCancel>
+             <AlertDialogCancel className="rounded-xl h-11">{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="rounded-xl h-11 bg-red-500 hover:bg-red-600 text-white border-0"
             >
-              حذف
+               {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/components/ui/use-toast';
 import { useSettings } from '@/contexts/settings-context';
+import { useLanguage } from '@/i18n/LanguageProvider';
 import {
   Settings2, Palette, Clock4, Bot, Key, Bell, Shield, CalendarClock,
   Sun, Moon, Upload, Eye, EyeOff, Save, Check,
@@ -162,6 +163,7 @@ const APP_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f97316','#10b981','#06b6d4',
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Settings() {
   const { theme, setTheme } = useTheme();
+  const { locale, t } = useLanguage();
   const { toast }           = useToast();
   const { s, update, save } = useSettings();
   const [tab, setTab]       = useState('general');
@@ -180,7 +182,7 @@ export default function Settings() {
   const handleSave = () => {
     save();
     setSaved(true);
-    toast({ title: 'تم حفظ الإعدادات ✓' });
+    toast({ title: t('settingsSaved') });
     setTimeout(() => setSaved(false), 2500);
   };
 
@@ -195,7 +197,7 @@ export default function Settings() {
     const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = 'workforce-backup.json'; a.click();
     URL.revokeObjectURL(url);
-    toast({ title: 'تم حفظ النسخة الاحتياطية ✓' });
+    toast({ title: t('settingsBackupSaved') });
   };
 
   const restoreBackup = () => {
@@ -208,9 +210,9 @@ export default function Settings() {
           const parsed = JSON.parse(text);
           update(parsed);
           save();
-          toast({ title: 'تم استعادة النسخة الاحتياطية ✓' });
+          toast({ title: t('settingsBackupRestored') });
         } catch {
-          toast({ title: 'خطأ في الملف', description: 'تأكد أن الملف صحيح', variant: 'destructive' });
+          toast({ title: t('settingsBackupError'), description: 'تأكد أن الملف صحيح', variant: 'destructive' });
         }
       });
     };
@@ -219,27 +221,27 @@ export default function Settings() {
 
   const handleUpdateCredentials = () => {
     if (!secCurrentPw) {
-      toast({ title: 'يرجى إدخال كلمة المرور الحالية', variant: 'destructive' }); return;
+      toast({ title: t('settingsCurrentPwRequired'), variant: 'destructive' }); return;
     }
     if (secNewPw && secNewPw !== secConfirmPw) {
-      toast({ title: 'كلمة المرور الجديدة غير متطابقة', variant: 'destructive' }); return;
+      toast({ title: t('settingsNewPwMismatch'), variant: 'destructive' }); return;
     }
     if (secNewPw && secNewPw.length < 8) {
-      toast({ title: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل', variant: 'destructive' }); return;
+      toast({ title: t('settingsNewPwTooShort'), variant: 'destructive' }); return;
     }
     // In a real app: call API here. For now show success.
-    toast({ title: 'تم تحديث بيانات الدخول ✓' });
+    toast({ title: t('settingsCredentialsUpdated') });
     setSecCurrentPw(''); setSecNewPw(''); setSecConfirmPw(''); setSecEmail('');
   };
 
   const handlePinSave = () => {
     if (pinValue.length !== 6 || !/^\d{6}$/.test(pinValue)) {
-      toast({ title: 'يجب أن يكون الرمز 6 أرقام', variant: 'destructive' }); return;
+      toast({ title: locale === 'sv' ? 'PIN-koden måste vara 6 siffror' : locale === 'en' ? 'PIN must be 6 digits' : 'يجب أن يكون الرمز 6 أرقام', variant: 'destructive' }); return;
     }
     // Store hashed or just flag it (not storing raw PIN for security)
     update({ biometric: { ...s.biometric, pin: true } });
     save();
-    toast({ title: 'تم تفعيل رمز PIN ✓' });
+    toast({ title: t('settingsPinActivated') });
     setPinDialog(false);
     setPinValue('');
   };
@@ -258,7 +260,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn" dir="rtl">
+    <div className="space-y-6 animate-fadeIn" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -648,7 +650,7 @@ export default function Settings() {
               ))}
               <button
                 onClick={() => {
-                  toast({ title: 'تم حفظ مفاتيح الذكاء الاصطناعي ✓' });
+                  toast({ title: t('settingsAiKeysSaved') });
                   save();
                 }}
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm transition flex items-center justify-center gap-2 hover:-translate-y-0.5 shadow-lg shadow-rose-500/20"
@@ -687,7 +689,7 @@ export default function Settings() {
                 </Field>
               ))}
               <button
-                onClick={() => { save(); toast({ title: 'تم حفظ مفاتيح الخدمات ✓' }); }}
+                onClick={() => { save(); toast({ title: t('settingsServiceKeysSaved') }); }}
                 className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition flex items-center justify-center gap-2"
               >
                 <Save className="w-4 h-4" /> حفظ المفاتيح
@@ -843,7 +845,7 @@ export default function Settings() {
                   on={s.biometric.faceId}
                   onToggle={() => {
                     toggleBiometric('faceId');
-                    toast({ title: s.biometric.faceId ? 'تم إيقاف Face ID' : 'تم تفعيل Face ID ✓' });
+                    toast({ title: s.biometric.faceId ? t('settingsFaceIdDisabled') : t('settingsFaceIdEnabled') });
                   }}
                 />
                 <ToggleRow
@@ -851,7 +853,7 @@ export default function Settings() {
                   on={s.biometric.fingerprint}
                   onToggle={() => {
                     toggleBiometric('fingerprint');
-                    toast({ title: s.biometric.fingerprint ? 'تم إيقاف البصمة' : 'تم تفعيل البصمة ✓' });
+                    toast({ title: s.biometric.fingerprint ? t('settingsFingerprintDisabled') : t('settingsFingerprintEnabled') });
                   }}
                 />
                 <div className="flex items-center justify-between gap-4 py-3">
@@ -876,7 +878,7 @@ export default function Settings() {
                           setPinDialog(true);
                         } else {
                           toggleBiometric('pin');
-                          toast({ title: 'تم إيقاف PIN Code' });
+                          toast({ title: t('settingsPinDisabledMsg') });
                         }
                       }}
                     />
@@ -993,7 +995,7 @@ export default function Settings() {
 
       {/* ── PIN Dialog ───────────────────────────────────────────── */}
       {pinDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" dir="rtl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
           <div className="relative w-full max-w-sm rounded-2xl border border-border p-6 shadow-2xl" style={{ background: 'var(--card)' }}>
             <button onClick={() => setPinDialog(false)} className="absolute top-4 left-4 text-muted-foreground hover:text-foreground transition">
               <X className="w-5 h-5" />

@@ -203,6 +203,7 @@ const navBadges: Record<string, string> = {
 // ─── Live Clock widget ────────────────────────────────────────────────────────
 function LiveClock() {
   const s = useAppSettings();
+  const { locale } = useLanguage();
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -211,13 +212,14 @@ function LiveClock() {
 
   if (s.clockPos !== 'header') return null;
 
-  const timeStr = now.toLocaleTimeString(s.showArabicDay ? 'ar-SA' : 'en-US', {
+  const intlLocale = locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US';
+  const timeStr = now.toLocaleTimeString(s.showArabicDay ? 'ar-SA' : intlLocale, {
     hour: '2-digit', minute: '2-digit',
     second: s.showSeconds ? '2-digit' : undefined,
     hour12: s.show12h,
   });
   const dateStr = s.showDate
-    ? now.toLocaleDateString(s.showArabicDay ? 'ar-SA' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    ? now.toLocaleDateString(s.showArabicDay ? 'ar-SA' : intlLocale, { weekday: 'short', month: 'short', day: 'numeric' })
     : null;
 
   const sizeClass = s.clockSize === 'small' ? 'text-xs' : s.clockSize === 'large' ? 'text-base' : 'text-sm';
@@ -243,6 +245,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [selectedNotifIdx, setSelectedNotifIdx] = useState<number | null>(null);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine);
+  const formatText = useCallback((key: Parameters<typeof t>[0], values: Record<string, string | number> = {}) => {
+    return Object.entries(values).reduce((result, [name, value]) => result.replaceAll(`{${name}}`, String(value)), t(key));
+  }, [t]);
   const drawerStartX = useRef<number | null>(null);
   const todayStr = new Date().toISOString().split('T')[0];
   const cid = user?.companyId || 0;
@@ -267,39 +272,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const notifItems = [
     ...lateToday.map((a: any) => ({
       icon: Timer, color: 'text-violet-400 bg-violet-500/15',
-      title: `${a.employeeName || 'موظف'} — سجّل حضوراً متأخراً`,
-      time: a.clockIn ? new Date(a.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : 'اليوم',
+       title: `${a.employeeName || t('employee')} — ${t('lateArrival')}`,
+       time: a.clockIn ? new Date(a.clockIn).toLocaleTimeString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : t('today'),
       details: [
-        { label: 'الموظف', value: a.employeeName || '—' },
-        { label: 'وقت الدخول', value: a.clockIn ? new Date(a.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '—' },
-        { label: 'التاريخ', value: a.date ? new Date(a.date).toLocaleDateString('ar-SA') : 'اليوم' },
-        { label: 'الموقع', value: a.location || '—' },
-        { label: 'طريقة التسجيل', value: a.method || '—' },
+         { label: t('employee'), value: a.employeeName || '—' },
+         { label: t('timeIn'), value: a.clockIn ? new Date(a.clockIn).toLocaleTimeString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '—' },
+         { label: t('date'), value: a.date ? new Date(a.date).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : t('today') },
+         { label: t('location'), value: a.location || '—' },
+         { label: t('method'), value: a.method || '—' },
       ],
     })),
     ...pendingReqs.map((r: any) => ({
       icon: AlertCircle, color: 'text-amber-400 bg-amber-500/15',
-      title: r.title || 'طلب جديد بانتظار المراجعة',
-      time: r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-SA') : 'اليوم',
+       title: r.title || `${t('newRequest')} — ${t('pending')}`,
+       time: r.createdAt ? new Date(r.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : t('today'),
       details: [
-        { label: 'نوع الطلب', value: r.type || r.title || '—' },
-        { label: 'مقدّم الطلب', value: r.employeeName || '—' },
-        { label: 'الحالة', value: r.status === 'pending' ? 'بانتظار المراجعة' : r.status },
-        { label: 'تاريخ الطلب', value: r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-SA') : '—' },
-        { label: 'الوصف', value: r.description || r.notes || '—' },
+         { label: t('requestType'), value: r.type || r.title || '—' },
+         { label: t('employee'), value: r.employeeName || '—' },
+         { label: t('status'), value: r.status === 'pending' ? t('pending') : r.status },
+         { label: t('date'), value: r.createdAt ? new Date(r.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : '—' },
+         { label: t('description'), value: r.description || r.notes || '—' },
       ],
     })),
     ...pendingLeaves.map((l: any) => ({
       icon: CalendarX, color: 'text-blue-400 bg-blue-500/15',
-      title: `طلب إجازة — ${l.employeeName || 'موظف'} (${l.daysCount || '—'} أيام)`,
-      time: l.startDate ? new Date(l.startDate).toLocaleDateString('ar-SA') : 'اليوم',
+       title: `${t('leaveRequest')} — ${l.employeeName || t('employee')} (${l.daysCount || '—'} ${t('days')})`,
+       time: l.startDate ? new Date(l.startDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : t('today'),
       details: [
-        { label: 'الموظف', value: l.employeeName || '—' },
-        { label: 'نوع الإجازة', value: l.type || '—' },
-        { label: 'من', value: l.startDate ? new Date(l.startDate).toLocaleDateString('ar-SA') : '—' },
-        { label: 'إلى', value: l.endDate ? new Date(l.endDate).toLocaleDateString('ar-SA') : '—' },
-        { label: 'عدد الأيام', value: l.daysCount ? `${l.daysCount} أيام` : '—' },
-        { label: 'السبب', value: l.reason || '—' },
+         { label: t('employee'), value: l.employeeName || '—' },
+         { label: t('leaveType'), value: l.type || '—' },
+         { label: t('from'), value: l.startDate ? new Date(l.startDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : '—' },
+         { label: t('to'), value: l.endDate ? new Date(l.endDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US') : '—' },
+         { label: t('days'), value: l.daysCount ? `${l.daysCount} ${t('days')}` : '—' },
+         { label: t('reason'), value: l.reason || '—' },
       ],
     })),
   ];
@@ -372,12 +377,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const employeeNavGroups = [
     {
       id: 'main',
-      title: 'Main',
+       title: t('mainNav'),
       items: [{ href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
     },
     {
       id: 'my-info',
-      title: 'My Info',
+       title: t('myInfo'),
       items: [
         { href: '/dashboard/attendance', label: t('attendance'), icon: Clock },
         { href: '/dashboard/schedule',   label: t('schedule'),   icon: CalendarDays },
@@ -388,7 +393,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
     {
       id: 'account',
-      title: 'Account',
+       title: t('account'),
       items: [
         { href: '/dashboard/settings', label: t('settings'), icon: Settings },
       ],
@@ -399,20 +404,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const adminNavGroups = [
     {
       id: 'main',
-      title: 'Main',
+       title: t('mainNav'),
       items: [
         { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-        { href: '/dashboard/action-center', label: 'مركز الإجراءات', icon: Zap },
+        { href: '/dashboard/action-center', label: t('actionCenter'), icon: Zap },
       ],
     },
     {
       id: 'hr-management',
-      title: 'HR Management',
+       title: t('hrManagement'),
       items: [
         { href: '/dashboard/employees',     label: t('employees'),   icon: Users },
-        { href: '/dashboard/departments',   label: 'الأقسام',        icon: Building2 },
-        { href: '/dashboard/locations',     label: 'المواقع',        icon: MapPin },
-        { href: '/dashboard/documentation', label: 'التوثيق',        icon: FolderOpen },
+        { href: '/dashboard/departments',   label: t('departments'),        icon: Building2 },
+        { href: '/dashboard/locations',     label: t('workLocations'),       icon: MapPin },
+        { href: '/dashboard/documentation', label: t('documentation'),        icon: FolderOpen },
         { href: '/dashboard/attendance',    label: t('attendance'),  icon: Clock },
         { href: '/dashboard/leaves',        label: t('leaves'),      icon: CalendarCheck },
         { href: '/dashboard/payroll',       label: t('payroll'),     icon: CreditCard },
@@ -421,7 +426,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
     {
       id: 'advanced',
-      title: 'Advanced',
+       title: t('advanced'),
       items: [
         { href: '/dashboard/reports',       label: t('reports'),       icon: FileText },
         { href: '/dashboard/ai',            label: t('aiAssistant'),   icon: Bot },
@@ -432,7 +437,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
     {
       id: 'system',
-      title: 'System',
+       title: t('system'),
       items: [
         { href: '/dashboard/settings', label: t('settings'), icon: Settings },
       ],
@@ -449,10 +454,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isSubpage = location !== '/dashboard';
 
   const roleBadge = isEmployee
-    ? { label: 'موظف', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
+    ? { label: t('roleEmployee'), color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
     : user?.role === 'manager'
-      ? { label: 'مدير', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' }
-      : { label: 'أدمن', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
+      ? { label: t('roleManager'), color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' }
+      : { label: t('roleAdmin'), color: 'bg-red-500/10 text-red-400 border-red-500/20' };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -464,7 +469,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           <div>
             <div className="font-display font-bold text-sm text-white">{s.appName}</div>
-            <div className="text-[10px] text-muted-foreground">HR Management</div>
+                    <div className="text-[10px] text-muted-foreground">{t('company')}</div>
           </div>
         </div>
       </div>
@@ -478,7 +483,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-3 space-y-2 overflow-y-auto scrollbar-thin" aria-label="Dashboard sections">
+      <nav className="flex-1 px-3 py-3 space-y-2 overflow-y-auto scrollbar-thin" aria-label={t('dashboardSections')}>
         {navGroups.map(group => (
           <div key={group.id} className="mb-3">
             <div className="flex items-center px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
@@ -526,7 +531,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="flex w-full items-center gap-3 rounded-2xl border border-indigo-400/30 bg-indigo-500/10 px-3 py-3 text-sm font-bold text-indigo-200 transition hover:bg-indigo-500/20 active:scale-[.98]"
           >
             <Download className="h-4 w-4" />
-            تثبيت WorkforceOS على الهاتف
+             {t('installApp')}
           </button>
         </div>
       )}
@@ -571,7 +576,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <button
               onClick={() => setSidebarOpen(false)}
-              aria-label="Close navigation menu"
+               aria-label={t('closeMenu')}
               className={`absolute top-4 p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition ${dir === 'rtl' ? 'left-4' : 'right-4'}`}
             >
               <X className="w-4 h-4" />
@@ -590,7 +595,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {isSubpage && (
               <button
                 onClick={goBack}
-                aria-label="Go back"
+                aria-label={t('goBack')}
                 className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-200 transition hover:bg-white/10 active:scale-90"
               >
                 {dir === 'rtl' ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
@@ -598,7 +603,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
             <button
               onClick={() => setSidebarOpen(true)}
-              aria-label="Open navigation menu"
+              aria-label={t('openMenu')}
               aria-expanded={sidebarOpen}
               className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-200 transition hover:bg-white/10 active:scale-90"
             >
@@ -617,7 +622,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <input
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
-              placeholder="Search..."
+              placeholder={t('searchPlaceholder')}
               className="bg-transparent outline-none w-full text-sm"
             />
           </div>
@@ -652,7 +657,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setNotificationsOpen(false)} />
                   <div
-                    dir="rtl"
+                    dir={dir}
                     className="fixed top-[3.5rem] left-2 right-2 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 z-20 rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
                     style={{ background: 'var(--card)' }}
                   >
@@ -660,7 +665,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                       <div className="flex items-center gap-2">
                         <Bell className="w-4 h-4 text-amber-400" />
-                        <span className="font-bold text-sm">الإشعارات</span>
+                        <span className="font-bold text-sm">{t('notifications')}</span>
                         {totalNotifs > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-black border border-red-500/30">
                             {totalNotifs}
@@ -677,7 +682,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       {notifItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-10 gap-2">
                           <CheckCircle2 className="w-8 h-8 text-green-400" />
-                          <p className="text-sm font-bold text-muted-foreground">لا توجد إشعارات جديدة</p>
+                          <p className="text-sm font-bold text-muted-foreground">{t('noNewNotifications')}</p>
                         </div>
                       ) : selectedNotifIdx !== null ? (
                         /* ── Detail view ── */
@@ -686,7 +691,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             onClick={() => setSelectedNotifIdx(null)}
                             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-3"
                           >
-                            <span className="text-base leading-none">→</span> العودة للإشعارات
+                             <span className="text-base leading-none">{dir === 'rtl' ? '→' : '←'}</span> {t('backToNotifications')}
                           </button>
                           {(() => {
                             const n = notifItems[selectedNotifIdx];
@@ -740,12 +745,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="border-t border-white/10">
                       {(lateToday.length > 0 || pendingReqs.length > 0 || pendingLeaves.length > 0) && (
                         <div className="flex items-center justify-between px-4 py-2 text-[11px] text-muted-foreground">
-                          <span>{lateToday.length} متأخر · {pendingReqs.length} طلب · {pendingLeaves.length} إجازة</span>
+                           <span>{formatText('lateCount', { count: lateToday.length })} · {formatText('requestCount', { count: pendingReqs.length })} · {formatText('leaveCount', { count: pendingLeaves.length })}</span>
                           <button
                             onClick={() => setNotificationsOpen(false)}
                             className="text-indigo-400 font-bold hover:text-indigo-300 transition"
                           >
-                            إغلاق
+                             {t('close')}
                           </button>
                         </div>
                       )}
@@ -758,7 +763,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               text-white shadow-md transition-all"
                           >
                             <Zap className="w-3.5 h-3.5" />
-                            فتح مركز إجراءات المدير
+                             {t('openManagerActionCenter')}
                           </button>
                         </div>
                       )}
@@ -813,7 +818,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        {isOffline && <div className="sticky top-0 z-20 flex items-center justify-center gap-2 border-b border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300 animate-fadeIn"><span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />لا يوجد اتصال بالإنترنت — بعض البيانات قد لا تكون محدثة</div>}
+         {isOffline && <div className="sticky top-0 z-20 flex items-center justify-center gap-2 border-b border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300 animate-fadeIn"><span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />{locale === 'ar' ? 'لا يوجد اتصال بالإنترنت — بعض البيانات قد لا تكون محدثة' : locale === 'sv' ? 'Ingen internetanslutning — vissa data kan vara inaktuella' : 'No internet connection — some data may be outdated'}</div>}
 
         {/* Page content — Pull-to-refresh wraps the scrollable area */}
         <PullToRefresh>

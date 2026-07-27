@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useLanguage } from '@/i18n/LanguageProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
@@ -19,17 +20,10 @@ import {
 } from 'lucide-react';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-const relDate = (d?: string | null) => {
-  if (!d) return '—';
-  const diff = Math.round((Date.now() - new Date(d).getTime()) / 60000);
-  if (diff < 1) return 'الآن';
-  if (diff < 60) return `منذ ${diff} دقيقة`;
-  if (diff < 1440) return `منذ ${Math.round(diff / 60)} ساعة`;
-  return `منذ ${Math.round(diff / 1440)} يوم`;
-};
-
-const fmt = (s?: string | null) =>
-  s ? new Date(s).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' }) : '—';
+// locale-aware relDate and fmt are defined inside the component where t() is available.
+// fmtDate is a module-level fallback for sub-components that lack locale context.
+const fmtDate = (s?: string | null, intlLocale = 'en-US') =>
+  s ? new Date(s).toLocaleDateString(intlLocale as string, { day: 'numeric', month: 'short' }) : '—';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ActionKind = 'leave' | 'request' | 'late' | 'absent' | 'payroll';
@@ -420,8 +414,8 @@ function ActionRow({
         <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2 flex-wrap">
           {item.raw && (
             <div className="flex-1 min-w-0 text-xs text-muted-foreground space-y-0.5">
-              {item.raw.startDate  && <div>من: <span className="text-foreground font-bold">{fmt(item.raw.startDate)}</span></div>}
-              {item.raw.endDate    && <div>إلى: <span className="text-foreground font-bold">{fmt(item.raw.endDate)}</span></div>}
+              {item.raw.startDate  && <div>من: <span className="text-foreground font-bold">{fmtDate(item.raw.startDate)}</span></div>}
+              {item.raw.endDate    && <div>إلى: <span className="text-foreground font-bold">{fmtDate(item.raw.endDate)}</span></div>}
               {item.raw.daysCount  && <div>الأيام: <span className="text-foreground font-bold">{item.raw.daysCount}</span></div>}
               {item.raw.leaveType  && <div>النوع: <span className="text-foreground font-bold">{item.raw.leaveType}</span></div>}
               {item.raw.reason     && <div>السبب: <span className="text-foreground font-bold">{item.raw.reason}</span></div>}
@@ -508,7 +502,24 @@ function Section({ title, icon: Icon, color, count, children }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ActionCenterPage() {
   const { user } = useAuth();
+  const { locale, t } = useLanguage();
   const { toast } = useToast();
+
+  // ── Locale-aware helpers ───────────────────────────────────────────────────
+  const relDate = (d?: string | null) => {
+    if (!d) return '—';
+    const diff = Math.round((Date.now() - new Date(d).getTime()) / 60000);
+    if (diff < 1) return t('acNow');
+    if (diff < 60) return t('acMinAgo').replace('{n}', String(diff));
+    if (diff < 1440) return t('acHourAgo').replace('{n}', String(Math.round(diff / 60)));
+    return t('acDayAgo').replace('{n}', String(Math.round(diff / 1440)));
+  };
+
+  const fmt = (s?: string | null) =>
+    s ? new Date(s).toLocaleDateString(
+      locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US',
+      { day: 'numeric', month: 'short' }
+    ) : '—';
   const queryClient = useQueryClient();
   const [filterKind, setFilterKind] = useState<ActionKind | 'all'>('all');
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -576,7 +587,7 @@ export default function ActionCenterPage() {
       priority: l.daysCount >= 5 ? 'high' : 'medium',
       title: l.employeeName || 'موظف',
       subtitle: `طلب إجازة ${l.leaveType === 'sick' ? 'مرضية' : l.leaveType === 'annual' ? 'سنوية' : l.leaveType === 'unpaid' ? 'غير مدفوعة' : l.leaveType || ''} · ${l.daysCount || '—'} يوم`,
-      meta: `${fmt(l.startDate)} → ${fmt(l.endDate)} · ${relDate(l.createdAt)}`,
+      meta: `${fmt(l.startDate)} → ${fmt(l.endDate)} · ${relDate(l.createdAt ?? undefined)}`,
       employeeName: l.employeeName,
       rawId: l.id,
       raw: l,
@@ -630,7 +641,7 @@ export default function ActionCenterPage() {
       const order: Priority[] = ['critical', 'high', 'medium', 'low'];
       return order.indexOf(a.priority) - order.indexOf(b.priority);
     });
-  }, [pendingLeaves, pendingReqs, pendingAttendance, pendingPayroll, employees]);
+  }, [pendingLeaves, pendingReqs, pendingAttendance, pendingPayroll, employees, locale]);
 
   const filtered = filterKind === 'all' ? allItems : allItems.filter(i => i.kind === filterKind);
 
@@ -640,11 +651,11 @@ export default function ActionCenterPage() {
     setLoadingId(key);
     try {
       await updateLeave.mutateAsync({ id, data: { status, paymentStatus } });
-      toast({ title: status === 'approved' ? `تمت الموافقة على الإجازة — ${paymentStatus === 'unpaid' ? 'غير مدفوعة' : 'مدفوعة'} ✓` : 'تم رفض الإجازة' });
+      toast({ title: status === 'approved' ? (paymentStatus === 'unpaid' ? t('acLeaveApprovedUnpaid') : t('acLeaveApprovedPaid')) : t('acLeaveRejected') });
       queryClient.invalidateQueries({ queryKey: getGetLeavesQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetPayrollQueryKey() });
     } catch {
-      toast({ variant: 'destructive', title: 'فشلت العملية' });
+      toast({ variant: 'destructive', title: t('acOperationFailed') });
     } finally {
       setLoadingId(null);
     }
@@ -655,11 +666,11 @@ export default function ActionCenterPage() {
     setLoadingId(key);
     try {
       await updateRequest.mutateAsync({ id, data: { status, paymentStatus } });
-      toast({ title: status === 'approved' ? `تمت الموافقة على الطلب — ${paymentStatus === 'unpaid' ? 'غير مدفوع' : 'مدفوع'} ✓` : 'تم رفض الطلب' });
+      toast({ title: status === 'approved' ? (paymentStatus === 'unpaid' ? t('acRequestApprovedUnpaid') : t('acRequestApprovedPaid')) : t('acRequestRejected') });
       queryClient.invalidateQueries({ queryKey: getGetRequestsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetPayrollQueryKey() });
     } catch {
-      toast({ variant: 'destructive', title: 'فشلت العملية' });
+      toast({ variant: 'destructive', title: t('acOperationFailed') });
     } finally {
       setLoadingId(null);
     }
@@ -670,11 +681,11 @@ export default function ActionCenterPage() {
     setLoadingId(key);
     try {
       await updateAttendance.mutateAsync({ id, data: { justificationStatus, paymentStatus } });
-      toast({ title: justificationStatus === 'approved' ? `تم اعتماد التبرير — ${paymentStatus === 'unpaid' ? 'غير مدفوع' : 'مدفوع'} ✓` : 'تم رفض التبرير' });
+      toast({ title: justificationStatus === 'approved' ? (paymentStatus === 'unpaid' ? t('acJustApprovedUnpaid') : t('acJustApprovedPaid')) : t('acJustRejected') });
       queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetPayrollQueryKey() });
     } catch {
-      toast({ variant: 'destructive', title: 'فشلت العملية' });
+      toast({ variant: 'destructive', title: t('acOperationFailed') });
     } finally {
       setLoadingId(null);
     }
@@ -682,7 +693,7 @@ export default function ActionCenterPage() {
 
   const refetchAll = () => {
     rLeave(); rReq(); rAtt();
-    toast({ title: 'جاري تحديث البيانات...' });
+    toast({ title: t('acRefreshing') });
   };
 
   // ── Stats ─────────────────────────────────────────────────────────────────
@@ -737,7 +748,7 @@ export default function ActionCenterPage() {
   ];
 
   return (
-    <div className="space-y-6 animate-fadeIn" dir="rtl">
+    <div className="space-y-6 animate-fadeIn" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       {/* ── Page Header ───────────────────────────────────────────────── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>

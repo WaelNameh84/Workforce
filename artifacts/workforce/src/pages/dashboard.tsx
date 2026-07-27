@@ -25,7 +25,7 @@ type AdminDetailCard = {
 // Admin dashboard — a touch-first live operations screen, not a navigation page.
 function AdminDashboard() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, intlLocale, formatDate, formatTime, formatCurrency, translateText } = useLanguage();
   const [, setLocation] = useLocation();
   const companyId = user?.companyId || 0;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -107,35 +107,35 @@ function AdminDashboard() {
   );
   const isToday = (day: number | null) => day === now.getDate();
 
-  const timeLabel = now.toLocaleTimeString('ar-SA', {
+  const timeLabel = now.toLocaleTimeString(intlLocale, {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
   });
-  const dateLabel = now.toLocaleDateString('ar-SA', {
+  const dateLabel = now.toLocaleDateString(intlLocale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   });
-  const displayName = user?.fullName?.split(' ')[0] || 'مدير';
+  const displayName = user?.fullName?.split(' ')[0] || t('roleManager');
 
   const detailItems = (records: any[], fallback = 'لا توجد سجلات حالياً') =>
     records.length
       ? records.map((record: any) => ({
-          name: record.employeeName || record.fullName || 'موظف',
+          name: record.employeeName || record.fullName || t('employee'),
           meta: record.clockIn
-            ? `الحضور ${new Date(record.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`
-            : record.reason || record.type || 'بدون تفاصيل',
-          status: record.isLate ? 'متأخر' : undefined,
+            ? `${translateText('الحضور')} ${formatTime(record.clockIn)}`
+            : record.reason || translateText(record.type || 'بدون تفاصيل'),
+          status: record.isLate ? t('lateArrival') : undefined,
         }))
-      : [{ name: fallback, meta: 'سيظهر هنا عند توفر البيانات' }];
+      : [{ name: translateText(fallback), meta: translateText('سيظهر هنا عند توفر البيانات') }];
 
   const cardDetails: AdminDetailCard[] = [
     {
       id: 'present',
-      title: 'الحاضرون',
+       title: t('presentToday'),
       value: presentRecords.length,
-      subtitle: 'مسجل حضور اليوم',
+       subtitle: translateText('مسجل حضور اليوم'),
       icon: UserRound,
       tone: 'from-emerald-500/25 to-teal-950/80 border-emerald-400/30',
       iconTone: 'bg-emerald-500 text-white shadow-emerald-500/40',
@@ -143,9 +143,9 @@ function AdminDashboard() {
     },
     {
       id: 'absent',
-      title: 'الغائبون',
+       title: translateText('الغائبون'),
       value: absentEmployees.length,
-      subtitle: 'لم يسجلوا حضوراً',
+       subtitle: translateText('لم يسجلوا حضوراً'),
       icon: UserX,
       tone: 'from-rose-500/20 to-rose-950/80 border-rose-400/30',
       iconTone: 'bg-rose-500 text-white shadow-rose-500/40',
@@ -153,9 +153,9 @@ function AdminDashboard() {
     },
     {
       id: 'sick',
-      title: 'إجازات مرضية',
+       title: translateText('إجازات مرضية'),
       value: sickLeaves.length,
-      subtitle: 'إجازة فعالة اليوم',
+       subtitle: translateText('إجازة فعالة اليوم'),
       icon: Stethoscope,
       tone: 'from-amber-500/20 to-orange-950/80 border-amber-400/30',
       iconTone: 'bg-amber-500 text-white shadow-amber-500/40',
@@ -163,9 +163,9 @@ function AdminDashboard() {
     },
     {
       id: 'late',
-      title: 'المتأخرون',
+       title: t('lateArrivals'),
       value: lateRecords.length,
-      subtitle: 'تسجيلات بعد الموعد',
+       subtitle: translateText('تسجيلات بعد الموعد'),
       icon: Timer,
       tone: 'from-violet-500/20 to-purple-950/80 border-violet-400/30',
       iconTone: 'bg-violet-500 text-white shadow-violet-500/40',
@@ -173,9 +173,9 @@ function AdminDashboard() {
     },
     {
       id: 'employees',
-      title: 'عدد الموظفين',
+       title: t('totalEmployees'),
       value: stats?.totalEmployees || employees.length,
-      subtitle: 'إجمالي فريق الشركة',
+       subtitle: translateText('إجمالي فريق الشركة'),
       icon: Users,
       tone: 'from-blue-500/25 to-indigo-950/80 border-blue-400/30',
       iconTone: 'bg-blue-500 text-white shadow-blue-500/40',
@@ -183,9 +183,9 @@ function AdminDashboard() {
     },
     {
       id: 'on-leave',
-      title: 'المجازون',
+       title: t('onLeave'),
       value: activeLeaves.length,
-      subtitle: 'إجازات فعالة اليوم',
+       subtitle: translateText('إجازات فعالة اليوم'),
       icon: CalendarCheck,
       tone: 'from-orange-500/20 to-amber-950/80 border-orange-400/30',
       iconTone: 'bg-orange-500 text-white shadow-orange-500/40',
@@ -193,35 +193,35 @@ function AdminDashboard() {
     },
     {
       id: 'hours',
-      title: 'ساعات العمل',
+       title: translateText('ساعات العمل'),
       value: `${totalWorkHours.toFixed(1)}h`,
-      subtitle: 'إجمالي ساعات اليوم',
+       subtitle: translateText('إجمالي ساعات اليوم'),
       icon: Activity,
       tone: 'from-cyan-500/20 to-sky-950/80 border-cyan-400/30',
       iconTone: 'bg-cyan-500 text-white shadow-cyan-500/40',
-      items: [{ name: 'إجمالي ساعات الحضور', meta: `${totalWorkHours.toFixed(2)} ساعة مسجلة اليوم` }],
+       items: [{ name: translateText('إجمالي ساعات الحضور'), meta: `${totalWorkHours.toFixed(2)} ${translateText('ساعة')} ${translateText('مسجلة اليوم')}` }],
     },
     {
       id: 'overtime',
-      title: 'ساعات إضافية',
+       title: t('overtimeHours'),
       value: `${overtimeHours.toFixed(1)}h`,
-      subtitle: 'فوق 8 ساعات يومياً',
+       subtitle: translateText('فوق 8 ساعات يومياً'),
       icon: TimerReset,
       tone: 'from-fuchsia-500/20 to-purple-950/80 border-fuchsia-400/30',
       iconTone: 'bg-fuchsia-500 text-white shadow-fuchsia-500/40',
-      items: [{ name: 'إجمالي الوقت الإضافي', meta: `${overtimeHours.toFixed(2)} ساعة إضافية اليوم` }],
+       items: [{ name: translateText('إجمالي الوقت الإضافي'), meta: `${overtimeHours.toFixed(2)} ${translateText('ساعة إضافية اليوم')}` }],
     },
     {
       id: 'payroll',
-      title: 'الرواتب',
-      value: `${payrollTotal.toLocaleString('ar-SA')} SAR`,
-      subtitle: `رواتب ${currentPeriod}`,
+       title: t('payroll'),
+       value: formatCurrency(payrollTotal),
+       subtitle: `${t('payroll')} ${currentPeriod}`,
       icon: Banknote,
       tone: 'from-green-500/20 to-emerald-950/80 border-green-400/30',
       iconTone: 'bg-green-500 text-white shadow-green-500/40',
       items: currentPayroll.length
-        ? currentPayroll.map((entry: any) => ({ name: entry.employeeName || 'موظف', meta: `${Number(entry.netSalary || 0).toLocaleString('ar-SA')} SAR`, status: entry.status === 'paid' ? 'مدفوع' : 'معلق' }))
-        : [{ name: 'لا توجد رواتب لهذا الشهر', meta: 'ستظهر هنا بعد إنشاء مسيرات الرواتب' }],
+         ? currentPayroll.map((entry: any) => ({ name: entry.employeeName || t('employee'), meta: formatCurrency(entry.netSalary), status: entry.status === 'paid' ? t('paid') : t('pending') }))
+        : [{ name: translateText('لا توجد رواتب لهذا الشهر'), meta: translateText('ستظهر هنا بعد إنشاء مسيرات الرواتب') }],
     },
   ];
 
@@ -248,9 +248,9 @@ function AdminDashboard() {
   const openAttendanceDetails = (record: any) => {
     setSelectedCard({
       id: `attendance-${record.id}`,
-      title: record.employeeName || 'سجل الحضور',
-      value: record.isLate ? 'متأخر' : 'حاضر',
-      subtitle: `سجل بتاريخ ${record.date || todayStr}`,
+       title: record.employeeName || translateText('سجل الحضور'),
+       value: record.isLate ? t('lateArrival') : translateText('حاضر'),
+       subtitle: `${translateText('سجل بتاريخ')} ${record.date || todayStr}`,
       icon: Clock,
       tone: record.isLate
         ? 'from-violet-500/20 to-purple-950/80 border-violet-400/30'
@@ -259,9 +259,9 @@ function AdminDashboard() {
         ? 'bg-violet-500 text-white shadow-violet-500/40'
         : 'bg-cyan-500 text-white shadow-cyan-500/40',
       items: [{
-        name: record.employeeName || 'موظف',
-        meta: `الحضور: ${record.clockIn ? new Date(record.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '—'} • الانصراف: ${record.clockOut ? new Date(record.clockOut).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : 'لم يسجل'}`,
-        status: record.isLate ? 'متأخر' : 'في الموعد',
+         name: record.employeeName || t('employee'),
+         meta: `${translateText('الحضور')}: ${record.clockIn ? formatTime(record.clockIn) : '—'} • ${translateText('الانصراف')}: ${record.clockOut ? formatTime(record.clockOut) : translateText('لم يسجل')}`,
+         status: record.isLate ? t('lateArrival') : translateText('في الموعد'),
       }],
     });
   };
@@ -270,8 +270,8 @@ function AdminDashboard() {
     <div className="mobile-dashboard max-w-xl mx-auto space-y-4 animate-fadeIn pb-8">
       <div className="flex items-center justify-between px-1">
         <div>
-          <p className="text-xs font-bold text-indigo-300 mb-1">مركز المتابعة الحي</p>
-          <h1 className="font-display text-2xl font-extrabold text-white">مرحباً، {displayName}</h1>
+           <p className="text-xs font-bold text-indigo-300 mb-1">{translateText('مركز المتابعة الحي')}</p>
+           <h1 className="font-display text-2xl font-extrabold text-white">{translateText('مرحباً،')} {displayName}</h1>
           <p className="text-xs text-slate-400 mt-1">{dateLabel}</p>
         </div>
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
@@ -283,13 +283,13 @@ function AdminDashboard() {
         type="button"
         onClick={() => setSelectedCard({
           id: 'clock',
-          title: 'الساعة المباشرة',
+           title: translateText('الساعة المباشرة'),
           value: timeLabel,
-          subtitle: 'الوقت المحلي للنظام',
+           subtitle: translateText('الوقت المحلي للنظام'),
           icon: Clock,
           tone: 'from-cyan-500/25 to-blue-950/90 border-cyan-400/35',
           iconTone: 'bg-cyan-500 text-white shadow-cyan-500/40',
-          items: [{ name: 'حالة النظام', meta: 'تتحدث كل ثانية', status: 'LIVE' }],
+           items: [{ name: translateText('حالة النظام'), meta: translateText('تتحدث كل ثانية'), status: translateText('LIVE') }],
         })}
         className="mobile-dashboard-card group w-full flex items-center justify-between rounded-3xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/20 via-blue-950/70 to-indigo-950/90 p-5 text-right shadow-xl shadow-cyan-950/30"
       >
@@ -298,13 +298,13 @@ function AdminDashboard() {
             <Clock className="h-6 w-6 animate-pulse" />
           </span>
           <span>
-            <span className="block text-xs font-bold text-cyan-200">الساعة الآن</span>
+             <span className="block text-xs font-bold text-cyan-200">{translateText('الساعة الآن')}</span>
             <span className="mt-1 block font-data text-2xl font-black text-white">{timeLabel}</span>
           </span>
         </span>
         <span className="flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2 py-1 text-[10px] font-black text-emerald-300">
           <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-300" />
-          LIVE
+           {translateText('LIVE')}
         </span>
       </button>
 
@@ -326,7 +326,7 @@ function AdminDashboard() {
               <span className="relative mt-1 block text-sm font-extrabold text-white">{card.title}</span>
               <span className="relative mt-1 block text-[10px] font-bold text-slate-300">{card.subtitle}</span>
               <span className="relative mt-3 flex items-center justify-between text-[10px] font-bold text-white/60">
-                <span>اضغط للتفاصيل</span>
+                 <span>{translateText('اضغط للتفاصيل')}</span>
                 <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
               </span>
             </button>
@@ -337,8 +337,8 @@ function AdminDashboard() {
       <section className="rounded-3xl border border-indigo-400/25 bg-gradient-to-br from-indigo-950/70 via-slate-950/90 to-purple-950/70 p-4 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="font-display text-lg font-extrabold text-white">نظرة الحضور الأسبوعية</h2>
-            <p className="text-[11px] font-bold text-slate-400">مقارنة الحاضرين والغائبين لآخر 7 أيام</p>
+             <h2 className="font-display text-lg font-extrabold text-white">{translateText('نظرة الحضور الأسبوعية')}</h2>
+             <p className="text-[11px] font-bold text-slate-400">{translateText('مقارنة الحاضرين والغائبين لآخر 7 أيام')}</p>
           </div>
           <span className="rounded-xl border border-indigo-400/30 bg-indigo-500/15 p-2 text-indigo-300">
             <BarChart3 className="h-5 w-5" />
@@ -354,7 +354,7 @@ function AdminDashboard() {
                   <span className="w-2 rounded-t-full bg-gradient-to-t from-cyan-500 to-cyan-300 shadow-lg shadow-cyan-500/20 transition-all" style={{ height: presentHeight }} title={`حاضر: ${entry.present || 0}`} />
                   <span className="w-2 rounded-t-full bg-gradient-to-t from-rose-500 to-orange-300 shadow-lg shadow-rose-500/20 transition-all" style={{ height: absentHeight }} title={`غائب: ${entry.absent || 0}`} />
                 </div>
-                <span className="text-[9px] font-bold text-slate-500">{String(entry.date).slice(5)}</span>
+                   <span className="text-[9px] font-bold text-slate-500">{formatDate(entry.date, { month: '2-digit', day: '2-digit' })}</span>
               </div>
             );
           }) : (
@@ -367,16 +367,16 @@ function AdminDashboard() {
           )}
         </div>
         <div className="mt-3 flex items-center gap-4 text-[10px] font-bold text-slate-400">
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cyan-400" />حاضرون</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" />غائبون</span>
+           <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cyan-400" />{translateText('حاضرون')}</span>
+           <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" />{translateText('غائبون')}</span>
         </div>
       </section>
 
       <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/95 to-slate-950 p-4 shadow-xl">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="font-display text-lg font-extrabold text-white">آخر العمليات</h2>
-            <p className="text-[11px] font-bold text-slate-400">آخر ما تم تسجيله في النظام</p>
+             <h2 className="font-display text-lg font-extrabold text-white">{translateText('آخر العمليات')}</h2>
+             <p className="text-[11px] font-bold text-slate-400">{translateText('آخر ما تم تسجيله في النظام')}</p>
           </div>
           <span className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-2 text-cyan-300"><ArrowUpRight className="h-4 w-4" /></span>
         </div>
@@ -394,7 +394,7 @@ function AdminDashboard() {
               </div>
             );
           }) : (
-            <p className="rounded-2xl bg-white/[.035] p-4 text-center text-xs font-bold text-slate-500">لا توجد عمليات حديثة</p>
+             <p className="rounded-2xl bg-white/[.035] p-4 text-center text-xs font-bold text-slate-500">{translateText('لا توجد عمليات حديثة')}</p>
           )}
         </div>
       </section>
@@ -404,12 +404,12 @@ function AdminDashboard() {
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="font-display text-base font-extrabold text-white">التقويم</h2>
-              <p className="text-[10px] font-bold text-slate-400">{now.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}</p>
+               <p className="text-[10px] font-bold text-slate-400">{formatDate(now, { month: 'long', year: 'numeric' })}</p>
             </div>
             <Calendar className="h-5 w-5 text-purple-300" />
           </div>
           <div className="grid grid-cols-7 gap-1 text-center">
-            {['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'].map((day) => <span key={day} className="py-1 text-[9px] font-black text-purple-300">{day}</span>)}
+             {Array.from({ length: 7 }, (_, index) => formatDate(new Date(2024, 0, 7 + index), { weekday: 'short' })).map((day) => <span key={day} className="py-1 text-[9px] font-black text-purple-300">{day}</span>)}
             {calendarDays.map((day, index) => (
               <span key={`${day}-${index}`} className={`flex h-6 items-center justify-center rounded-lg text-[10px] font-bold ${isToday(day) ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30' : day ? 'text-slate-300' : 'text-transparent'}`}>
                 {day || '·'}
@@ -421,11 +421,11 @@ function AdminDashboard() {
 
       <div className="flex items-center justify-between px-1 pt-2">
         <div>
-          <h2 className="font-display text-lg font-extrabold text-white">سجل الحضور اليوم</h2>
-          <p className="text-[11px] text-slate-400">{attendance.length} سجل • اضغط على أي بطاقة للتفاصيل</p>
+           <h2 className="font-display text-lg font-extrabold text-white">{translateText('سجل الحضور اليوم')}</h2>
+           <p className="text-[11px] text-slate-400">{attendance.length} {translateText('سجل')} • {translateText('اضغط على أي بطاقة للتفاصيل')}</p>
         </div>
         <Link href="/dashboard/attendance" className="rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-3 py-2 text-[10px] font-black text-indigo-200">
-          السجل الكامل
+           {translateText('السجل الكامل')}
         </Link>
       </div>
 
@@ -442,15 +442,15 @@ function AdminDashboard() {
                 <UserRound className="h-5 w-5" />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-extrabold text-white">{record.employeeName || 'موظف'}</span>
+                 <span className="block truncate text-sm font-extrabold text-white">{record.employeeName || t('employee')}</span>
                 <span className="mt-1 block text-[11px] font-bold text-slate-400">
-                  {record.clockIn ? `دخول ${new Date(record.clockIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}` : 'لم يسجل الدخول'}
+                   {record.clockIn ? `${translateText('دخول')} ${formatTime(record.clockIn)}` : translateText('لم يسجل الدخول')}
                 </span>
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-2">
               <span className={`rounded-lg border px-2 py-1 text-[10px] font-black ${record.isLate ? 'border-violet-400/30 bg-violet-500/15 text-violet-200' : 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200'}`}>
-                {record.isLate ? 'متأخر' : 'حاضر'}
+                 {record.isLate ? t('lateArrival') : translateText('حاضر')}
               </span>
               <ChevronLeft className="h-4 w-4 text-slate-500 transition-transform group-hover:-translate-x-1" />
             </span>
@@ -458,8 +458,8 @@ function AdminDashboard() {
         )) : (
           <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/60 p-8 text-center">
             <Clock className="mx-auto mb-2 h-7 w-7 text-slate-500" />
-            <p className="text-sm font-bold text-slate-300">لا توجد سجلات حضور اليوم</p>
-            <p className="mt-1 text-xs text-slate-500">ستظهر البطاقات عند تسجيل الحضور</p>
+             <p className="text-sm font-bold text-slate-300">{translateText('لا توجد سجلات حضور اليوم')}</p>
+             <p className="mt-1 text-xs text-slate-500">{translateText('ستظهر البطاقات عند تسجيل الحضور')}</p>
           </div>
         )}
       </div>
@@ -475,7 +475,7 @@ function AdminDashboard() {
           >
             <div className="mb-5 flex items-start justify-between">
               <div>
-                <p className="text-xs font-bold text-indigo-300">تفاصيل البطاقة</p>
+                 <p className="text-xs font-bold text-indigo-300">{translateText('تفاصيل البطاقة')}</p>
                 <h3 className="mt-1 font-display text-xl font-extrabold text-white">{selectedCard.title}</h3>
               </div>
               <button type="button" onClick={() => setSelectedCard(null)} aria-label="إغلاق" className="rounded-xl p-2 text-slate-400 hover:bg-white/10 hover:text-white">
@@ -503,8 +503,8 @@ function AdminDashboard() {
               ))}
             </div>
             {selectedCard.id === 'clock' && (
-              <button type="button" onClick={() => { setSelectedCard(null); setLocation('/dashboard/attendance'); }} className="mt-4 w-full rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-400">
-                فتح صفحة الحضور
+               <button type="button" onClick={() => { setSelectedCard(null); setLocation('/dashboard/attendance'); }} className="mt-4 w-full rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-400">
+                 {translateText('فتح صفحة الحضور')}
               </button>
             )}
           </div>

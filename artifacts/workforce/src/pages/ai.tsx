@@ -23,12 +23,12 @@ const predictions = [
 const quickQuestions = ['Analyze attendance', 'Predict turnover', 'Generate report', 'Detect anomalies'];
 
 export default function AI() {
-  const { t } = useLanguage();
+  const { t, translateText, formatDate } = useLanguage();
   const s = useAppSettings();
   const [messages, setMessages] = useState(() => [
-    { role: 'ai', content: s.assistantMsg || "مرحباً! كيف يمكنني مساعدتك؟" },
-    { role: 'user', content: 'أعطني ملخص الحضور هذا الشهر' },
-    { role: 'ai', content: 'بناءً على تحليل بيانات 248 موظفاً، تحسّن الحضور بنسبة 12% مقارنة بالشهر الماضي. متوسط وقت تسجيل الدخول: 9:03 صباحاً. قسم الهندسة سجّل أعلى نسبة حضور 94%.' },
+    { role: 'ai', content: s.assistantMsg || translateText('مرحباً! كيف يمكنني مساعدتك؟') },
+    { role: 'user', content: translateText('أعطني ملخص الحضور هذا الشهر') },
+    { role: 'ai', content: translateText('بناءً على تحليل بيانات 248 موظفاً، تحسّن الحضور بنسبة 12% مقارنة بالشهر الماضي. متوسط وقت تسجيل الدخول: 9:03 صباحاً. قسم الهندسة سجّل أعلى نسبة حضور 94%.') },
   ]);
   const [input, setInput] = useState('');
 
@@ -37,7 +37,7 @@ export default function AI() {
     setMessages(prev => [
       ...prev,
       { role: 'user', content: input },
-      { role: 'ai', content: `Analyzing your request… Based on current data, I can provide detailed insights about "${input}". Would you like me to generate a report?` },
+      { role: 'ai', content: `${translateText('Analyzing your request… Based on current data, I can provide detailed insights about')} "${input}". ${translateText('Would you like me to generate a report?')}` },
     ]);
     setInput('');
   };
@@ -51,7 +51,7 @@ export default function AI() {
         <div>
           <h1 className="text-2xl font-bold">{s.assistantName || t('aiAssistant')}</h1>
           <p className="text-sm" style={{ color: 'var(--muted)' }}>
-            {s.assistantLang === 'ar' ? 'مساعد ذكي لإدارة القوى العاملة' : 'AI-powered workforce intelligence'}
+             {s.assistantLang === 'ar' ? translateText('مساعد ذكي لإدارة القوى العاملة') : translateText('AI-powered workforce intelligence')}
           </p>
         </div>
       </div>
@@ -63,8 +63,8 @@ export default function AI() {
             <div className={`w-10 h-10 rounded-xl ${ins.color} flex items-center justify-center mb-3`}>
               <ins.icon className="w-5 h-5 text-white" />
             </div>
-            <h3 className="font-bold mb-2">{ins.title}</h3>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>{ins.desc}</p>
+             <h3 className="font-bold mb-2">{translateText(ins.title)}</h3>
+             <p className="text-sm" style={{ color: 'var(--muted)' }}>{translateText(ins.desc)}</p>
           </div>
         ))}
       </div>
@@ -74,7 +74,7 @@ export default function AI() {
         <div className="p-6 rounded-2xl flex flex-col" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-purple-500" />
-            <h3 className="font-bold">AI Chat</h3>
+             <h3 className="font-bold">{translateText('AI Chat')}</h3>
           </div>
 
           <div className="flex-1 space-y-4 h-80 overflow-y-auto mb-4 custom-scrollbar">
@@ -96,7 +96,7 @@ export default function AI() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder="Ask AI anything…"
+               placeholder={translateText('Ask AI anything…')}
               className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
             />
@@ -113,7 +113,7 @@ export default function AI() {
                 className="px-3 py-1 rounded-full text-xs font-medium hover:bg-indigo-500 hover:text-white transition"
                 style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
               >
-                {q}
+                 {translateText(q)}
               </button>
             ))}
           </div>
@@ -121,8 +121,8 @@ export default function AI() {
 
         {/* Predictions Chart */}
         <div className="p-6 rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <h3 className="font-bold mb-1">AI Predictions</h3>
-          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>Forecasted attendance for next 4 months</p>
+           <h3 className="font-bold mb-1">{translateText('AI Predictions')}</h3>
+           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{translateText('Forecasted attendance for next 4 months')}</p>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={predictions}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -133,12 +133,12 @@ export default function AI() {
             </LineChart>
           </ResponsiveContainer>
           <div className="mt-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-            <div className="flex items-center gap-2 text-sm font-medium text-purple-500 mb-1">
+               <div className="flex items-center gap-2 text-sm font-medium text-purple-500 mb-1">
               <Sparkles className="w-4 h-4" />
-              AI Insight
+               {translateText('AI Insight')}
             </div>
             <div className="text-sm" style={{ color: 'var(--muted)' }}>
-              Based on historical data, we predict an 8% increase in attendance next quarter with 92% confidence.
+               {translateText('Based on historical data, we predict an 8% increase in attendance next quarter with 92% confidence.')}
             </div>
           </div>
         </div>

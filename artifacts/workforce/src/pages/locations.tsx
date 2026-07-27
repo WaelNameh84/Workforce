@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, Plus, Trash2, Search, Navigation } from 'lucide-react';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 const locColors = [
   { bg: 'from-emerald-500 to-teal-600', light: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-600 dark:text-emerald-400' },
@@ -26,6 +27,8 @@ export default function Locations() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const fmt = (key: Parameters<typeof t>[0], count?: number) => t(key).replace('{count}', String(count ?? 0));
   const cid = user?.companyId || 0;
 
   const [search, setSearch] = useState('');
@@ -49,12 +52,12 @@ export default function Locations() {
     if (!locName.trim()) return;
     try {
       await createMutation.mutateAsync({ data: { name: locName.trim(), companyId: cid, address: locAddress.trim() || undefined, city: locCity.trim() || undefined } as LocationInput });
-      toast({ title: 'تم إضافة الموقع بنجاح' });
+       toast({ title: t('locationCreated') });
       setIsAddOpen(false);
       setLocName(''); setLocAddress(''); setLocCity('');
       invalidate();
     } catch {
-      toast({ variant: 'destructive', title: 'خطأ', description: 'فشل في إضافة الموقع' });
+       toast({ variant: 'destructive', title: t('error'), description: t('locationCreateFailed') });
     }
   };
 
@@ -62,11 +65,11 @@ export default function Locations() {
     if (!deleteId) return;
     try {
       await deleteMutation.mutateAsync({ id: deleteId });
-      toast({ title: 'تم حذف الموقع' });
+       toast({ title: t('locationDeleted') });
       setDeleteId(null);
       invalidate();
     } catch {
-      toast({ variant: 'destructive', title: 'خطأ', description: 'فشل في حذف الموقع' });
+       toast({ variant: 'destructive', title: t('error'), description: t('locationDeleteFailed') });
     }
   };
 
@@ -80,14 +83,14 @@ export default function Locations() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">مواقع العمل</h1>
-          <p className="text-sm mt-1 text-muted-foreground">{data?.locations?.length || 0} موقع مسجل</p>
+           <h1 className="font-display text-3xl font-bold tracking-tight">{t('workLocations')}</h1>
+           <p className="text-sm mt-1 text-muted-foreground">{fmt('locationsRegistered', data?.locations?.length || 0)}</p>
         </div>
         <Button
           onClick={() => setIsAddOpen(true)}
           className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0"
         >
-          <Plus className="h-4 w-4" /> إضافة موقع
+           <Plus className="h-4 w-4" /> {t('addLocation')}
         </Button>
       </div>
 
@@ -96,7 +99,7 @@ export default function Locations() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="البحث في المواقع..."
+             placeholder={t('searchLocations')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-9 rounded-xl border-border bg-background h-11"
@@ -117,10 +120,10 @@ export default function Locations() {
             <MapPin className="w-10 h-10 text-muted-foreground opacity-40" />
           </div>
           <p className="font-bold text-lg text-muted-foreground">
-            {search ? 'لا توجد نتائج للبحث' : 'لا توجد مواقع بعد'}
+             {search ? t('noSearchResults') : t('noLocationsYet')}
           </p>
           {!search && (
-            <p className="text-sm text-muted-foreground mt-1">أضف موقعًا جديدًا للبدء</p>
+             <p className="text-sm text-muted-foreground mt-1">{t('addLocationToStart')}</p>
           )}
         </div>
       ) : (
@@ -157,7 +160,7 @@ export default function Locations() {
                   <div className={`mt-auto flex items-center justify-between px-3 py-2 rounded-xl ${color.light} border ${color.border}`}>
                     <div className="flex items-center gap-2">
                       <Navigation className={`h-3.5 w-3.5 ${color.text}`} />
-                      <span className={`text-xs font-bold ${color.text}`}>موقع نشط</span>
+                       <span className={`text-xs font-bold ${color.text}`}>{t('activeLocation')}</span>
                     </div>
                     <button
                       type="button"
@@ -165,7 +168,7 @@ export default function Locations() {
                       className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      حذف
+                       {t('delete')}
                     </button>
                   </div>
                 </div>
@@ -183,35 +186,35 @@ export default function Locations() {
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
                 <Plus className="h-4 w-4 text-white" />
               </div>
-              إضافة موقع جديد
+               {t('addLocation')}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4 mt-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">اسم الموقع *</Label>
+               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('locationNameRequired')}</Label>
               <Input
                 value={locName}
                 onChange={e => setLocName(e.target.value)}
-                placeholder="مثال: المكتب الرئيسي"
+                 placeholder={t('exampleLocation')}
                 required
                 className="rounded-xl h-11"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">المدينة (اختياري)</Label>
+               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('cityOptional')}</Label>
               <Input
                 value={locCity}
                 onChange={e => setLocCity(e.target.value)}
-                placeholder="مثال: الرياض"
+                 placeholder={t('exampleCity')}
                 className="rounded-xl h-11"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">العنوان التفصيلي (اختياري)</Label>
+               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('detailedAddressOptional')}</Label>
               <Input
                 value={locAddress}
                 onChange={e => setLocAddress(e.target.value)}
-                placeholder="مثال: شارع الملك فهد، حي العليا"
+                 placeholder={t('exampleAddress')}
                 className="rounded-xl h-11"
               />
             </div>
@@ -220,7 +223,7 @@ export default function Locations() {
               className="w-full rounded-xl h-11 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0 font-bold"
               disabled={createMutation.isPending || !locName.trim()}
             >
-              حفظ
+               {t('save')}
             </Button>
           </form>
         </DialogContent>
@@ -230,16 +233,16 @@ export default function Locations() {
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent className="rounded-3xl border-0 card-3d">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-display">تأكيد الحذف</AlertDialogTitle>
-            <AlertDialogDescription>هل أنت متأكد من حذف هذا الموقع؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
+             <AlertDialogTitle className="font-display">{t('confirmDelete')}</AlertDialogTitle>
+             <AlertDialogDescription>{t('confirmDeleteLocation')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4">
-            <AlertDialogCancel className="rounded-xl h-11">إلغاء</AlertDialogCancel>
+             <AlertDialogCancel className="rounded-xl h-11">{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="rounded-xl h-11 bg-red-500 hover:bg-red-600 text-white border-0"
             >
-              حذف
+               {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

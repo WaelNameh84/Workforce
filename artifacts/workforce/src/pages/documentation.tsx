@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileImage, Plus, Trash2, Search, Building2, User, Calendar, Filter, Upload, Eye, X } from 'lucide-react';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 const deptColors = [
   { bg: 'from-blue-500 to-indigo-600', light: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800', text: 'text-blue-600 dark:text-blue-400', icon: 'bg-blue-500' },
@@ -30,6 +31,9 @@ export default function Documentation() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { t, locale } = useLanguage();
+  const fmt = (key: Parameters<typeof t>[0], count?: number) => t(key).replace('{count}', String(count ?? 0));
+  const dateLocale = locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US';
   const cid = user?.companyId || 0;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -107,7 +111,7 @@ export default function Documentation() {
           caption: caption || undefined,
         }
       });
-      toast({ title: 'تم رفع الملف بنجاح' });
+       toast({ title: t('uploadSuccess') });
       setIsAddOpen(false);
       setSelectedEmployeeId('');
       setCaption('');
@@ -116,7 +120,7 @@ export default function Documentation() {
       setPreviewImage('');
       invalidate();
     } catch {
-      toast({ variant: 'destructive', title: 'خطأ', description: 'فشل في رفع الملف' });
+       toast({ variant: 'destructive', title: t('error'), description: t('uploadFailed') });
     }
   };
 
@@ -124,11 +128,11 @@ export default function Documentation() {
     if (!deleteId) return;
     try {
       await deleteMutation.mutateAsync({ id: deleteId });
-      toast({ title: 'تم حذف الملف' });
+       toast({ title: t('deleteDocument') });
       setDeleteId(null);
       invalidate();
     } catch {
-      toast({ variant: 'destructive', title: 'خطأ', description: 'فشل في حذف الملف' });
+       toast({ variant: 'destructive', title: t('error'), description: t('deleteDocument') });
     }
   };
 
@@ -154,14 +158,14 @@ export default function Documentation() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">التوثيق</h1>
-          <p className="text-sm mt-1 text-muted-foreground">{docs.length} ملف موثّق</p>
+           <h1 className="font-display text-3xl font-bold tracking-tight">{t('documentation')}</h1>
+           <p className="text-sm mt-1 text-muted-foreground">{fmt('documentedFiles', docs.length)}</p>
         </div>
         <Button
           onClick={() => setIsAddOpen(true)}
           className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white border-0"
         >
-          <Plus className="h-4 w-4" /> رفع ملف جديد
+           <Plus className="h-4 w-4" /> {t('uploadNewFile')}
         </Button>
       </div>
 
@@ -171,7 +175,7 @@ export default function Documentation() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="البحث في الملفات..."
+             placeholder={t('searchFiles')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 rounded-xl border-border bg-background h-10"
@@ -181,10 +185,10 @@ export default function Documentation() {
             <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
             <Select value={filterDept} onValueChange={setFilterDept}>
               <SelectTrigger className="w-40 rounded-xl h-10">
-                <SelectValue placeholder="كل الأقسام" />
+                 <SelectValue placeholder={t('allDepartmentsLabel')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">كل الأقسام</SelectItem>
+                 <SelectItem value="all">{t('allDepartmentsLabel')}</SelectItem>
                 {departments.map((d: any) => (
                   <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
                 ))}
@@ -192,10 +196,10 @@ export default function Documentation() {
             </Select>
             <Select value={filterEmp} onValueChange={setFilterEmp}>
               <SelectTrigger className="w-44 rounded-xl h-10">
-                <SelectValue placeholder="كل الموظفين" />
+                 <SelectValue placeholder={t('allEmployees')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">كل الموظفين</SelectItem>
+                 <SelectItem value="all">{t('allEmployees')}</SelectItem>
                 {employees.map((e: any) => (
                   <SelectItem key={e.id} value={String(e.id)}>{e.fullName}</SelectItem>
                 ))}
@@ -223,7 +227,7 @@ export default function Documentation() {
                 </div>
                 <p className="text-xs font-bold text-muted-foreground truncate">{dept.name}</p>
                 <p className={`text-2xl font-black mt-1 ${color.text}`}>{count}</p>
-                <p className="text-[10px] text-muted-foreground">ملف</p>
+                 <p className="text-[10px] text-muted-foreground">{t('file')}</p>
               </button>
             );
           })}
@@ -243,10 +247,10 @@ export default function Documentation() {
             <FileImage className="w-10 h-10 text-muted-foreground opacity-40" />
           </div>
           <p className="font-bold text-lg text-muted-foreground">
-            {search || filterDept !== 'all' || filterEmp !== 'all' ? 'لا توجد نتائج' : 'لا توجد ملفات موثّقة بعد'}
+             {search || filterDept !== 'all' || filterEmp !== 'all' ? t('noFilesResults') : t('noDocumentedFilesYet')}
           </p>
           {!search && filterDept === 'all' && filterEmp === 'all' && (
-            <p className="text-sm text-muted-foreground mt-1">ارفع ملفاً جديداً للبدء</p>
+             <p className="text-sm text-muted-foreground mt-1">{t('uploadFileToStart')}</p>
           )}
         </div>
       ) : (
@@ -266,13 +270,13 @@ export default function Documentation() {
                   {isImage(doc.photoData) ? (
                     <img
                       src={doc.photoData}
-                      alt={doc.photoName || 'صورة'}
+                       alt={doc.photoName || t('imagePreview')}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full gap-2">
                       <FileImage className="w-10 h-10 text-white/80" />
-                      <span className="text-white/80 text-xs font-medium">انقر للعرض</span>
+                       <span className="text-white/80 text-xs font-medium">{t('clickToPreview')}</span>
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -303,7 +307,7 @@ export default function Documentation() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="w-3 h-3 shrink-0" />
-                        <span>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('ar-SA') : '—'}</span>
+                         <span>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString(dateLocale) : '—'}</span>
                       </div>
                       <button
                         type="button"
@@ -311,7 +315,7 @@ export default function Documentation() {
                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors"
                       >
                         <Trash2 className="h-3 w-3" />
-                        حذف
+                         {t('delete')}
                       </button>
                     </div>
                   </div>
@@ -330,15 +334,15 @@ export default function Documentation() {
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
                 <Upload className="h-4 w-4 text-white" />
               </div>
-              رفع ملف جديد
+               {t('uploadFileNew')}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4 mt-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الموظف *</Label>
+               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('employee')} *</Label>
               <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId} required>
                 <SelectTrigger className="rounded-xl h-11">
-                  <SelectValue placeholder="اختر الموظف" />
+                   <SelectValue placeholder={t('selectEmployee')} />
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((e: any) => (
@@ -351,22 +355,22 @@ export default function Documentation() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الملف / الصورة *</Label>
+               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fileOrImageRequired')}</Label>
               <div
                 className="relative border-2 border-dashed border-border rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-indigo-400 transition-colors overflow-hidden"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {previewImage ? (
                   <>
-                    <img src={previewImage} alt="معاينة" className="absolute inset-0 w-full h-full object-cover rounded-xl" />
+                     <img src={previewImage} alt={t('imagePreview')} className="absolute inset-0 w-full h-full object-cover rounded-xl" />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">انقر لتغيير الملف</span>
+                       <span className="text-white text-xs font-bold">{t('clickToChangeFile')}</span>
                     </div>
                   </>
                 ) : (
                   <>
                     <FileImage className="w-8 h-8 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">انقر لاختيار صورة أو ملف</span>
+                     <span className="text-xs text-muted-foreground">{t('clickToChooseFile')}</span>
                   </>
                 )}
                 <input
@@ -383,11 +387,11 @@ export default function Documentation() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الوصف (اختياري)</Label>
+               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fileDescriptionOptional')}</Label>
               <Input
                 value={caption}
                 onChange={e => setCaption(e.target.value)}
-                placeholder="وصف مختصر للملف"
+                 placeholder={t('shortFileDescription')}
                 className="rounded-xl h-11"
               />
             </div>
@@ -397,7 +401,7 @@ export default function Documentation() {
               className="w-full rounded-xl h-11 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white border-0 font-bold"
               disabled={createMutation.isPending || !selectedEmployeeId || !photoData}
             >
-              {createMutation.isPending ? 'جارٍ الرفع...' : 'رفع الملف'}
+               {createMutation.isPending ? t('uploading') : t('uploadFile')}
             </Button>
           </form>
         </DialogContent>
@@ -410,7 +414,7 @@ export default function Documentation() {
             <DialogHeader>
               <div className="flex items-center justify-between">
                 <DialogTitle className="font-display text-lg">
-                  {previewDoc.photoName || 'معاينة الملف'}
+                   {previewDoc.photoName || t('preview')}
                 </DialogTitle>
                 <button onClick={() => setPreviewDoc(null)} className="p-1.5 rounded-lg hover:bg-white/10 transition">
                   <X className="w-4 h-4 text-muted-foreground" />
@@ -421,13 +425,13 @@ export default function Documentation() {
               {isImage(previewDoc.photoData) ? (
                 <img
                   src={previewDoc.photoData}
-                  alt={previewDoc.photoName || 'صورة'}
+                   alt={previewDoc.photoName || t('imagePreview')}
                   className="w-full rounded-xl max-h-80 object-contain"
                 />
               ) : (
                 <div className="w-full h-40 rounded-xl bg-muted flex flex-col items-center justify-center gap-2">
                   <FileImage className="w-10 h-10 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">لا يمكن معاينة هذا النوع من الملفات</p>
+                   <p className="text-sm text-muted-foreground">{t('cannotPreviewFile')}</p>
                 </div>
               )}
               <div className="space-y-2 text-sm">
@@ -447,7 +451,7 @@ export default function Documentation() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="w-3.5 h-3.5" />
-                  <span>{previewDoc.createdAt ? new Date(previewDoc.createdAt).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</span>
+                   <span>{previewDoc.createdAt ? new Date(previewDoc.createdAt).toLocaleDateString(dateLocale, { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</span>
                 </div>
               </div>
             </div>
@@ -459,16 +463,16 @@ export default function Documentation() {
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent className="rounded-3xl border-0 card-3d">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-display">تأكيد الحذف</AlertDialogTitle>
-            <AlertDialogDescription>هل أنت متأكد من حذف هذا الملف؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
+             <AlertDialogTitle className="font-display">{t('confirmDelete')}</AlertDialogTitle>
+             <AlertDialogDescription>{t('confirmDeleteDocument')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4">
-            <AlertDialogCancel className="rounded-xl h-11">إلغاء</AlertDialogCancel>
+             <AlertDialogCancel className="rounded-xl h-11">{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="rounded-xl h-11 bg-red-500 hover:bg-red-600 text-white border-0"
             >
-              حذف
+               {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

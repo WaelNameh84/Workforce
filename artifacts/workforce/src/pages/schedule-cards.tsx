@@ -50,7 +50,7 @@ const shiftTimes: Record<ScheduleInputShiftType, { time: string; color: string }
 
 export default function ScheduleCards() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, translateText } = useLanguage();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -103,7 +103,7 @@ export default function ScheduleCards() {
       setShowForm(false);
       refresh();
     } catch {
-      toast({ variant: 'destructive', title: t('actions'), description: 'Could not create this shift.' });
+       toast({ variant: 'destructive', title: t('actions'), description: translateText('Could not create this shift.') });
     }
   };
 
@@ -123,7 +123,7 @@ export default function ScheduleCards() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center p-1 rounded-xl bg-card border border-border shadow-sm">
             <button
-              aria-label="Previous week"
+               aria-label={translateText('Previous week')}
               onClick={() => setCurrentWeek((week) => addDays(week, -7))}
               className="rounded-lg p-2 transition hover:bg-muted-bg"
             >
@@ -133,7 +133,7 @@ export default function ScheduleCards() {
               {format(currentWeek, 'MMM d')} – {format(addDays(currentWeek, 6), 'MMM d')}
             </span>
             <button
-              aria-label="Next week"
+               aria-label={translateText('Next week')}
               onClick={() => setCurrentWeek((week) => addDays(week, 7))}
               className="rounded-lg p-2 transition hover:bg-muted-bg"
             >

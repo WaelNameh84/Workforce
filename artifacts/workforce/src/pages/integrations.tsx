@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function Integrations() {
-  const { t } = useLanguage();
+  const { t, translateText } = useLanguage();
   const { toast } = useToast();
   const [connected, setConnected] = useState<Record<string, boolean>>({ 'Google Workspace': true });
 
@@ -46,7 +46,7 @@ export default function Integrations() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{t('integrations')}</h1>
-        <p className="text-muted-foreground">Connect WorkforceOS with your favorite tools.</p>
+         <p className="text-muted-foreground">{translateText('Connect WorkforceOS with your favorite tools.')}</p>
       </div>
 
        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -58,11 +58,11 @@ export default function Integrations() {
                   <integration.icon className="h-8 w-8" />
                 </div>
                  {connected[integration.name] && (
-                  <Badge variant="success">Connected</Badge>
+                   <Badge variant="success">{translateText('Connected')}</Badge>
                 )}
               </div>
               <CardTitle>{integration.name}</CardTitle>
-              <CardDescription>{integration.description}</CardDescription>
+               <CardDescription>{translateText(integration.description)}</CardDescription>
             </CardHeader>
             <CardContent className="mt-auto pt-4">
               <Button 
@@ -71,11 +71,11 @@ export default function Integrations() {
                  onClick={() => {
                    const next = !connected[integration.name];
                    setConnected((current) => ({ ...current, [integration.name]: next }));
-                   toast({ title: next ? 'Connected' : 'Disconnected', description: integration.name });
+                    toast({ title: next ? translateText('Connected') : translateText('Disconnected'), description: integration.name });
                  }}
               >
                 <Link2 className="h-4 w-4" /> 
-                 {connected[integration.name] ? 'Manage' : 'Connect'}
+                  {connected[integration.name] ? translateText('Manage') : translateText('Connect')}
               </Button>
             </CardContent>
           </Card>

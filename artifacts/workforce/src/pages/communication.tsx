@@ -44,12 +44,12 @@ function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function nowTime() {
-  return new Date().toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' });
+function nowTime(locale: 'en' | 'ar' | 'sv') {
+  return new Date().toLocaleTimeString(locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 /* ── Video Call Overlay ── */
-function VideoCallOverlay({ contact, onEnd }: { contact: Contact; onEnd: () => void }) {
+function VideoCallOverlay({ contact, onEnd, t }: { contact: Contact; onEnd: () => void; t: (key: any) => string }) {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [elapsed, setElapsed] = useState(0);
@@ -82,7 +82,7 @@ function VideoCallOverlay({ contact, onEnd }: { contact: Contact; onEnd: () => v
       {/* Local cam (corner) */}
       <div className="absolute top-4 right-4 w-24 h-32 rounded-2xl bg-slate-800 border border-white/10 overflow-hidden flex items-center justify-center">
         {camOn
-          ? <div className="text-2xl font-bold text-white/40">أنت</div>
+           ? <div className="text-2xl font-bold text-white/40">{t('you')}</div>
           : <VideoOff className="h-6 w-6 text-slate-500" />}
       </div>
 
@@ -114,7 +114,7 @@ function VideoCallOverlay({ contact, onEnd }: { contact: Contact; onEnd: () => v
 /* ── Main ── */
 export default function Communication() {
   const { user } = useAuth();
-  const { dir } = useLanguage();
+  const { dir, locale, t } = useLanguage();
   const cid = user?.companyId || 0;
 
   const { data: empData } = useGetEmployees(
@@ -127,21 +127,21 @@ export default function Communication() {
   const contacts: Contact[] = [
     {
       id: 'all',
-      name: 'الجميع',
-      avatar: 'كل',
+       name: t('allPeople'),
+       avatar: t('allPeople').slice(0, 2),
       color: 'from-indigo-500 to-purple-600',
       isGroup: true,
-      lastMsg: 'أهلاً بالجميع في WorkforceOS',
+       lastMsg: t('allWelcomeMessage'),
       lastTime: '09:00',
       unread: 0,
     },
     ...employees.map((emp, i) => ({
       id: String(emp.id),
-      name: emp.fullName || 'موظف',
-      avatar: initials(emp.fullName || 'م'),
+       name: emp.fullName || t('employee'),
+       avatar: initials(emp.fullName || t('employee')),
       color: COLORS[i % COLORS.length],
       isGroup: false,
-      lastMsg: 'مرحباً',
+       lastMsg: t('hello'),
       lastTime: '—',
       unread: 0,
     })),
@@ -151,8 +151,8 @@ export default function Communication() {
   const [selected, setSelected] = useState<Contact | null>(null);
   const [msgMap, setMsgMap] = useState<Record<string, Message[]>>({
     all: [
-      { id: '1', text: 'أهلاً وسهلاً بالجميع في WorkforceOS 👋', sender: 'them', time: '09:00', read: true },
-      { id: '2', text: 'تذكير بالاجتماع الأسبوعي الساعة 10 صباحاً', sender: 'them', time: '09:05', read: true },
+       { id: '1', text: t('allWelcomeMessage'), sender: 'them', time: '09:00', read: true },
+       { id: '2', text: `${t('weeklyShiftDesc')} — 10:00`, sender: 'them', time: '09:05', read: true },
     ],
   });
   const [input, setInput] = useState('');
@@ -172,7 +172,7 @@ export default function Communication() {
       id: Date.now().toString(),
       text: input.trim(),
       sender: 'me',
-      time: nowTime(),
+       time: nowTime(locale),
       read: false,
     };
     setMsgMap(prev => ({ ...prev, [selected.id]: [...(prev[selected.id] || []), msg] }));
@@ -181,17 +181,17 @@ export default function Communication() {
     /* simulate reply after 1.5s */
     setTimeout(() => {
       const replies = [
-        'تم الاستلام، شكراً!',
-        'حسناً، سأتحقق من ذلك.',
-        'موافق 👍',
-        'سأرد عليك قريباً.',
-        'جيد، سأقوم بذلك.',
+         t('receivedThanks'),
+         t('willCheck'),
+         t('agreed'),
+         t('replySoon'),
+         t('willDoIt'),
       ];
       const reply: Message = {
         id: (Date.now() + 1).toString(),
         text: replies[Math.floor(Math.random() * replies.length)],
         sender: 'them',
-        time: nowTime(),
+         time: nowTime(locale),
         read: true,
       };
       setMsgMap(prev => ({ ...prev, [selected.id]: [...(prev[selected.id] || []), reply] }));
@@ -209,7 +209,7 @@ export default function Communication() {
   if (selected) {
     return (
       <div className="flex flex-col h-full -mx-4 -my-4 sm:-mx-6 lg:-mx-8" style={{ height: 'calc(100vh - 80px)' }}>
-        {videoCall && <VideoCallOverlay contact={selected} onEnd={() => setVideoCall(false)} />}
+         {videoCall && <VideoCallOverlay contact={selected} onEnd={() => setVideoCall(false)} t={t} />}
 
         {/* Chat Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0" style={{ background: 'var(--background)' }}>
@@ -224,13 +224,13 @@ export default function Communication() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-bold text-sm truncate">{selected.name}</div>
-            <div className="text-[10px] text-muted-foreground">{selected.isGroup ? `${employees.length} موظف` : 'آخر ظهور: منذ قليل'}</div>
+             <div className="text-[10px] text-muted-foreground">{selected.isGroup ? t('employeesCount').replace('{count}', String(employees.length)) : t('lastSeenRecently')}</div>
           </div>
           {/* Video call button */}
           <button
             onClick={() => setVideoCall(true)}
             className="w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition"
-            aria-label="مكالمة فيديو"
+             aria-label={t('videoCall')}
           >
             <Video className="h-5 w-5" />
           </button>
@@ -243,7 +243,7 @@ export default function Communication() {
               <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${selected.color} flex items-center justify-center text-white text-2xl font-bold`}>
                 {selected.isGroup ? <Users className="h-7 w-7" /> : selected.avatar}
               </div>
-              <p className="text-sm">ابدأ محادثة مع {selected.name}</p>
+               <p className="text-sm">{t('startConversationWith').replace('{name}', selected.name)}</p>
             </div>
           )}
           {messages.map(msg => (
@@ -277,7 +277,7 @@ export default function Communication() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMsg()}
-            placeholder={`اكتب رسالة لـ ${selected.name}...`}
+           placeholder={t('writeMessageTo').replace('{name}', selected.name)}
             className="flex-1 rounded-2xl px-4 py-3 text-sm outline-none resize-none"
             style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
           />
@@ -299,8 +299,8 @@ export default function Communication() {
       {/* Header with dropdown selector */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">التواصل</h1>
-          <p className="text-sm text-muted-foreground mt-1">تواصل مع الموظفين مباشرة</p>
+           <h1 className="font-display text-3xl font-bold tracking-tight">{t('communicationTitle')}</h1>
+           <p className="text-sm text-muted-foreground mt-1">{t('connectEmployeesDirectly')}</p>
         </div>
         {/* Dropdown selector */}
         <div className="relative">
@@ -310,7 +310,7 @@ export default function Communication() {
             style={{ background: 'var(--card)' }}
           >
             <Users className="h-4 w-4 text-indigo-400" />
-            <span>اختر المستلم</span>
+             <span>{t('chooseRecipient')}</span>
             <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
           {dropdownOpen && (
@@ -346,7 +346,7 @@ export default function Communication() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="ابحث عن موظف..."
+           placeholder={t('searchEmployee')}
           className="w-full rounded-2xl px-4 py-3 pr-10 text-sm outline-none"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         />
@@ -384,7 +384,7 @@ export default function Communication() {
                     </span>
                   )}
                   <p className="text-xs text-muted-foreground truncate text-right flex-1">
-                    {last?.text || contact.lastMsg || 'ابدأ محادثة'}
+                     {last?.text || contact.lastMsg || t('startConversation')}
                   </p>
                 </div>
               </div>
@@ -393,7 +393,7 @@ export default function Communication() {
         })}
 
         {filteredContacts.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground text-sm">لا توجد نتائج للبحث</div>
+           <div className="text-center py-12 text-muted-foreground text-sm">{t('noSearchResultsShort')}</div>
         )}
       </div>
     </div>

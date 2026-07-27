@@ -8,14 +8,14 @@ import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function Developers() {
-  const { t } = useLanguage();
+  const { t, translateText } = useLanguage();
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('workforce-api-key') || 'sk_live_123*******************');
   const [copied, setCopied] = useState(false);
   const copyKey = async () => {
     await navigator.clipboard.writeText(apiKey);
     setCopied(true);
-    toast({ title: 'Copied' });
+    toast({ title: translateText('Copied') });
     setTimeout(() => setCopied(false), 1500);
   };
   const generateKey = () => {
@@ -55,7 +55,7 @@ export default function Developers() {
                     </Badge>
                     <code className="text-sm font-bold text-primary">{ep.path}</code>
                   </div>
-                  <div className="text-sm text-muted-foreground">{ep.desc}</div>
+                   <div className="text-sm text-muted-foreground">{translateText(ep.desc)}</div>
                 </div>
               ))}
             </CardContent>
@@ -85,10 +85,10 @@ export default function Developers() {
             <CardContent className="space-y-4">
                <div className="p-3 rounded-md bg-muted flex items-center justify-between border">
                  <div className="truncate font-mono text-sm opacity-70">{apiKey}</div>
-                 <Button aria-label="Copy API key" size="icon" variant="ghost" className="h-8 w-8" onClick={copyKey}><Copy className="h-4 w-4" /></Button>
+                  <Button aria-label={translateText('Copy API key')} size="icon" variant="ghost" className="h-8 w-8" onClick={copyKey}><Copy className="h-4 w-4" /></Button>
               </div>
                <Button className="w-full" variant="outline" onClick={generateKey}>{t('generateNewKey')}</Button>
-               {copied && <p className="text-xs text-green-500">Copied to clipboard</p>}
+                {copied && <p className="text-xs text-green-500">{translateText('Copied to clipboard')}</p>}
             </CardContent>
           </Card>
 

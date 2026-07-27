@@ -669,7 +669,7 @@ export default function PayrollPage() {
   const isLoading = payrollLoading;
 
   return (
-    <div className="space-y-6 animate-fadeIn" dir="rtl">
+    <div className="space-y-6 animate-fadeIn" dir={useLanguage().locale === 'ar' ? 'rtl' : 'ltr'}>
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
