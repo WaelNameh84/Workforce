@@ -685,14 +685,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 border-b border-white/5"
-          style={{ background: 'var(--background)', backdropFilter: 'blur(10px)', paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}>
+        <header className="app-topbar sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3"
+          style={{ backdropFilter: 'blur(18px)', paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}>
           <div className="flex items-center gap-1 lg:hidden">
             {isSubpage && (
               <button
                 onClick={goBack}
                 aria-label={t('goBack')}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-200 transition hover:bg-white/10 active:scale-90"
+                className="topbar-icon-button flex h-10 w-10 items-center justify-center rounded-xl transition active:scale-90"
               >
                 {dir === 'rtl' ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
               </button>
@@ -701,19 +701,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onClick={() => setSidebarOpen(true)}
               aria-label={t('openMenu')}
               aria-expanded={sidebarOpen}
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-200 transition hover:bg-white/10 active:scale-90"
+              className="topbar-icon-button flex h-10 w-10 items-center justify-center rounded-xl transition active:scale-90"
             >
               <Menu className="h-5 w-5" />
             </button>
           </div>
 
           <div className="min-w-0 flex-1 lg:hidden">
-            <p className="truncate text-sm font-black">{currentNavItem?.label || s.appName}</p>
-            <p className="truncate text-[10px] text-muted-foreground">{s.appName}</p>
+            <p className="topbar-title truncate text-sm font-black">{currentNavItem?.label || s.appName}</p>
+            <p className="topbar-subtitle truncate text-[10px]">{s.appName}</p>
           </div>
 
           {/* Search */}
-          <div className="flex-1 max-w-sm hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-muted-foreground">
+          <div className="topbar-search flex-1 max-w-sm hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg text-sm">
             <Search className="w-4 h-4 shrink-0" />
             <input
               value={searchText}
@@ -730,16 +730,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
-            <button onClick={toggleLanguage} className="p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
+            <button onClick={toggleLanguage} className="topbar-icon-button p-2 rounded-lg transition">
               <Globe className="w-4 h-4" />
             </button>
-            <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground">
+            <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} className="topbar-icon-button p-2 rounded-lg transition">
               {resolvedTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <div className="relative">
               <button
                 onClick={() => { setNotificationsOpen(!notificationsOpen); setUserMenuOpen(false); }}
-                className="relative p-2 rounded-lg hover:bg-white/5 transition text-muted-foreground hover:text-foreground"
+                className="topbar-icon-button relative p-2 rounded-lg transition"
               >
                 <Bell className="w-4 h-4" />
                 {totalNotifs > 0 && (
