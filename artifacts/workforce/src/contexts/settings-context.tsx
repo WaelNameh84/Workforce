@@ -12,6 +12,9 @@ export interface AppSettings {
 
   // Uploaded images (base64)
   logoUrl: string;
+  logoWidth: number;
+  logoHeight: number;
+  logoRadius: number;
   iconUrl: string;
   splashUrl: string;
   assistantAvatarUrl: string;
@@ -132,6 +135,9 @@ export const DEFAULTS: AppSettings = {
   companyEmail: '',
 
   logoUrl: '',
+  logoWidth: 112,
+  logoHeight: 112,
+  logoRadius: 24,
   iconUrl: '',
   splashUrl: '',
   assistantAvatarUrl: '',

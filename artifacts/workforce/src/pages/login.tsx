@@ -32,6 +32,9 @@ function useLoginSettings() {
 
   return {
     logoUrl:    (cfg.logoUrl    || '') as string,
+    logoWidth:  Number(cfg.logoWidth  || 112),
+    logoHeight: Number(cfg.logoHeight || 112),
+    logoRadius: Number(cfg.logoRadius ?? 24),
     appName:    (cfg.appName    || 'WorkforceOS') as string,
     clockColor: (cfg.clockColor || '#6366f1') as string,
     show12h:    Boolean(cfg.show12h),
@@ -187,7 +190,14 @@ export default function Login() {
     setLocale(order[(order.indexOf(locale) + 1) % order.length]);
   };
 
-  // Large logo for header
+  // Large logo for header — size driven by settings
+  const logoStyle: React.CSSProperties = {
+    width:        `${settings.logoWidth}px`,
+    height:       `${settings.logoHeight}px`,
+    borderRadius: `${settings.logoRadius}px`,
+    maxWidth:     '80vw',
+  };
+
   const BigLogoArea = () => (
     <>
       <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
@@ -195,22 +205,29 @@ export default function Login() {
         type="button"
         onClick={() => logoInputRef.current?.click()}
         title="اضغط لرفع الشعار"
-        className="relative group"
+        className="relative group shrink-0"
       >
         {settings.logoUrl ? (
           <img
             src={settings.logoUrl}
             alt={settings.appName}
-            className="h-28 w-28 rounded-3xl object-contain border border-white/10 bg-white/5 p-2 shadow-2xl group-hover:opacity-75 transition-opacity"
+            style={logoStyle}
+            className="object-contain border border-white/10 bg-white/5 p-2 shadow-2xl group-hover:opacity-75 transition-opacity"
           />
         ) : (
-          <div className="h-28 w-28 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center gap-1 shadow-2xl group-hover:opacity-80 transition-opacity">
+          <div
+            style={logoStyle}
+            className="bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center gap-1 shadow-2xl group-hover:opacity-80 transition-opacity"
+          >
             <ImagePlus className="h-9 w-9 text-white/70" />
             <span className="text-[11px] font-black text-white/60 leading-none">شعار</span>
           </div>
         )}
         {settings.logoUrl && (
-          <span className="absolute inset-0 rounded-3xl bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <span
+            style={logoStyle}
+            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+          >
             <ImagePlus className="h-6 w-6 text-white" />
           </span>
         )}

@@ -756,6 +756,113 @@ export default function Settings() {
                       <Trash2 className="w-3.5 h-3.5" /> إزالة الشعار
                     </button>
                   )}
+
+                  {/* ── Logo Size Controls ── */}
+                  <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold">حجم وشكل اللوغو</span>
+                      <button
+                        type="button"
+                        onClick={() => update({ logoWidth: 112, logoHeight: 112, logoRadius: 24 })}
+                        className="text-[11px] text-muted-foreground hover:text-indigo-400 font-bold transition"
+                      >
+                        إعادة تعيين
+                      </button>
+                    </div>
+
+                    {/* Live preview */}
+                    <div className="flex items-center justify-center py-3 bg-background/50 rounded-xl border border-border/50 min-h-[100px]">
+                      {s.logoUrl ? (
+                        <img
+                          src={s.logoUrl}
+                          alt="preview"
+                          style={{
+                            width:  `${s.logoWidth ?? 112}px`,
+                            height: `${s.logoHeight ?? 112}px`,
+                            borderRadius: `${s.logoRadius ?? 24}px`,
+                            objectFit: 'contain',
+                            maxWidth: '100%',
+                          }}
+                          className="border border-white/10 bg-white/5 p-1 shadow-lg"
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width:  `${s.logoWidth ?? 112}px`,
+                            height: `${s.logoHeight ?? 112}px`,
+                            borderRadius: `${s.logoRadius ?? 24}px`,
+                            maxWidth: '100%',
+                          }}
+                          className="bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white/60 text-xs font-bold shrink-0"
+                        >
+                          W
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Width slider */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold text-muted-foreground">
+                        <span>العرض</span>
+                        <span className="text-foreground font-bold">{s.logoWidth ?? 112}px</span>
+                      </div>
+                      <input
+                        type="range" min={40} max={320} step={4}
+                        value={s.logoWidth ?? 112}
+                        onChange={e => update({ logoWidth: Number(e.target.value) })}
+                        className="w-full accent-indigo-500 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-muted-foreground/60">
+                        <span>40px</span><span>320px</span>
+                      </div>
+                    </div>
+
+                    {/* Height slider */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold text-muted-foreground">
+                        <span>الارتفاع</span>
+                        <span className="text-foreground font-bold">{s.logoHeight ?? 112}px</span>
+                      </div>
+                      <input
+                        type="range" min={40} max={320} step={4}
+                        value={s.logoHeight ?? 112}
+                        onChange={e => update({ logoHeight: Number(e.target.value) })}
+                        className="w-full accent-indigo-500 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-muted-foreground/60">
+                        <span>40px</span><span>320px</span>
+                      </div>
+                    </div>
+
+                    {/* Radius slider */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold text-muted-foreground">
+                        <span>استدارة الزوايا</span>
+                        <span className="text-foreground font-bold">{s.logoRadius ?? 24}px</span>
+                      </div>
+                      <input
+                        type="range" min={0} max={160} step={2}
+                        value={s.logoRadius ?? 24}
+                        onChange={e => update({ logoRadius: Number(e.target.value) })}
+                        className="w-full accent-indigo-500 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-muted-foreground/60">
+                        <span>مستطيل</span><span>دائرة</span>
+                      </div>
+                    </div>
+
+                    {/* Lock aspect ratio shortcut */}
+                    <button
+                      type="button"
+                      onClick={() => update({ logoHeight: s.logoWidth ?? 112 })}
+                      className="w-full py-1.5 rounded-xl border border-indigo-500/30 text-indigo-400 text-xs font-bold hover:bg-indigo-500/5 transition"
+                    >
+                      ⊞ تسوية العرض والارتفاع
+                    </button>
+
+                    <SaveBtn onClick={handleSave} label="حفظ حجم اللوغو" />
+                  </div>
+
                   <ImgZone label="أيقونة التطبيق" sub="PNG مربع — 192×192" icon={Upload} value={s.iconUrl} onUpload={b => update({ iconUrl: b })} size="sm" />
                 </div>
               </SCard>
