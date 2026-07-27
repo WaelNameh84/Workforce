@@ -53,11 +53,11 @@ function getDeptImageUrl(name: string): string {
       ? lower.includes(pattern)
       : pattern.test(lower);
     if (match) {
-      return `https://source.unsplash.com/featured/600x240?${encodeURIComponent(keyword)}`;
+      return `https://loremflickr.com/600/240/${encodeURIComponent(keyword)}`;
     }
   }
   // Fallback: use the name itself as search keyword
-  return `https://source.unsplash.com/featured/600x240?${encodeURIComponent(name + ' work team')}`;
+  return `https://loremflickr.com/600/240/${encodeURIComponent('office,work,team')}`;
 }
 
 /* ── Placeholder colours for fallback banner ── */
