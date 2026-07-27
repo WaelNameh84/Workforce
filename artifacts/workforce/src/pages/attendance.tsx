@@ -174,8 +174,9 @@ export default function Attendance() {
       setSelectedLocationId('');
       return;
     }
-    if (!selectedLocationId || !locations.some(location => String(location.id) === selectedLocationId)) {
-      setSelectedLocationId(String(locations[0].id));
+    // If the previously selected id is no longer in the list, clear it — but never auto-pick
+    if (selectedLocationId && !locations.some(location => String(location.id) === selectedLocationId)) {
+      setSelectedLocationId('');
     }
   }, [locations, selectedLocationId]);
 
@@ -471,17 +472,6 @@ export default function Attendance() {
                       </>
                     )}
                   </div>
-                  {/* GPS retry button — shown when not loading and no coords */}
-                  {!gpsLoading && !gpsCoords && (
-                    <button
-                      type="button"
-                      onClick={detectGPS}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-500/20 hover:bg-indigo-500/35 border-t border-indigo-500/25 text-indigo-300 hover:text-indigo-200 font-semibold transition-all"
-                    >
-                      <Navigation className="w-3.5 h-3.5" />
-                      {ar ? 'تحديد الموقع الجغرافي' : 'Detect GPS Location'}
-                    </button>
-                  )}
                 </div>
               )}
             </div>
