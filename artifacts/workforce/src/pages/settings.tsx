@@ -539,6 +539,7 @@ const SECTIONS = [
   { id: 'font',        label: 'الخط',                 icon: Type,           color: 'bg-cyan-500',    desc: 'الخط وحجمه وشكله' },
   { id: 'credentials', label: 'الإيميل وكلمة السر',  icon: Lock,           color: 'bg-slate-500',   desc: 'بيانات الدخول' },
   { id: 'dashboard',   label: 'لوحة البداية',         icon: LayoutDashboard, color: 'bg-blue-500',  desc: 'تخصيص الصفحة الرئيسية' },
+  { id: 'payroll-rules', label: 'قواعد الرواتب',     icon: Wallet,          color: 'bg-green-600', desc: 'معدلات الوقت الإضافي والاستقطاعات' },
 ];
 
 const APP_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f97316','#10b981','#06b6d4','#f59e0b','#ef4444','#64748b','#0ea5e9','#a855f7','#14b8a6'];
@@ -2167,6 +2168,205 @@ export default function Settings() {
                 </div>
                 <div className="mt-4">
                   <SaveBtn onClick={handleSave} label="حفظ تخطيط اللوحة" color="blue" icon={LayoutDashboard} />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              Payroll Rules
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'payroll-rules' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Overtime rates */}
+              <SCard>
+                <CardHead icon={Wallet} color="bg-green-600" title="معدلات الوقت الإضافي" sub="ضاعف أجر ساعة الإضافي" />
+                <div className="space-y-5">
+
+                  <Field label="معدل الوقت الإضافي — أيام عادية" sub="مثال: 1.5 يعني 150% من المعدل الساعي">
+                    <div className="space-y-2">
+                      <div className="flex gap-3 items-center">
+                        <Inp
+                          type="number" step="0.05" min="1" max="5" dir="ltr"
+                          value={s.otMultiplier}
+                          onChange={e => update({ otMultiplier: e.target.value })}
+                          className="w-28 text-center font-mono font-bold text-green-400"
+                        />
+                        <span className="text-sm text-muted-foreground">= {(parseFloat(s.otMultiplier || '1.5') * 100).toFixed(0)}% من المعدل الساعي</span>
+                      </div>
+                      <input type="range" min="1" max="3" step="0.05"
+                        value={parseFloat(s.otMultiplier || '1.5')}
+                        onChange={e => update({ otMultiplier: e.target.value })}
+                        className="w-full accent-green-500" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>×1.0</span><span className="font-bold text-green-400">×{parseFloat(s.otMultiplier || '1.5').toFixed(2)}</span><span>×3.0</span>
+                      </div>
+                    </div>
+                  </Field>
+
+                  <Field label="معدل الوقت الإضافي — نهاية الأسبوع" sub="جمعة / سبت (أو ما تحدده كعطلة)">
+                    <div className="space-y-2">
+                      <div className="flex gap-3 items-center">
+                        <Inp
+                          type="number" step="0.05" min="1" max="5" dir="ltr"
+                          value={s.otWeekendMultiplier}
+                          onChange={e => update({ otWeekendMultiplier: e.target.value })}
+                          className="w-28 text-center font-mono font-bold text-amber-400"
+                        />
+                        <span className="text-sm text-muted-foreground">= {(parseFloat(s.otWeekendMultiplier || '2.0') * 100).toFixed(0)}% من المعدل الساعي</span>
+                      </div>
+                      <input type="range" min="1" max="4" step="0.05"
+                        value={parseFloat(s.otWeekendMultiplier || '2.0')}
+                        onChange={e => update({ otWeekendMultiplier: e.target.value })}
+                        className="w-full accent-amber-500" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>×1.0</span><span className="font-bold text-amber-400">×{parseFloat(s.otWeekendMultiplier || '2.0').toFixed(2)}</span><span>×4.0</span>
+                      </div>
+                    </div>
+                  </Field>
+
+                  <Field label="علاوة النوبة الليلية" sub="نسبة إضافية فوق المعدل الساعي للساعات الليلية">
+                    <div className="space-y-2">
+                      <div className="flex gap-3 items-center">
+                        <Inp
+                          type="number" step="0.05" min="0" max="1" dir="ltr"
+                          value={s.nightDifferential}
+                          onChange={e => update({ nightDifferential: e.target.value })}
+                          className="w-28 text-center font-mono font-bold text-blue-400"
+                        />
+                        <span className="text-sm text-muted-foreground">+{(parseFloat(s.nightDifferential || '0.25') * 100).toFixed(0)}% إضافي على الساعة</span>
+                      </div>
+                      <input type="range" min="0" max="1" step="0.05"
+                        value={parseFloat(s.nightDifferential || '0.25')}
+                        onChange={e => update({ nightDifferential: e.target.value })}
+                        className="w-full accent-blue-500" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>0%</span><span className="font-bold text-blue-400">+{(parseFloat(s.nightDifferential || '0.25') * 100).toFixed(0)}%</span><span>+100%</span>
+                      </div>
+                    </div>
+                  </Field>
+
+                  <Field label="نطاق النوبة الليلية" sub="الساعات التي تُحسب كنوبة ليلية">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground mb-1">تبدأ من</p>
+                        <Inp type="number" min="0" max="23" dir="ltr"
+                          value={s.nightStartHour}
+                          onChange={e => update({ nightStartHour: e.target.value })}
+                          className="text-center font-mono" />
+                        <p className="text-[10px] text-muted-foreground mt-1 text-center">{s.nightStartHour}:00</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground mb-1">تنتهي عند</p>
+                        <Inp type="number" min="0" max="23" dir="ltr"
+                          value={s.nightEndHour}
+                          onChange={e => update({ nightEndHour: e.target.value })}
+                          className="text-center font-mono" />
+                        <p className="text-[10px] text-muted-foreground mt-1 text-center">{s.nightEndHour}:00</p>
+                      </div>
+                    </div>
+                  </Field>
+
+                  <SaveBtn onClick={handleSave} label="حفظ معدلات الإضافي" color="green" icon={Wallet} />
+                </div>
+              </SCard>
+
+              {/* Deduction rates & weekend */}
+              <SCard>
+                <CardHead icon={Activity} color="bg-orange-500" title="قواعد الاستقطاع وأيام العطل" sub="كيف تُحسب خصومات التأخير والغياب" />
+                <div className="space-y-5">
+
+                  <Field label="معامل خصم التأخير / الخروج المبكر" sub="مثال: 1.0 = دقيقة بدقيقة — 2.0 = ضعف">
+                    <div className="space-y-2">
+                      <div className="flex gap-3 items-center">
+                        <Inp
+                          type="number" step="0.1" min="0.5" max="5" dir="ltr"
+                          value={s.lateDeductMultiplier}
+                          onChange={e => update({ lateDeductMultiplier: e.target.value })}
+                          className="w-28 text-center font-mono font-bold text-orange-400"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {parseFloat(s.lateDeductMultiplier || '1.0') === 1 ? 'دقيقة بدقيقة' : `×${parseFloat(s.lateDeductMultiplier || '1.0').toFixed(1)} من قيمة الدقيقة`}
+                        </span>
+                      </div>
+                      <input type="range" min="0.5" max="3" step="0.1"
+                        value={parseFloat(s.lateDeductMultiplier || '1.0')}
+                        onChange={e => update({ lateDeductMultiplier: e.target.value })}
+                        className="w-full accent-orange-500" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>×0.5</span><span className="font-bold text-orange-400">×{parseFloat(s.lateDeductMultiplier || '1.0').toFixed(1)}</span><span>×3.0</span>
+                      </div>
+                    </div>
+                  </Field>
+
+                  <Field label="أيام العطلة الأسبوعية" sub="أيام تُحسب بمعامل نهاية الأسبوع (0=أحد، 5=جمعة، 6=سبت)">
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-7 gap-1">
+                        {[
+                          { n: 0, label: 'أحد' },
+                          { n: 1, label: 'اثن' },
+                          { n: 2, label: 'ثلا' },
+                          { n: 3, label: 'أرب' },
+                          { n: 4, label: 'خمي' },
+                          { n: 5, label: 'جمع' },
+                          { n: 6, label: 'سبت' },
+                        ].map(({ n, label }) => {
+                          const current = (s.weekendDays || '5,6').split(',').map(Number);
+                          const active = current.includes(n);
+                          return (
+                            <button
+                              key={n}
+                              onClick={() => {
+                                const next = active ? current.filter(d => d !== n) : [...current, n];
+                                update({ weekendDays: next.sort().join(',') });
+                              }}
+                              className={`py-2 rounded-lg text-[11px] font-bold transition border ${active ? 'border-amber-500 bg-amber-500/20 text-amber-300' : 'border-border text-muted-foreground hover:border-amber-500/30'}`}>
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        العطلة الحالية: {
+                          (s.weekendDays || '5,6').split(',').map(Number)
+                            .map(n => ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][n])
+                            .join(' + ')
+                        }
+                      </p>
+                    </div>
+                  </Field>
+
+                  <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 space-y-1.5">
+                    <p className="text-xs font-bold text-green-400 mb-2">معاينة — راتب 20,000</p>
+                    {(() => {
+                      const otMult = parseFloat(s.otMultiplier || '1.5');
+                      const otWMult = parseFloat(s.otWeekendMultiplier || '2.0');
+                      const nightDiff = parseFloat(s.nightDifferential || '0.25');
+                      const hourly = 20000 / (parseInt(s.workDays || '22', 10) * (parseInt(s.workEnd || '17') - parseInt(s.workStart || '9') || 8));
+                      return (
+                        <>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">المعدل الساعي</span>
+                            <span className="font-mono font-bold">{hourly.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">ساعة إضافي (يوم عادي)</span>
+                            <span className="font-mono font-bold text-green-400">{(hourly * otMult).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">ساعة إضافي (عطلة)</span>
+                            <span className="font-mono font-bold text-amber-400">{(hourly * otWMult).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">ساعة ليلية</span>
+                            <span className="font-mono font-bold text-blue-400">{(hourly * (1 + nightDiff)).toFixed(2)}</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  <SaveBtn onClick={handleSave} label="حفظ قواعد الاستقطاع" color="orange" icon={Activity} />
                 </div>
               </SCard>
             </div>

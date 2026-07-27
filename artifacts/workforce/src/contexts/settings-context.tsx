@@ -83,6 +83,14 @@ export interface AppSettings {
   otThreshold: string;
   workDays: string;
   deductRate: string;
+  // Payroll rate multipliers (manager-configurable)
+  otMultiplier: string;
+  otWeekendMultiplier: string;
+  nightDifferential: string;
+  lateDeductMultiplier: string;
+  weekendDays: string; // comma-separated day numbers e.g. "5,6"
+  nightStartHour: string;
+  nightEndHour: string;
   annualLeave: string;
   holidays: string[];
   leavePolicy: string;
@@ -197,6 +205,13 @@ export const DEFAULTS: AppSettings = {
   otThreshold: '60',
   workDays: '22',
   deductRate: 'hour',
+  otMultiplier: '1.5',
+  otWeekendMultiplier: '2.0',
+  nightDifferential: '0.25',
+  lateDeductMultiplier: '1.0',
+  weekendDays: '5,6',
+  nightStartHour: '22',
+  nightEndHour: '6',
   annualLeave: '21',
   holidays: ['الجمعة', 'السبت'],
   leavePolicy: 'carryover',

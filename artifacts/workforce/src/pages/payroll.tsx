@@ -97,13 +97,13 @@ export default function PayrollPage() {
     breakMin: parseInt(settings.breakMin || '60', 10),
     lateGrace: parseInt(settings.lateGrace || '15', 10),
     otThreshold: parseInt(settings.otThreshold || '60', 10),
-    overtimeMultiplier: 1.5,
-    overtimeWeekendMultiplier: 2.0,
-    nightDifferential: 0.25,
-    lateDeductMultiplier: 1.0,
-    weekendDays: [5, 6], // Fri + Sat
-    nightStartHour: 22,
-    nightEndHour: 6,
+    overtimeMultiplier: parseFloat(settings.otMultiplier || '1.5'),
+    overtimeWeekendMultiplier: parseFloat(settings.otWeekendMultiplier || '2.0'),
+    nightDifferential: parseFloat(settings.nightDifferential || '0.25'),
+    lateDeductMultiplier: parseFloat(settings.lateDeductMultiplier || '1.0'),
+    weekendDays: (settings.weekendDays || '5,6').split(',').map(Number).filter(n => !isNaN(n)),
+    nightStartHour: parseInt(settings.nightStartHour || '22', 10),
+    nightEndHour: parseInt(settings.nightEndHour || '6', 10),
     installmentAmount: 0,
   });
 
