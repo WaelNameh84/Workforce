@@ -102,6 +102,7 @@ export interface AppSettings {
   showMapOnAttendance: boolean;
 
   // Splash / Welcome Screen
+  splashTheme: 'cosmic' | 'aurora' | 'neon' | 'crystal' | 'fire' | 'ocean' | 'rings' | 'glass' | 'premium' | 'holo' | 'particles' | 'space' | 'golden' | 'smoke';
   splashDuration: string;
   splashEffect: 'fade' | 'slide' | 'zoom' | 'none';
   splashShowLogo: boolean;
@@ -208,6 +209,7 @@ const DEFAULTS: AppSettings = {
   requireLocationOnClock: true,
   showMapOnAttendance: true,
 
+  splashTheme: 'cosmic',
   splashDuration: '2500',
   splashEffect: 'fade',
   splashShowLogo: true,

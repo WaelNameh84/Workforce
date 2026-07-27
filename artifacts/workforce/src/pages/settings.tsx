@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { THEMES_CATALOG } from '@/components/splash-themes';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/components/ui/use-toast';
 import { useSettings } from '@/contexts/settings-context';
@@ -17,6 +18,121 @@ import {
   Filter, SortAsc, Layout, Columns, Rows, BarChart3,
   TrendingUp, Clock, Calendar, Package, Cpu, Wifi, Battery,
 } from 'lucide-react';
+
+// ─── Splash theme thumbnail ───────────────────────────────────────────────────
+function ThemeThumbnail({ themeId, accent, bg }: { themeId: string; accent: string; bg: string }) {
+  // Each thumbnail is a ~155×90 CSS-animated mini preview of the theme
+  const base: React.CSSProperties = {
+    position: 'relative', width: '100%', height: 100, overflow: 'hidden',
+    background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  };
+  // Small white logo box centered
+  const logoBox: React.CSSProperties = {
+    position: 'relative', zIndex: 10, width: 28, height: 28, borderRadius: 8,
+    background: 'rgba(255,255,255,.9)', boxShadow: `0 0 12px ${accent}99`,
+    flexShrink: 0,
+  };
+
+  const ring = (r: number, dur: string, rev = false, opacity = .7, col = accent): React.CSSProperties => ({
+    position: 'absolute', width: r*2, height: r*2, borderRadius: '50%',
+    left: '50%', top: '50%', marginLeft: -r, marginTop: -r,
+    border: `1px solid ${col}${Math.round(opacity*255).toString(16).padStart(2,'0')}`,
+    boxShadow: `0 0 8px ${col}44`,
+    animation: `${rev ? 'th-spinR' : 'th-spin'} ${dur} linear infinite`,
+  });
+
+  const renderBg = () => {
+    switch (themeId) {
+      case 'cosmic': return <>
+        <div style={{ position:'absolute',inset:0,backgroundImage:`linear-gradient(rgba(99,102,241,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.06) 1px,transparent 1px)`,backgroundSize:'20px 20px',transform:'perspective(200px) rotateX(55deg) scaleY(2)',transformOrigin:'50% 120%' }} />
+        {[30,50,75].map((r,i)=><div key={i} style={ring(r,`${10+i*5}s`,i%2===1,.5)} />)}
+        {[0,.6,1.2].map(d=><div key={d} style={{ position:'absolute',width:50,height:50,left:'50%',top:'50%',marginLeft:-25,marginTop:-25,borderRadius:'50%',border:`1px solid ${accent}80`,animation:`th-pulse ${2+d}s ease-out infinite ${d}s` }} />)}
+      </>;
+      case 'aurora': return <>
+        {['#00ff88','#00ccff','#aa44ff'].map((c,i)=><div key={i} style={{ position:'absolute',left:0,right:0,top:`${20+i*20}%`,height:'15%',background:c,filter:'blur(20px)',opacity:.3,transform:'skewX(-8deg)' }} />)}
+        {[0,4,8].map((l,i)=><div key={i} style={{ position:'absolute',left:`${5+l*10}%`,bottom:'0',width:'3px',height:'60%',background:'#00ff88',filter:'blur(4px)',opacity:.4,animation:`th-rise ${2+i}s ease-out infinite ${i*.8}s` }} />)}
+      </>;
+      case 'neon': return <>
+        <div style={{ position:'absolute',inset:0,backgroundImage:`linear-gradient(rgba(0,240,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,.08) 1px,transparent 1px)`,backgroundSize:'15px 15px',transform:'perspective(200px) rotateX(55deg) scaleY(2)',transformOrigin:'50% 120%' }} />
+        <div style={{ position:'absolute',inset:0,overflow:'hidden' }}><div style={{ position:'absolute',left:0,right:0,height:'2px',background:'linear-gradient(90deg,transparent,rgba(0,240,255,.9),transparent)',boxShadow:'0 0 10px rgba(0,240,255,.7)',animation:'th-scan 2s linear infinite' }} /></div>
+        {[[8,8],[8,'auto'],[undefined,8],['auto',8]].map(([t,b],i)=><div key={i} style={{ position:'absolute',width:10,height:10,top:t as any,bottom:b as any,left:i<2?8:undefined,right:i>=2?8:undefined,borderTop:i<2?'1.5px solid #00f0ff':'none',borderBottom:i>=2?'1.5px solid #00f0ff':'none',borderLeft:[0,2].includes(i)?'1.5px solid #00f0ff':'none',borderRight:[1,3].includes(i)?'1.5px solid #00f0ff':'none' }} />)}
+      </>;
+      case 'crystal': return <>
+        {[25,40,60].map((r,i)=><div key={i} style={{ position:'absolute',width:r*2,height:r*2,left:'50%',top:'50%',marginLeft:-r,marginTop:-r,borderRadius:'50%',border:`1px solid ${accent}40`,animation:`th-pulse ${4+i*2}s ease-in-out infinite ${i}s` }} />)}
+        {[0,1,2,3].map(i=><div key={i} style={{ position:'absolute',left:`${15+i*22}%`,top:`${20+((i%2)*40)}%`,width:8,height:14,background:`${accent}30`,border:`1px solid ${accent}50`,clipPath:'polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)' }} />)}
+      </>;
+      case 'fire': return <>
+        <div style={{ position:'absolute',bottom:0,left:0,right:0,height:'55%',background:'radial-gradient(ellipse at 50% 100%,rgba(255,80,0,.5) 0%,rgba(255,30,0,.2) 50%,transparent 80%)' }} />
+        {[15,35,55,75].map((l,i)=><div key={i} style={{ position:'absolute',left:`${l}%`,bottom:'-5%',width:`${12+i*4}px`,height:`${20+i*8}px`,borderRadius:'50% 50% 20% 20%',background:'rgba(255,120,0,.4)',filter:'blur(5px)',animation:`th-rise ${1.5+i*.4}s ease-out infinite ${i*.5}s` }} />)}
+      </>;
+      case 'ocean': return <>
+        <div style={{ position:'absolute',top:0,left:0,right:0,height:'55%',overflow:'hidden' }}>
+          {[10,25,40,55,70,85].map((l,i)=><div key={i} style={{ position:'absolute',top:0,left:`${l}%`,width:'2px',height:'100%',background:`linear-gradient(180deg,rgba(0,180,255,.2) 0%,transparent 100%)`,transform:`rotate(${(i%2?1:-1)*6}deg)`,filter:'blur(2px)' }} />)}
+        </div>
+        {[5,12,20,30,42].map((l,i)=><div key={i} style={{ position:'absolute',left:`${l*2+5}%`,bottom:'-5%',width:`${4+i*2}px`,height:`${4+i*2}px`,borderRadius:'50%',border:`1px solid rgba(0,200,255,.4)`,animation:`th-rise ${2+i*.7}s ease-out infinite ${i*.6}s` }} />)}
+      </>;
+      case 'rings': return <>
+        <div style={{ position:'absolute',inset:0,background:`radial-gradient(circle at 50% 50%,${accent}33 0%,transparent 65%)`,animation:'th-pulse 3s ease-in-out infinite' }} />
+        {[25,38,52,67].map((r,i)=><div key={i} style={{...ring(r,`${8+i*4}s`,i%2===1,0.7-i*.12),boxShadow:`0 0 8px ${accent}66,inset 0 0 4px ${accent}44`}} />)}
+        <div style={{ position:'absolute',inset:0,overflow:'hidden' }}><div style={{ position:'absolute',top:0,bottom:0,width:'30%',background:`linear-gradient(90deg,transparent,${accent}12,transparent)`,animation:'th-sweep 3s ease-in-out infinite' }} /></div>
+      </>;
+      case 'glass': return <>
+        <div style={{ position:'absolute',inset:0,background:`radial-gradient(circle at 50% 50%,${accent}22 0%,transparent 70%)` }} />
+        <div style={{ position:'absolute',width:120,height:120,left:'50%',top:'50%',marginLeft:-60,marginTop:-60,borderRadius:'50%',border:`1px dashed ${accent}44`,animation:'th-spin 8s linear infinite' }}>
+          {[0,90,180,270].map(deg=><div key={deg} style={{ position:'absolute',top:'50%',left:'50%',transform:`rotate(${deg}deg) translateX(60px)`,marginLeft:-3,marginTop:-3,width:6,height:6,borderRadius:'50%',background:accent,boxShadow:`0 0 8px ${accent}` }} />)}
+        </div>
+        <div style={{ position:'absolute',width:80,height:55,left:'50%',top:'50%',marginLeft:-40,marginTop:-27,borderRadius:14,background:'rgba(255,255,255,.05)',border:`1px solid ${accent}40`,backdropFilter:'blur(8px)' }} />
+      </>;
+      case 'premium': return <>
+        <div style={{ position:'absolute',inset:0,background:`radial-gradient(circle at 50% 50%,${accent}22 0%,transparent 65%)`,animation:'th-pulse 4s ease-in-out infinite' }} />
+        {[40,65].map((r,i)=><div key={i} style={{...ring(r,`${12+i*8}s`,i%2===1,.4)}} />)}
+        {[0,1,2,3,4].map(i=><div key={i} style={{ position:'absolute',left:`${i*20+5}%`,top:`${20+((i%2)*50)}%`,width:2,height:2,borderRadius:'50%',background:accent,boxShadow:`0 0 4px ${accent}`,animation:`th-pulse ${2+i*.5}s ease-in-out infinite ${i*.4}s` }} />)}
+        <div style={{ position:'absolute',inset:0,overflow:'hidden' }}><div style={{ position:'absolute',top:0,bottom:0,left:'20%',width:'20%',background:`linear-gradient(90deg,transparent,${accent}0a,transparent)`,transform:'skewX(-40deg)',animation:'th-sweep 4s ease-in-out infinite' }} /></div>
+      </>;
+      case 'holo': return <>
+        <div style={{ position:'absolute',inset:0,backgroundImage:`linear-gradient(rgba(0,245,212,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,212,.08) 1px,transparent 1px)`,backgroundSize:'15px 15px',transform:'perspective(200px) rotateX(55deg) scaleY(2)',transformOrigin:'50% 120%' }} />
+        <div style={{ position:'absolute',inset:0,overflow:'hidden' }}><div style={{ position:'absolute',left:0,right:0,height:'2px',background:'linear-gradient(90deg,transparent,rgba(0,245,212,.9),rgba(255,255,255,.7),rgba(0,245,212,.9),transparent)',boxShadow:'0 0 10px rgba(0,245,212,.7)',animation:'th-scan 2.5s linear infinite' }} /></div>
+        {[30,48].map((r,i)=><div key={i} style={{...ring(r,`${6+i*4}s`,i%2===1,.7,'#00f5d4')}} />)}
+      </>;
+      case 'particles': return <>
+        <div style={{ position:'absolute',inset:0,background:`radial-gradient(circle at 50% 50%,${accent}30 0%,transparent 60%)`,animation:'th-pulse 5s ease-in-out infinite' }} />
+        {Array.from({length:20}).map((_,i)=>{
+          const x=(i/20)*100; const y=(i*7%100);
+          return <div key={i} style={{ position:'absolute',left:`${x}%`,top:`${y}%`,['--gx' as string]:`${(x/100-.5)*60}px`,['--gy' as string]:`${(y/100-.5)*60}px`,width:2,height:2,borderRadius:'50%',background:accent,opacity:.7,animation:`th-gather ${2+i*.15}s ease-in-out infinite ${i*.2}s` }} />;
+        })}
+      </>;
+      case 'space': return <>
+        {[20,35,52].map((r,i)=><div key={i} style={{ position:'absolute',width:r*2,height:r*1.2*2,left:'50%',top:'50%',marginLeft:-r,marginTop:-r*1.2,borderRadius:'50%',border:`1px solid ${accent}25`,transform:`rotateX(${60+i*5}deg)`,animation:`th-spin ${8+i*5}s linear infinite` }} />)}
+        <div style={{ position:'absolute',width:16,height:16,left:'50%',top:'50%',marginLeft:-8,marginTop:-8,borderRadius:'50%',background:`radial-gradient(circle,white 0%,${accent} 50%,transparent 80%)`,boxShadow:`0 0 16px 4px ${accent}88`,animation:'th-pulse 3s ease-in-out infinite' }} />
+        {Array.from({length:12}).map((_,i)=><div key={i} style={{ position:'absolute',left:`${(i*17%90)+5}%`,top:`${(i*13%80)+5}%`,width:2,height:2,borderRadius:'50%',background:'white',opacity:.5,animation:`th-pulse ${2+i*.3}s ease-in-out infinite ${i*.2}s` }} />)}
+      </>;
+      case 'golden': return <>
+        {/* Curtain animation */}
+        <div style={{ position:'absolute',inset:0,overflow:'hidden' }}>
+          <div style={{ position:'absolute',top:0,bottom:0,left:0,width:'55%',background:'linear-gradient(90deg,#3a0000,#6b0000)',animation:'th-curtL 1.4s ease-in-out .3s both' }} />
+          <div style={{ position:'absolute',top:0,bottom:0,right:0,width:'55%',background:'linear-gradient(270deg,#3a0000,#6b0000)',animation:'th-curtR 1.4s ease-in-out .3s both' }} />
+        </div>
+        <div style={{ position:'absolute',inset:0,background:'radial-gradient(circle at 50% 50%,rgba(251,191,36,.25) 0%,transparent 65%)' }} />
+        <div style={{ position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:0,height:0,borderLeft:'40px solid transparent',borderRight:'40px solid transparent',borderTop:'80px solid rgba(255,220,100,.04)',filter:'blur(10px)' }} />
+      </>;
+      case 'smoke': return <>
+        {[20,50,80].map((l,i)=><div key={i} style={{ position:'absolute',left:`${l-10}%`,bottom:'-5%',width:40,height:30,borderRadius:'50%',background:`rgba(6,182,212,.12)`,filter:'blur(10px)',animation:`th-smoke ${2.5+i*.8}s ease-out infinite ${i*.7}s` }} />)}
+        <div style={{ position:'absolute',inset:0,background:`radial-gradient(circle at 50% 60%,rgba(6,182,212,.25) 0%,transparent 60%)`,animation:'th-pulse 4s ease-in-out infinite' }} />
+        {[30,48].map((r,i)=><div key={i} style={{...ring(r,`${9+i*5}s`,i%2===1,.4,'#06b6d4')}} />)}
+        {[0,1,2].map(i=><div key={i} style={{ position:'absolute',left:`${35+i*10}%`,bottom:`${20+i*5}%`,width:2,height:2,borderRadius:'50%',background:'#06b6d4',boxShadow:'0 0 4px #06b6d4',animation:`th-pulse ${1.5+i*.5}s ease-in-out infinite ${i*.3}s` }} />)}
+      </>;
+      default: return <div style={{ position:'absolute',inset:0,background:`radial-gradient(circle,${accent}33 0%,transparent 70%)` }} />;
+    }
+  };
+
+  return (
+    <div style={base}>
+      {renderBg()}
+      {/* Mini logo box */}
+      <div style={{ ...logoBox, position:'relative', zIndex:10 }} />
+    </div>
+  );
+}
 
 // ─── Primitives ────────────────────────────────────────────────────────────────
 function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void; disabled?: boolean }) {
@@ -946,6 +1062,59 @@ export default function Settings() {
           ══════════════════════════════════════════════════════════════ */}
           {activeSection === 'splash' && (
             <div className="grid md:grid-cols-2 gap-4">
+
+              {/* ── Theme Picker ── */}
+              <div className="md:col-span-2">
+                <SCard>
+                  <CardHead icon={Palette} color="bg-violet-500" title="تصميم شاشة البداية" sub="اختر ثيم الشاشة المتحركة الثلاثي" />
+                  <style>{`
+                    @keyframes th-spin  { to{transform:rotate(360deg)} }
+                    @keyframes th-spinR { to{transform:rotate(-360deg)} }
+                    @keyframes th-pulse { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.1)} }
+                    @keyframes th-twinkle { 0%,100%{opacity:.1} 50%{opacity:.9} }
+                    @keyframes th-rise  { 0%{transform:translateY(0);opacity:.8} 100%{transform:translateY(-60px);opacity:0} }
+                    @keyframes th-scan  { 0%{transform:translateY(-100%)} 100%{transform:translateY(200px)} }
+                    @keyframes th-gather{ 0%{transform:translate(var(--gx),var(--gy));opacity:0} 30%{opacity:1} 100%{transform:translate(0,0);opacity:0} }
+                    @keyframes th-smoke { 0%{transform:translateY(0) scaleX(1);opacity:.5} 100%{transform:translateY(-50px) scaleX(2);opacity:0} }
+                    @keyframes th-sweep { 0%{transform:translateX(-100%)} 100%{transform:translateX(300%)} }
+                    @keyframes th-orb   { 0%,100%{box-shadow:0 0 12px 4px var(--oc),0 0 24px 8px var(--oc2)} 50%{box-shadow:0 0 20px 8px var(--oc),0 0 40px 14px var(--oc2)} }
+                    @keyframes th-curtL { 0%{transform:translateX(0)} 100%{transform:translateX(-110%)} }
+                    @keyframes th-curtR { 0%{transform:translateX(0)} 100%{transform:translateX(110%)} }
+                  `}</style>
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    {THEMES_CATALOG.map(theme => {
+                      const isActive = s.splashTheme === theme.id;
+                      return (
+                        <button
+                          key={theme.id}
+                          onClick={() => update({ splashTheme: theme.id as any })}
+                          className={`relative rounded-2xl overflow-hidden text-right transition-all duration-200 ${
+                            isActive
+                              ? 'ring-2 ring-violet-400 shadow-lg shadow-violet-500/30 scale-[1.02]'
+                              : 'hover:ring-1 hover:ring-white/20 hover:scale-[1.01]'
+                          }`}
+                          style={{ border: 'none', padding: 0, cursor: 'pointer' }}
+                        >
+                          {/* Animated thumbnail */}
+                          <ThemeThumbnail themeId={theme.id} accent={theme.accent} bg={theme.bg} />
+                          {/* Active checkmark */}
+                          {isActive && (
+                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center shadow">
+                              <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
+                          )}
+                          {/* Label */}
+                          <div className="px-2.5 py-2" style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(8px)' }}>
+                            <p className="font-bold text-xs text-white">{theme.nameAr}</p>
+                            <p className="text-[9px] mt-0.5 leading-tight" style={{ color: theme.accent }}>{theme.descAr}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </SCard>
+              </div>
+
               <SCard>
                 <CardHead icon={Sparkles} color="bg-pink-500" title="شاشة البداية" sub="تخصيص شاشة الترحيب" />
                 <div className="space-y-4">
