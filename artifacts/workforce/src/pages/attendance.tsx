@@ -331,7 +331,7 @@ export default function Attendance() {
       <div className="grid lg:grid-cols-5 gap-6">
 
         {/* ════════════════ CARD 1 — CLOCK STATION ════════════════ */}
-        <div className="lg:col-span-2 rounded-3xl text-center bg-gradient-to-br from-[#0d0d0d] to-[#1a1a2e] border border-white/10 text-white relative overflow-hidden shadow-2xl card-3d">
+        <div className="attendance-station lg:col-span-2 rounded-3xl text-center bg-gradient-to-br from-[#0d0d0d] to-[#1a1a2e] border border-white/10 text-white relative overflow-hidden shadow-2xl card-3d">
           {/* glow */}
           <div className="absolute inset-0 opacity-30 pointer-events-none"
                style={{ backgroundImage: `radial-gradient(circle at 50% -10%, ${isClockedIn ? '#22c55e' : '#6366f1'} 0%, transparent 65%)` }} />
@@ -343,8 +343,8 @@ export default function Attendance() {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> LIVE
               </div>
             ) : (
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 text-white/40 text-xs font-bold tracking-widest uppercase border border-white/10">
-                <span className="w-2 h-2 rounded-full bg-white/30" /> OFF DUTY
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/90 text-slate-200 text-xs font-bold tracking-widest uppercase border border-slate-600/80">
+                <span className="w-2 h-2 rounded-full bg-slate-300" /> OFF DUTY
               </div>
             )}
 
@@ -354,14 +354,14 @@ export default function Attendance() {
                   style={{ textShadow: '0 0 30px rgba(255,255,255,0.2)' }}>
                 {format(now, 'HH:mm:ss')}
               </h2>
-              <p className="text-white/45 text-sm mt-2 font-medium">{format(now, 'EEEE, MMMM d, yyyy')}</p>
+              <p className="text-slate-300 text-sm mt-2 font-medium">{format(now, 'EEEE, MMMM d, yyyy')}</p>
             </div>
 
             {/* Clocked-in info */}
             {isClockedIn && todayRecord?.clockIn && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-data w-full justify-center">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/75 border border-slate-700 text-sm font-data w-full justify-center">
                 <LogIn className="w-4 h-4 text-emerald-400" />
-                <span className="text-white/70">{ar ? 'دخل الساعة' : 'Clocked in at'}</span>
+                <span className="text-slate-200">{ar ? 'دخل الساعة' : 'Clocked in at'}</span>
                 <span className="text-emerald-400 font-semibold">{format(new Date(todayRecord.clockIn), 'HH:mm')}</span>
                 {todayRecord.isLate && (
                   <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold">{ar ? 'متأخر' : 'LATE'}</span>
@@ -371,11 +371,11 @@ export default function Attendance() {
 
             {/* Location selector */}
             <div className="w-full">
-              <label className="text-white/40 text-xs font-medium mb-1.5 block text-left">
+              <label className="text-slate-300 text-xs font-semibold mb-1.5 block text-left">
                 {ar ? 'اختر الموقع' : 'Select Location'}
               </label>
               <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                <SelectTrigger className="bg-white/5 border-white/15 text-white rounded-xl h-10 text-sm">
+                <SelectTrigger className="bg-slate-900/80 border-slate-600 text-white rounded-xl h-10 text-sm">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
                     <SelectValue />
@@ -417,10 +417,10 @@ export default function Attendance() {
               )}
               {/* GPS status detail row */}
               {checkMethod === 'gps' && (
-                <div className="mt-2 rounded-xl bg-white/5 border border-white/10 text-xs overflow-hidden">
+                <div className="mt-2 rounded-xl bg-slate-900/75 border border-slate-700 text-xs overflow-hidden">
                   <div className="px-3 py-2 flex items-center gap-2 flex-wrap">
                     {gpsLoading ? (
-                      <><Loader2 className="w-3 h-3 animate-spin text-indigo-400 flex-shrink-0" /><span className="text-white/50">{ar ? 'جارٍ تحديد الموقع الجغرافي…' : 'Detecting location…'}</span></>
+                      <><Loader2 className="w-3 h-3 animate-spin text-indigo-400 flex-shrink-0" /><span className="text-slate-300">{ar ? 'جارٍ تحديد الموقع الجغرافي…' : 'Detecting location…'}</span></>
                     ) : gpsCoords ? (
                       <>
                         <Navigation className="w-3 h-3 text-emerald-400 flex-shrink-0" />
@@ -461,7 +461,7 @@ export default function Attendance() {
 
             {/* Check method selector */}
             <div className="w-full">
-              <label className="text-white/40 text-xs font-medium mb-2 block text-left">
+              <label className="text-slate-300 text-xs font-semibold mb-2 block text-left">
                 {ar ? 'طريقة التسجيل' : 'Check-in Method'}
               </label>
               <div className="grid grid-cols-4 gap-2">
@@ -472,7 +472,7 @@ export default function Attendance() {
                     className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-[11px] font-semibold transition-all
                       ${checkMethod === m.id
                         ? 'bg-indigo-500 text-white shadow-[0_0_16px_rgba(99,102,241,0.5)]'
-                        : 'bg-white/5 text-white/45 hover:bg-white/10 border border-white/10'}`}
+                        : 'bg-slate-800/85 text-slate-200 hover:bg-slate-700 border border-slate-600'}`}
                   >
                     <m.icon className="w-4 h-4" />
                     {m.label}
@@ -483,7 +483,7 @@ export default function Attendance() {
 
             {/* Photo capture */}
             <div className="w-full">
-              <label className="text-white/40 text-xs font-medium mb-1.5 block text-left">
+              <label className="text-slate-300 text-xs font-semibold mb-1.5 block text-left">
                 {ar ? 'صورة توثيق (اختياري)' : 'Proof Photo (optional)'}
               </label>
               {clockPhoto ? (
@@ -499,7 +499,7 @@ export default function Attendance() {
                 </div>
               ) : (
                 <button onClick={() => photoInputRef.current?.click()}
-                        className="w-full h-16 rounded-xl border border-dashed border-white/20 bg-white/3 hover:bg-white/7 flex items-center justify-center gap-2 text-white/40 hover:text-white/70 transition text-xs">
+                        className="w-full h-16 rounded-xl border border-dashed border-slate-600 bg-slate-900/60 hover:bg-slate-800 flex items-center justify-center gap-2 text-slate-200 hover:text-white transition text-xs">
                   <Camera className="w-4 h-4" />
                   {ar ? 'التقط أو ارفع صورة' : 'Capture or upload photo'}
                 </button>
@@ -511,7 +511,7 @@ export default function Attendance() {
             {/* Clock-In / Clock-Out button */}
             <div className="w-full pt-1">
               {todayLoading ? (
-                <div className="flex justify-center h-14 items-center"><Loader2 className="w-6 h-6 animate-spin text-white/40" /></div>
+                <div className="flex justify-center h-14 items-center"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
               ) : isClockedIn ? (
                 <button onClick={handleClockOut}
                         disabled={clockOutMutation.isPending}
@@ -533,7 +533,7 @@ export default function Attendance() {
               )}
             </div>
 
-            <p className="text-xs text-white/30 flex items-center gap-1.5">
+            <p className="text-xs text-slate-300 flex items-center gap-1.5">
               <MapPin className="w-3 h-3" /> {selectedLocation?.name || (ar ? 'لم يتم اختيار موقع' : 'No location selected')}
             </p>
           </div>
