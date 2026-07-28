@@ -583,7 +583,8 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-0 bg-background custom-scrollbar payslip-dialog">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 border-0 bg-background custom-scrollbar payslip-dialog w-full">
+        <style>{`[data-radix-dialog-content]{max-width:min(896px,100vw)!important;overflow-x:hidden!important;}`}</style>
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border p-4 flex items-center justify-between print:hidden">
           <DialogTitle className="text-xl font-bold font-display flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
@@ -596,7 +597,7 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
           </div>
         </div>
 
-        <div className="p-8 print-section print:p-0">
+        <div className="p-4 sm:p-8 print-section print:p-0 overflow-x-hidden">
           {/* HEADER */}
           <div className="flex justify-between items-start mb-8 pb-6 border-b border-border/50">
             <div>
@@ -819,9 +820,20 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
 }
 
 function MetricBox({ label, val, color="text-foreground" }: any) {
+  // map text colour to a matching bg glow
+  const bgMap: Record<string, string> = {
+    'text-rose-500':    'bg-rose-500/10 border-rose-500/20 shadow-rose-500/10',
+    'text-indigo-500':  'bg-indigo-500/10 border-indigo-500/20 shadow-indigo-500/10',
+    'text-purple-500':  'bg-purple-500/10 border-purple-500/20 shadow-purple-500/10',
+    'text-blue-400':    'bg-blue-500/10 border-blue-500/20 shadow-blue-500/10',
+    'text-amber-500':   'bg-amber-500/10 border-amber-500/20 shadow-amber-500/10',
+    'text-rose-400':    'bg-rose-400/10 border-rose-400/20 shadow-rose-400/10',
+    'text-foreground':  'bg-muted/10 border-border/40 shadow-transparent',
+  };
+  const cls = bgMap[color] ?? 'bg-muted/10 border-border/40';
   return (
-    <div className="bg-muted/10 p-3 rounded-lg border border-border/50 text-center">
-      <div className="text-xs text-muted-foreground mb-1">{label}</div>
+    <div className={`p-3 rounded-xl border text-center shadow-lg ${cls} transition-all`}>
+      <div className="text-[10px] font-medium text-white/60 mb-1 leading-tight">{label}</div>
       <div className={`text-xl font-bold font-data ${color}`}>{val}</div>
     </div>
   );

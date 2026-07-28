@@ -2178,6 +2178,49 @@ export default function Settings() {
           ══════════════════════════════════════════════════════════════ */}
           {activeSection === 'payroll-rules' && (
             <div className="grid md:grid-cols-2 gap-4">
+
+              {/* Work hours */}
+              <SCard>
+                <CardHead icon={Clock4} color="bg-sky-600" title="توقيت الدوام" sub="بداية ونهاية يوم العمل وفترة السماح" />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="بداية الدوام" sub="وقت بدء الحضور">
+                      <Inp type="time" dir="ltr" value={s.workStart} onChange={e => update({ workStart: e.target.value })} className="font-mono text-sky-400 font-bold" />
+                    </Field>
+                    <Field label="نهاية الدوام" sub="وقت انتهاء الدوام">
+                      <Inp type="time" dir="ltr" value={s.workEnd} onChange={e => update({ workEnd: e.target.value })} className="font-mono text-sky-400 font-bold" />
+                    </Field>
+                  </div>
+                  <Field label="فترة السماح للتأخير" sub="دقائق قبل احتساب التأخير">
+                    <div className="flex gap-3 items-center">
+                      <Inp type="number" min="0" max="60" dir="ltr" value={s.lateGrace} onChange={e => update({ lateGrace: e.target.value })} className="w-24 text-center font-mono font-bold text-amber-400" />
+                      <span className="text-sm text-muted-foreground">دقيقة</span>
+                    </div>
+                    <input type="range" min="0" max="60" step="1" value={parseInt(s.lateGrace || '15')} onChange={e => update({ lateGrace: e.target.value })} className="w-full accent-amber-500 mt-2" />
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5"><span>0 د</span><span className="font-bold text-amber-400">{s.lateGrace || 15} د</span><span>60 د</span></div>
+                  </Field>
+                  <Field label="أيام العمل في الشهر" sub="لحساب المعدل الساعي">
+                    <div className="flex gap-3 items-center">
+                      <Inp type="number" min="1" max="31" dir="ltr" value={s.workDays} onChange={e => update({ workDays: e.target.value })} className="w-24 text-center font-mono font-bold text-sky-400" />
+                      <span className="text-sm text-muted-foreground">يوم عمل</span>
+                    </div>
+                  </Field>
+                  <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-3 text-xs text-sky-300 space-y-0.5">
+                    <p className="font-bold mb-1">ملخص الدوام الحالي</p>
+                    <p>ساعات العمل اليومية: {(() => {
+                      const start = s.workStart || '09:00';
+                      const end   = s.workEnd   || '17:00';
+                      const [sh, sm] = start.split(':').map(Number);
+                      const [eh, em] = end.split(':').map(Number);
+                      const diff = (eh * 60 + em) - (sh * 60 + sm);
+                      return diff > 0 ? `${Math.floor(diff/60)}س ${diff%60 ? (diff%60)+'د' : ''}`.trim() : '—';
+                    })()}</p>
+                    <p>السماح للتأخير: {s.lateGrace || 15} دقيقة</p>
+                    <p>أيام الشهر: {s.workDays || 22} يوم عمل</p>
+                  </div>
+                </div>
+              </SCard>
+
               {/* Overtime rates */}
               <SCard>
                 <CardHead icon={Wallet} color="bg-green-600" title="معدلات الوقت الإضافي" sub="ضاعف أجر ساعة الإضافي" />
