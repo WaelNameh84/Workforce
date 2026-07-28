@@ -10,7 +10,16 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Render external URLs require SSL; internal URLs work without it.
+// We enable SSL with rejectUnauthorized:false so both cases are covered.
+const sslConfig = process.env.DATABASE_URL?.includes("localhost")
+  ? undefined
+  : { rejectUnauthorized: false };
+
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: sslConfig,
+});
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
