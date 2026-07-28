@@ -724,203 +724,190 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} className="topbar-icon-button p-2 rounded-lg transition">
               {resolvedTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <div className="relative">
-              <button
-                onClick={() => { setUserMenuOpen(false); setNotifOpen(v => !v); }}
-                className="topbar-icon-button relative p-2 rounded-lg transition"
-                aria-label={locale === 'ar' ? 'الإشعارات' : 'Notifications'}
-              >
-                <Bell className="w-4 h-4" />
-                {totalNotifs > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white px-1">
-                    {totalNotifs > 9 ? '9+' : totalNotifs}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification dropdown panel */}
-              {notifOpen && (
-                <>
-                  <div className="fixed inset-0 z-[9998]" onClick={() => setNotifOpen(false)} />
-                  <div
-                    className="fixed top-[3.5rem] right-2 z-[9999] w-[min(22rem,calc(100vw-1rem))] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
-                    style={{ background: 'var(--card)', maxHeight: '75vh' }}
-                    dir={dir}
-                  >
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-gradient-to-r from-indigo-950/80 to-purple-950/80 shrink-0">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300 border border-amber-400/20">
-                          <Bell className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="text-sm font-black text-white">
-                          {locale === 'ar' ? 'الإشعارات' : 'Notifications'}
-                        </span>
-                        {totalNotifs > 0 && (
-                          <span className="rounded-full bg-red-500/90 px-1.5 py-0.5 text-[9px] font-black text-white">
-                            {totalNotifs}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => setNotifOpen(false)}
-                        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Notification list */}
-                    <div className="overflow-y-auto flex-1 divide-y divide-white/5">
-                      {totalNotifs === 0 ? (
-                        <div className="flex flex-col items-center justify-center gap-3 px-5 py-10 text-center">
-                          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
-                            <CheckCircle2 className="h-6 w-6" />
-                          </span>
-                          <p className="text-sm font-black text-white">
-                            {locale === 'ar' ? 'لا توجد إشعارات جديدة' : 'No new notifications'}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {locale === 'ar' ? 'كل شيء هادئ الآن.' : 'Everything looks good.'}
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Late arrivals */}
-                          {nAtt.filter((item: any) => item.isLate).map((item: any, i: number) => (
-                            <button
-                              key={`late-${i}`}
-                              type="button"
-                              onClick={() => { setNotifOpen(false); setLocation('/dashboard/attendance'); }}
-                              className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
-                            >
-                              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-violet-300 bg-violet-500/15 border-violet-400/20">
-                                <Timer className="h-4 w-4" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block text-xs font-extrabold text-white leading-5">
-                                  {item.employeeName || (locale === 'ar' ? 'موظف' : 'Employee')} — {locale === 'ar' ? 'حضور متأخر' : 'Late arrival'}
-                                </span>
-                                <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
-                                  {item.clockIn ? new Date(item.clockIn).toLocaleTimeString(locale === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                </span>
-                              </span>
-                            </button>
-                          ))}
-                          {/* Pending requests */}
-                          {nReqs.filter((item: any) => item.status === 'pending').map((item: any, i: number) => (
-                            <button
-                              key={`req-${i}`}
-                              type="button"
-                              onClick={() => { setNotifOpen(false); setLocation('/dashboard/requests'); }}
-                              className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
-                            >
-                              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-amber-300 bg-amber-500/15 border-amber-400/20">
-                                <AlertCircle className="h-4 w-4" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block text-xs font-extrabold text-white leading-5">
-                                  {item.title || (locale === 'ar' ? 'طلب جديد بانتظار المراجعة' : 'New request pending review')}
-                                </span>
-                                <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
-                                  {item.employeeName || '—'}
-                                </span>
-                              </span>
-                            </button>
-                          ))}
-                          {/* Pending leaves */}
-                          {nLeaves.filter((item: any) => item.status === 'pending').map((item: any, i: number) => (
-                            <button
-                              key={`leave-${i}`}
-                              type="button"
-                              onClick={() => { setNotifOpen(false); setLocation('/dashboard/leaves'); }}
-                              className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
-                            >
-                              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-blue-300 bg-blue-500/15 border-blue-400/20">
-                                <CalendarX className="h-4 w-4" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block text-xs font-extrabold text-white leading-5">
-                                  {locale === 'ar' ? 'طلب إجازة' : 'Leave request'} — {item.employeeName || (locale === 'ar' ? 'موظف' : 'Employee')}
-                                </span>
-                                <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
-                                  {item.startDate ? new Date(item.startDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US') : '—'}
-                                </span>
-                              </span>
-                            </button>
-                          ))}
-                        </>
-                      )}
-                    </div>
-
-                    {/* Footer — Action Center button */}
-                    <div className="shrink-0 border-t border-white/10 p-3 bg-gradient-to-r from-rose-950/60 to-orange-950/60">
-                      <button
-                        type="button"
-                        onClick={() => { setNotifOpen(false); setLocation('/dashboard/action-center'); }}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500/15 border border-rose-400/25 px-4 py-2.5 text-xs font-black text-rose-300 transition hover:bg-rose-500/25 active:scale-[.98]"
-                      >
-                        <Zap className="h-3.5 w-3.5" />
-                        {locale === 'ar' ? 'فتح مركز إجراءات المدير' : 'Open Manager Action Center'}
-                      </button>
-                    </div>
-                  </div>
-                </>
+            {/* Bell button — panel rendered outside <header> below */}
+            <button
+              onClick={() => { setUserMenuOpen(false); setNotifOpen(v => !v); }}
+              className="topbar-icon-button relative p-2 rounded-lg transition"
+              aria-label={locale === 'ar' ? 'الإشعارات' : 'Notifications'}
+            >
+              <Bell className="w-4 h-4" />
+              {totalNotifs > 0 && (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white px-1">
+                  {totalNotifs > 9 ? '9+' : totalNotifs}
+                </span>
               )}
-            </div>
+            </button>
 
-            {/* User menu */}
-            <div className="relative">
-              <button
-                onClick={() => { setNotifOpen(false); setUserMenuOpen(v => !v); }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 transition"
-              >
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                  {user?.fullName?.charAt(0) || 'U'}
-                </div>
-                <span className="hidden sm:block text-sm font-medium">{user?.fullName?.split(' ')[0]}</span>
-                <ChevronDown className="w-3 h-3 text-muted-foreground" />
-              </button>
-              {userMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-[9998]" onClick={() => setUserMenuOpen(false)} />
-                  <div className="fixed top-[3.5rem] right-2 sm:absolute sm:top-full sm:mt-1 sm:right-0 z-[9999] w-[min(13rem,calc(100vw-1rem))] rounded-xl border border-white/10 shadow-xl py-1" style={{ background: 'var(--card)' }}>
-                    <div className="px-4 py-2 border-b border-white/5">
-                      <div className="text-sm font-medium truncate">{user?.fullName}</div>
-                      <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
-                      <span className={`inline-flex mt-1 items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${roleBadge.color}`}>
-                        {roleBadge.label}
-                      </span>
-                    </div>
-                    <Link
-                      href="/dashboard/profile"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                    >
-                      <User className="w-4 h-4" />
-                      {locale === 'ar' ? 'الملف الشخصي' : locale === 'sv' ? 'Profil' : 'Profile'}
-                    </Link>
-                    <Link
-                      href="/dashboard/settings"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                    >
-                      <Settings className="w-4 h-4" />
-                      {t('settings')}
-                    </Link>
-                    <button
-                      onClick={() => { setUserMenuOpen(false); logout(); }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      {t('logout')}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* User menu button — panel rendered outside <header> below */}
+            <button
+              onClick={() => { setNotifOpen(false); setUserMenuOpen(v => !v); }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 transition"
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                {user?.fullName?.charAt(0) || 'U'}
+              </div>
+              <span className="hidden sm:block text-sm font-medium">{user?.fullName?.split(' ')[0]}</span>
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+            </button>
           </div>
         </header>
+
+        {/* ── Notification panel — OUTSIDE <header> to escape backdrop-filter stacking context ── */}
+        {notifOpen && (
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setNotifOpen(false)} />
+            <div
+              className="fixed top-[3.5rem] right-2 z-[9999] w-[min(22rem,calc(100vw-1rem))] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+              style={{ background: 'var(--card)', maxHeight: '75vh' }}
+              dir={dir}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-gradient-to-r from-indigo-950/80 to-purple-950/80 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300 border border-amber-400/20">
+                    <Bell className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-sm font-black text-white">
+                    {locale === 'ar' ? 'الإشعارات' : 'Notifications'}
+                  </span>
+                  {totalNotifs > 0 && (
+                    <span className="rounded-full bg-red-500/90 px-1.5 py-0.5 text-[9px] font-black text-white">
+                      {totalNotifs}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setNotifOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto flex-1 divide-y divide-white/5">
+                {totalNotifs === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-3 px-5 py-10 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
+                      <CheckCircle2 className="h-6 w-6" />
+                    </span>
+                    <p className="text-sm font-black text-white">
+                      {locale === 'ar' ? 'لا توجد إشعارات جديدة' : 'No new notifications'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {locale === 'ar' ? 'كل شيء هادئ الآن.' : 'Everything looks good.'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {nAtt.filter((item: any) => item.isLate).map((item: any, i: number) => (
+                      <button key={`late-${i}`} type="button"
+                        onClick={() => { setNotifOpen(false); setLocation('/dashboard/attendance'); }}
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                      >
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-violet-300 bg-violet-500/15 border-violet-400/20">
+                          <Timer className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-extrabold text-white leading-5">
+                            {item.employeeName || (locale === 'ar' ? 'موظف' : 'Employee')} — {locale === 'ar' ? 'حضور متأخر' : 'Late arrival'}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                            {item.clockIn ? new Date(item.clockIn).toLocaleTimeString(locale === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                    {nReqs.filter((item: any) => item.status === 'pending').map((item: any, i: number) => (
+                      <button key={`req-${i}`} type="button"
+                        onClick={() => { setNotifOpen(false); setLocation('/dashboard/requests'); }}
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                      >
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-amber-300 bg-amber-500/15 border-amber-400/20">
+                          <AlertCircle className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-extrabold text-white leading-5">
+                            {item.title || (locale === 'ar' ? 'طلب جديد بانتظار المراجعة' : 'New request pending review')}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                            {item.employeeName || '—'}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                    {nLeaves.filter((item: any) => item.status === 'pending').map((item: any, i: number) => (
+                      <button key={`leave-${i}`} type="button"
+                        onClick={() => { setNotifOpen(false); setLocation('/dashboard/leaves'); }}
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                      >
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-blue-300 bg-blue-500/15 border-blue-400/20">
+                          <CalendarX className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-extrabold text-white leading-5">
+                            {locale === 'ar' ? 'طلب إجازة' : 'Leave request'} — {item.employeeName || (locale === 'ar' ? 'موظف' : 'Employee')}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                            {item.startDate ? new Date(item.startDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US') : '—'}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+
+              <div className="shrink-0 border-t border-white/10 p-3 bg-gradient-to-r from-rose-950/60 to-orange-950/60">
+                <button
+                  type="button"
+                  onClick={() => { setNotifOpen(false); setLocation('/dashboard/action-center'); }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500/15 border border-rose-400/25 px-4 py-2.5 text-xs font-black text-rose-300 transition hover:bg-rose-500/25 active:scale-[.98]"
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  {locale === 'ar' ? 'فتح مركز إجراءات المدير' : 'Open Manager Action Center'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── User menu panel — OUTSIDE <header> to escape backdrop-filter stacking context ── */}
+        {userMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setUserMenuOpen(false)} />
+            <div className="fixed top-[3.5rem] right-2 z-[9999] w-[min(13rem,calc(100vw-1rem))] rounded-xl border border-white/10 shadow-xl py-1" style={{ background: 'var(--card)' }}>
+              <div className="px-4 py-2 border-b border-white/5">
+                <div className="text-sm font-medium truncate">{user?.fullName}</div>
+                <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+                <span className={`inline-flex mt-1 items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${roleBadge.color}`}>
+                  {roleBadge.label}
+                </span>
+              </div>
+              <Link
+                href="/dashboard/profile"
+                onClick={() => setUserMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                <User className="w-4 h-4" />
+                {locale === 'ar' ? 'الملف الشخصي' : locale === 'sv' ? 'Profil' : 'Profile'}
+              </Link>
+              <Link
+                href="/dashboard/settings"
+                onClick={() => setUserMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                <Settings className="w-4 h-4" />
+                {t('settings')}
+              </Link>
+              <button
+                onClick={() => { setUserMenuOpen(false); logout(); }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                <LogOut className="w-4 h-4" />
+                {t('logout')}
+              </button>
+            </div>
+          </>
+        )}
 
          {isOffline && <div className="sticky top-0 z-20 flex items-center justify-center gap-2 border-b border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300 animate-fadeIn"><span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />{locale === 'ar' ? 'لا يوجد اتصال بالإنترنت — بعض البيانات قد لا تكون محدثة' : locale === 'sv' ? 'Ingen internetanslutning — vissa data kan vara inaktuella' : 'No internet connection — some data may be outdated'}</div>}
 
