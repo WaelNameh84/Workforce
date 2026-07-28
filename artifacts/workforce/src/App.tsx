@@ -6,7 +6,11 @@ import { Route, Switch, Router as WouterRouter, Redirect } from 'wouter';
 import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/i18n/LanguageProvider';
 import { AuthContext, useAuthState, useAuth } from '@/hooks/use-auth';
-import { setAuthTokenGetter } from '@workspace/api-client-react';
+import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
+
+// On Render the frontend and API are separate services — point the client at the API URL.
+const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
+if (apiUrl) setBaseUrl(apiUrl);
 
 import Login from '@/pages/login';
 import Register from '@/pages/register';
