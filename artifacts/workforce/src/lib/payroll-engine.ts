@@ -289,13 +289,23 @@ export function buildPayrollSummary(
   // Contract-type adjustments
   let actualBasic = basicSalary;
   if (contractType === 'daily') {
+    // Daily: pay per worked day only
     actualBasic = time.workedDays * rates.dailyRate;
-    absenceDeduction = 0;
+    absenceDeduction = 0; // absence already excluded from worked days
   } else if (contractType === 'hourly') {
+    // Hourly: pay per worked hour only
     actualBasic = time.workedHours * rates.hourlyRate;
     absenceDeduction = 0;
     lateDeductionAmt = 0;
     earlyDeductionAmt = 0;
+  } else {
+    // Monthly: pay proportionally — workedDays / workDaysPerMonth × basicSalary
+    // 0 worked days → 0 salary; partial attendance → proportional pay
+    const effectiveDays = cfg.workDaysPerMonth > 0 ? cfg.workDaysPerMonth : 1;
+    actualBasic = (time.workedDays / effectiveDays) * basicSalary;
+    // Absent & unrecorded days are already excluded from workedDays — no double deduction
+    absenceDeduction = 0;
+    unpaidLeaveDeduction = 0; // unpaid leave reduces workedDays directly
   }
 
   const grossSalary = actualBasic + overtimePay + nightDifferentialPay + bonus + allowances + commissions;
