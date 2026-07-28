@@ -31,7 +31,7 @@ export interface AppSettings {
   fontShape: string;
 
   // Live Clock
-  clockType: 'digital' | 'analog' | 'flip';
+  clockType: 'digital' | 'analog' | 'flip' | 'neon';
   clockColor: string;
   clockSize: 'small' | 'medium' | 'large';
   clockPos: 'header' | 'sidebar' | 'dashboard' | 'floating' | 'hidden';
@@ -133,6 +133,25 @@ export interface AppSettings {
   fontWeight: 'normal' | 'medium' | 'bold';
   lineHeight: 'tight' | 'normal' | 'relaxed';
   letterSpacing: 'tight' | 'normal' | 'wide';
+
+  // Login page design
+  loginCardStyle: 'glass' | 'solid' | 'gradient' | 'minimal' | 'neon';
+  loginCardGradientFrom: string;
+  loginCardGradientTo: string;
+  loginCardRadius: number;
+  loginBgType: 'default' | 'gradient' | 'mesh' | 'grid' | 'solid';
+  loginBgColor: string;
+  loginAccentColor: string;
+  loginShowLogo: boolean;
+  loginShowClock: boolean;
+  loginShowStats: boolean;
+  loginPanelGradientFrom: string;
+  loginPanelGradientTo: string;
+
+  // Auto-backup
+  autoBackup: boolean;
+  autoBackupInterval: 'hourly' | 'daily' | 'weekly' | 'monthly';
+  autoBackupTime: string;
 }
 
 export const DEFAULTS: AppSettings = {
@@ -249,6 +268,25 @@ export const DEFAULTS: AppSettings = {
   fontWeight: 'normal',
   lineHeight: 'normal',
   letterSpacing: 'normal',
+
+  // Login page design
+  loginCardStyle: 'glass',
+  loginCardGradientFrom: '#6366f1',
+  loginCardGradientTo: '#8b5cf6',
+  loginCardRadius: 32,
+  loginBgType: 'default',
+  loginBgColor: '#0f172a',
+  loginAccentColor: '#6366f1',
+  loginShowLogo: true,
+  loginShowClock: true,
+  loginShowStats: true,
+  loginPanelGradientFrom: '#6366f1',
+  loginPanelGradientTo: '#8b5cf6',
+
+  // Auto-backup
+  autoBackup: false,
+  autoBackupInterval: 'daily',
+  autoBackupTime: '08:00',
 };
 
 // ─── Helper: parse hex → rgb string ──────────────────────────────────────────

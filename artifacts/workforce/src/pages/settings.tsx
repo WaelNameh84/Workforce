@@ -1,4 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useAlarm } from '@/hooks/use-alarm';
+import { useGetEmployees } from '@workspace/api-client-react';
+import { useAuth } from '@/hooks/use-auth';
+import { ClockWidget } from '@/components/clock-widget';
 import { THEMES_CATALOG, GLOBAL_CSS, ThemeCosmic, ThemeAurora, ThemeNeon, ThemeCrystal, ThemeFire, ThemeOcean, ThemeRings, ThemeGlass, ThemePremium, ThemeHolo, ThemeParticles, ThemeSpace, ThemeGolden, ThemeSmoke } from '@/components/splash-themes';
 import { useTheme } from '@/components/theme-provider';
 import { useToast } from '@/components/ui/use-toast';
@@ -498,6 +502,65 @@ function PreviewSample({ settings, sectionId, liveTime, previewKey = 0 }: { sett
   if (sectionId === 'backup') return <div className="rounded-2xl p-5 border border-emerald-500/20 bg-emerald-500/5 space-y-3"><p className="font-bold text-emerald-300">نسخة WorkforceOS الاحتياطية</p><p className="text-sm text-muted-foreground">الملف يشمل جميع الإعدادات والألوان وتفضيلات المستخدم.</p><div className="h-2 rounded-full bg-emerald-500/20"><div className="h-full w-3/4 rounded-full bg-emerald-400" /></div></div>;
   if (sectionId === 'clearlogs') return <div className="rounded-2xl p-5 border border-red-500/20 bg-red-500/5 space-y-3"><AlertTriangle className="w-6 h-6 text-red-400" /><p className="font-bold text-red-300">منطقة حذف السجلات</p><p className="text-sm text-muted-foreground">هذه الإجراءات لا يمكن التراجع عنها.</p></div>;
   if (sectionId === 'apikeys') return <div className="rounded-2xl p-5 border border-amber-500/20 bg-amber-500/5 space-y-3"><p className="font-bold text-amber-300">حالة الخدمات</p>{['OpenAI', 'Gemini', 'Maps'].map(name => <div key={name} className="flex justify-between text-sm"><span>{name}</span><span className="text-muted-foreground">جاهز للربط</span></div>)}</div>;
+  if (sectionId === 'loginDesign') {
+    const cardFrom = settings.loginCardGradientFrom || '#6366f1';
+    const cardTo   = settings.loginCardGradientTo   || '#8b5cf6';
+    const radius   = settings.loginCardRadius ?? 32;
+    const panelFrom = settings.loginPanelGradientFrom || '#6366f1';
+    const panelTo   = settings.loginPanelGradientTo   || '#8b5cf6';
+    const cardBg =
+      settings.loginCardStyle === 'gradient' ? `linear-gradient(135deg, ${cardFrom}, ${cardTo})`
+      : settings.loginCardStyle === 'solid'   ? '#1e293b'
+      : settings.loginCardStyle === 'neon'    ? 'rgba(17,0,36,.92)'
+      : settings.loginCardStyle === 'minimal' ? 'transparent'
+      : 'rgba(255,255,255,.08)';
+    const cardBorder =
+      settings.loginCardStyle === 'neon'    ? `1px solid ${cardFrom}88`
+      : settings.loginCardStyle === 'minimal' ? '1px dashed rgba(255,255,255,.2)'
+      : '1px solid rgba(255,255,255,.12)';
+    return (
+      <div className="rounded-2xl overflow-hidden border border-border" style={{ height: 240 }}>
+        <div className="flex h-full">
+          {/* Left panel */}
+          <div className="w-2/5 h-full relative hidden sm:flex flex-col justify-center p-4"
+            style={{ background: `linear-gradient(135deg, ${panelFrom}, ${panelTo})` }}>
+            <div className="absolute inset-0 bg-black/15" />
+            <div className="relative z-10">
+              {settings.loginShowLogo !== false && (
+                <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center mb-2">
+                  {settings.logoUrl ? <img src={settings.logoUrl} className="w-full h-full object-contain rounded-xl" /> : <div className="w-5 h-5 rounded-md bg-white/60" />}
+                </div>
+              )}
+              <div className="text-white font-bold text-xs">{settings.appName || 'WorkforceOS'}</div>
+              <div className="text-white/60 text-[9px] mt-1">تسجيل دخول آمن</div>
+            </div>
+            {settings.loginShowStats !== false && (
+              <div className="absolute bottom-3 left-3 right-3 z-10 bg-white/10 backdrop-blur-sm rounded-lg p-2 border border-white/15">
+                <div className="text-white/70 text-[8px]">Active Workforce</div>
+                <div className="text-white font-bold text-xs">1,248</div>
+              </div>
+            )}
+          </div>
+          {/* Right panel */}
+          <div className="flex-1 h-full flex items-center justify-center p-4 bg-background">
+            <div className="w-full max-w-[160px]" style={{ background: cardBg, border: cardBorder, borderRadius: radius/2, padding: 12, backdropFilter: 'blur(12px)' }}>
+              {settings.loginShowClock !== false && (
+                <div className="text-center mb-2" style={{ color: settings.loginAccentColor || '#6366f1', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}>
+                  12:34:56
+                </div>
+              )}
+              <div className="h-5 rounded-md bg-white/10 border border-white/10 mb-1.5" />
+              <div className="h-5 rounded-md bg-white/10 border border-white/10 mb-2" />
+              <div className="h-5 rounded-md flex items-center justify-center text-[8px] font-bold text-white"
+                style={{ background: `linear-gradient(135deg, ${settings.loginAccentColor || '#6366f1'}, ${cardTo})` }}>
+                تسجيل الدخول
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return <div className="rounded-2xl p-5 border border-border bg-white/5"><p className="font-bold">معاينة الإعدادات</p><p className="text-sm text-muted-foreground mt-2">هذه التغييرات مؤقتة وتُطبّق على النظام بعد الضغط على «حفظ».</p></div>;
 }
@@ -538,6 +601,7 @@ const SECTIONS = [
   { id: 'clearlogs',   label: 'مسح السجلات',          icon: Trash2,         color: 'bg-red-500',     desc: 'حذف البيانات' },
   { id: 'font',        label: 'الخط',                 icon: Type,           color: 'bg-cyan-500',    desc: 'الخط وحجمه وشكله' },
   { id: 'credentials', label: 'الإيميل وكلمة السر',  icon: Lock,           color: 'bg-slate-500',   desc: 'بيانات الدخول' },
+  { id: 'loginDesign', label: 'تصميم لوحة الدخول',   icon: Monitor,        color: 'bg-fuchsia-500', desc: 'تخصيص شكل صفحة اللوغن' },
   { id: 'dashboard',   label: 'لوحة البداية',         icon: LayoutDashboard, color: 'bg-blue-500',  desc: 'تخصيص الصفحة الرئيسية' },
   { id: 'payroll-rules', label: 'قواعد الرواتب',     icon: Wallet,          color: 'bg-green-600', desc: 'معدلات الوقت الإضافي والاستقطاعات' },
 ];
@@ -557,11 +621,66 @@ const DASH_WIDGETS = [
 ];
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
+// ─── AlarmTestButton ───────────────────────────────────────────────────────────
+function AlarmTestButton({ disabled, tone }: { disabled: boolean; tone: string }) {
+  const { playSound } = useAlarm();
+  return (
+    <button
+      onClick={() => playSound(tone as any)}
+      disabled={disabled}
+      className="w-full py-2 rounded-xl border border-border hover:border-orange-500/40 text-sm font-bold transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+      <Volume2 className="w-4 h-4" /> اختبار الصوت الآن 🔔
+    </button>
+  );
+}
+
+// ─── ClearEmployeeSelector ────────────────────────────────────────────────────
+function ClearEmployeeSelector({ selectedId, onSelect }: { selectedId: string; onSelect: (id: string, name: string) => void }) {
+  const { user } = useAuth();
+  const { data } = useGetEmployees({ companyId: user?.companyId || 0 });
+  const employees = data?.employees || [];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-bold text-muted-foreground">تحديد الموظف (اختياري)</label>
+      <select
+        value={selectedId}
+        onChange={e => {
+          const id = e.target.value;
+          const emp = employees.find(em => em.id?.toString() === id);
+          onSelect(id, emp?.fullName || 'كل الموظفين');
+        }}
+        className="w-full rounded-xl px-3 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/40 transition"
+      >
+        <option value="all">كل الموظفين</option>
+        {employees.map(emp => (
+          <option key={emp.id} value={emp.id?.toString() || ''}>{emp.fullName}</option>
+        ))}
+      </select>
+      {selectedId !== 'all' && (
+        <p className="text-xs text-amber-400 flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3 inline" />
+          سيتم مسح سجلات هذا الموظف فقط
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── ClockPreview ─────────────────────────────────────────────────────────────
+function ClockPreview({ clockType, clockColor, clockSize }: { clockType: string; clockColor: string; clockSize: string }) {
+  return (
+    <div className="flex items-center justify-center p-4 min-h-[80px]">
+      <ClockWidget overrideStyle={clockType} />
+    </div>
+  );
+}
+
 export default function Settings() {
   const { theme: savedTheme, setTheme }   = useTheme();
   const { locale: savedLocale, setLocale } = useLanguage();
   const { toast }             = useToast();
   const { s: savedSettings, save }   = useSettings();
+  const { user } = useAuth();
 
   const [activeSection, setActiveSection] = useState('logo');
   const [draft, setDraft] = useState<AppSettings>(() => savedSettings);
@@ -574,6 +693,8 @@ export default function Settings() {
   const [pinDialog, setPinDialog]         = useState(false);
   const [pinValue, setPinValue]           = useState('');
   const [clearDialog, setClearDialog]     = useState<string | null>(null);
+  const [clearEmployeeId, setClearEmployeeId] = useState<string>('all');
+  const [clearEmployeeName, setClearEmployeeName] = useState<string>('كل الموظفين');
 
   // Credential form
   const [secEmail, setSecEmail]       = useState('');
@@ -611,12 +732,47 @@ export default function Settings() {
   const toggleBiometric = (k: keyof typeof s.biometric) =>
     update({ biometric: { ...s.biometric, [k]: !s.biometric[k] } });
 
-  const createBackup = () => {
-    const url = URL.createObjectURL(new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' }));
-    Object.assign(document.createElement('a'), { href: url, download: 'workforceos-backup.json' }).click();
+  const [lastBackupTime, setLastBackupTime] = useState<string>(() =>
+    localStorage.getItem('workforce-last-backup') || ''
+  );
+
+  const createBackup = (silent = false) => {
+    const data = JSON.stringify(savedSettings, null, 2);
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    const ts = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
+    Object.assign(document.createElement('a'), { href: url, download: `workforceos-backup-${ts}.json` }).click();
     URL.revokeObjectURL(url);
-    toast({ title: 'تم تنزيل النسخة الاحتياطية' });
+    const now = new Date().toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' });
+    localStorage.setItem('workforce-last-backup', now);
+    setLastBackupTime(now);
+    if (!silent) toast({ title: '✅ تم تنزيل النسخة الاحتياطية' });
   };
+
+  // Auto-backup scheduler
+  useEffect(() => {
+    if (!savedSettings.autoBackup) return;
+    const check = () => {
+      const lastRaw = localStorage.getItem('workforce-last-backup-ts');
+      const last = lastRaw ? new Date(lastRaw).getTime() : 0;
+      const now = Date.now();
+      const msMap: Record<string, number> = {
+        hourly:  60 * 60 * 1000,
+        daily:   24 * 60 * 60 * 1000,
+        weekly:  7 * 24 * 60 * 60 * 1000,
+        monthly: 30 * 24 * 60 * 60 * 1000,
+      };
+      const interval = msMap[savedSettings.autoBackupInterval] || msMap.daily;
+      if (now - last >= interval) {
+        localStorage.setItem('workforce-last-backup-ts', new Date().toISOString());
+        createBackup(true);
+        toast({ title: '⏱️ نسخة احتياطية تلقائية', description: 'تم التنزيل التلقائي حسب جدولك' });
+      }
+    };
+    check();
+    const id = setInterval(check, 60 * 60 * 1000); // recheck every hour
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedSettings.autoBackup, savedSettings.autoBackupInterval]);
 
   const restoreBackup = () => {
     const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.json' });
@@ -660,9 +816,13 @@ export default function Settings() {
   };
 
   const clearLogs = (type: string) => {
-    const key = `workforce-cleared-${type}`;
+    const key = clearEmployeeId !== 'all' 
+      ? `workforce-cleared-${type}-emp-${clearEmployeeId}` 
+      : `workforce-cleared-${type}`;
     localStorage.setItem(key, new Date().toISOString());
-    toast({ title: `تم مسح ${type === 'attendance' ? 'سجلات الحضور' : type === 'payroll' ? 'سجلات الرواتب' : type === 'leaves' ? 'سجلات الإجازات' : type === 'all' ? 'جميع السجلات' : 'السجلات'} بنجاح` });
+    const typeLabel = type === 'attendance' ? 'سجلات الحضور' : type === 'payroll' ? 'سجلات الرواتب' : type === 'leaves' ? 'سجلات الإجازات' : type === 'all' ? 'جميع السجلات' : 'السجلات';
+    const empLabel = clearEmployeeId !== 'all' ? ` — ${clearEmployeeName}` : '';
+    toast({ title: `تم مسح ${typeLabel}${empLabel} بنجاح` });
     setClearDialog(null);
   };
 
@@ -1041,13 +1201,20 @@ export default function Settings() {
               <SCard>
                 <CardHead icon={Clock4} color="bg-sky-500" title="شكل الساعة" sub="تخصيص الساعة المباشرة" />
                 <div className="space-y-5">
-                  <Field label="نوع العرض">
-                    <BtnPicker
-                      options={[{ v: 'digital', label: 'رقمي' }, { v: 'analog', label: 'تناظري' }, { v: 'flip', label: 'انقلاب' }]}
-                      value={s.clockType}
-                      onChange={v => update({ clockType: v as any })}
-                      color="sky"
-                    />
+                  <Field label="شكل الساعة ثلاثية الأبعاد المتحركة">
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { v: 'digital', label: '🔢 رقمي 3D' },
+                        { v: 'analog',  label: '🕐 تناظري 3D' },
+                        { v: 'flip',    label: '🔄 انقلاب' },
+                        { v: 'neon',    label: '💫 نيون دائري' },
+                      ] as {v:string;label:string}[]).map(({ v, label }) => (
+                        <button key={v} onClick={() => update({ clockType: v as any })}
+                          className={`py-2.5 rounded-xl border font-bold text-sm transition ${s.clockType === v ? 'border-sky-500 bg-sky-500/10 text-sky-300' : 'border-border hover:border-sky-500/30 text-muted-foreground'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </Field>
 
                   <Field label="لون الساعة">
@@ -1103,27 +1270,13 @@ export default function Settings() {
                 </div>
 
                 {/* Live preview */}
-                <div className="mt-5 rounded-xl border border-border bg-black/20 p-5 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-3 font-bold uppercase tracking-wider">معاينة مباشرة</p>
-                  <div
-                    className={`font-mono font-black tabular-nums transition-all ${s.clockSize === 'small' ? 'text-3xl' : s.clockSize === 'large' ? 'text-6xl' : 'text-5xl'}`}
-                    style={{ color: s.clockColor }}
-                  >
-                    {liveTime.toLocaleTimeString(s.showArabicDay ? 'ar-SA' : 'en-US', {
-                      hour: '2-digit', minute: '2-digit',
-                      second: s.showSeconds ? '2-digit' : undefined,
-                      hour12: s.show12h,
-                    })}
-                  </div>
+                <div className="mt-5 rounded-xl border border-border bg-black/40 p-5 flex flex-col items-center gap-3">
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">معاينة مباشرة</p>
+                  <ClockPreview clockType={s.clockType} clockColor={s.clockColor} clockSize={s.clockSize} />
                   {s.showDate && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {liveTime.toLocaleDateString(s.showArabicDay ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    <p className="text-xs text-muted-foreground">
+                      {liveTime.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
-                  )}
-                  {s.showShiftClock && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border text-xs text-muted-foreground">
-                      <Activity className="w-3 h-3" /> دخلت 08:55
-                    </div>
                   )}
                 </div>
 
@@ -1352,12 +1505,7 @@ export default function Settings() {
                       <option value="silent">صامت</option>
                     </Sel>
                   </Field>
-                  <button
-                    onClick={() => toast({ title: 'تم اختبار صوت التنبيه 🔔' })}
-                    disabled={!s.notif.sound}
-                    className="w-full py-2 rounded-xl border border-border hover:border-orange-500/40 text-sm font-bold transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
-                    <Volume2 className="w-4 h-4" /> اختبار الصوت
-                  </button>
+                  <AlarmTestButton disabled={!s.notif.sound} tone={s.notifSoundTone} />
                 </div>
               </SCard>
 
@@ -1658,7 +1806,9 @@ export default function Settings() {
                     <Sel value={s.assistantLang} onChange={e => update({ assistantLang: e.target.value })} disabled={!s.assistantOn}>
                       <option value="ar">العربية فقط</option>
                       <option value="en">English Only</option>
+                      <option value="sv">Svenska (السويدية)</option>
                       <option value="bilingual">عربي + English</option>
+                      <option value="trilingual">العربية + English + Svenska</option>
                     </Sel>
                   </Field>
 
@@ -1708,8 +1858,9 @@ export default function Settings() {
           ══════════════════════════════════════════════════════════════ */}
           {activeSection === 'backup' && (
             <div className="grid md:grid-cols-2 gap-4">
+              {/* Manual backup */}
               <SCard>
-                <CardHead icon={Download} color="bg-emerald-500" title="نسخ احتياطي" sub="صدِّر إعداداتك لحفظها" />
+                <CardHead icon={Download} color="bg-emerald-500" title="نسخ احتياطي يدوي" sub="نزّل إعداداتك الآن" />
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl border border-border bg-white/5 space-y-2">
                     <p className="text-sm font-bold">الملف يشمل:</p>
@@ -1720,15 +1871,18 @@ export default function Settings() {
                     ))}
                   </div>
 
-                  <button onClick={createBackup}
+                  <button onClick={() => createBackup(false)}
                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5 transition flex items-center justify-center gap-2">
-                    <Download className="w-4 h-4" /> تنزيل نسخة احتياطية
+                    <Download className="w-4 h-4" /> تنزيل نسخة احتياطية الآن
                   </button>
 
-                  <InfoBox text={`آخر حفظ: ${new Date().toLocaleDateString('ar-SA', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`} type="success" />
+                  {lastBackupTime && (
+                    <InfoBox text={`آخر نسخة: ${lastBackupTime}`} type="success" />
+                  )}
                 </div>
               </SCard>
 
+              {/* Restore */}
               <SCard>
                 <CardHead icon={RefreshCw} color="bg-blue-500" title="استعادة النسخة" sub="استرجع إعداداتك من ملف سابق" />
                 <div className="space-y-4">
@@ -1747,12 +1901,77 @@ export default function Settings() {
                     <Upload className="w-4 h-4" /> استعادة من ملف
                   </button>
 
-                   <button onClick={() => { setDraft(DEFAULTS); toast({ title: 'تمت إعادة تعيين المعاينة، اضغط حفظ لتطبيقها' }); }}
+                  <button onClick={() => { setDraft(DEFAULTS); toast({ title: 'تمت إعادة تعيين المعاينة، اضغط حفظ لتطبيقها' }); }}
                     className="w-full py-3 rounded-xl border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/5 transition flex items-center justify-center gap-2">
                     <RotateCcw className="w-4 h-4" /> إعادة تعيين لافتراضيات النظام
                   </button>
 
                   <InfoBox text="صيغة الملف المقبولة: JSON فقط (.json)" type="info" />
+                </div>
+              </SCard>
+
+              {/* Auto-backup scheduler */}
+              <SCard className="md:col-span-2">
+                <CardHead icon={Timer} color="bg-teal-500" title="النسخ الاحتياطي التلقائي" sub="حدد متى يُنزَّل الملف تلقائياً" />
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <TRow
+                      label="تفعيل النسخ التلقائي"
+                      sub="سيتم تنزيل نسخة احتياطية تلقائياً على جهازك"
+                      on={s.autoBackup}
+                      onToggle={() => update({ autoBackup: !s.autoBackup })}
+                    />
+
+                    {s.autoBackup && (
+                      <>
+                        <Field label="تكرار النسخ الاحتياطي">
+                          <div className="grid grid-cols-2 gap-2">
+                            {([
+                              { v: 'hourly',  label: 'كل ساعة',  icon: '⏱️' },
+                              { v: 'daily',   label: 'يومياً',    icon: '📅' },
+                              { v: 'weekly',  label: 'أسبوعياً', icon: '🗓️' },
+                              { v: 'monthly', label: 'شهرياً',   icon: '📆' },
+                            ] as const).map(({ v, label, icon }) => (
+                              <button key={v} onClick={() => update({ autoBackupInterval: v })}
+                                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-bold transition ${s.autoBackupInterval === v ? 'border-teal-500 bg-teal-500/10 text-teal-300' : 'border-border hover:border-teal-500/30 text-muted-foreground'}`}>
+                                <span>{icon}</span> {label}
+                                {s.autoBackupInterval === v && <Check className="w-3.5 h-3.5 mr-auto" />}
+                              </button>
+                            ))}
+                          </div>
+                        </Field>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Status card */}
+                    <div className={`p-4 rounded-xl border space-y-3 ${s.autoBackup ? 'border-teal-500/30 bg-teal-500/5' : 'border-border bg-white/5'}`}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${s.autoBackup ? 'bg-teal-400 animate-pulse' : 'bg-slate-600'}`} />
+                        <p className={`text-sm font-bold ${s.autoBackup ? 'text-teal-300' : 'text-muted-foreground'}`}>
+                          {s.autoBackup ? 'النسخ التلقائي مفعّل' : 'النسخ التلقائي معطّل'}
+                        </p>
+                      </div>
+                      {s.autoBackup && (
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p>التكرار: <span className="text-teal-300 font-bold">
+                            {s.autoBackupInterval === 'hourly' ? 'كل ساعة'
+                              : s.autoBackupInterval === 'daily' ? 'يومياً'
+                              : s.autoBackupInterval === 'weekly' ? 'أسبوعياً'
+                              : 'شهرياً'}
+                          </span></p>
+                          {lastBackupTime && <p>آخر نسخة: <span className="text-emerald-400 font-bold">{lastBackupTime}</span></p>}
+                        </div>
+                      )}
+                      <div className="rounded-lg bg-white/5 border border-border px-3 py-2 text-xs text-muted-foreground">
+                        <p className="flex items-center gap-1.5"><Smartphone className="w-3.5 h-3.5" /> الملف يُنزَّل مباشرة على جهازك</p>
+                        <p className="flex items-center gap-1.5 mt-1"><Download className="w-3.5 h-3.5" /> صيغة JSON — قابل للاستعادة لاحقاً</p>
+                      </div>
+                    </div>
+
+                    <SaveBtn onClick={handleSave} label="حفظ إعدادات النسخ" color="teal" icon={Database} />
+                  </div>
                 </div>
               </SCard>
             </div>
@@ -1866,6 +2085,10 @@ export default function Settings() {
                 <CardHead icon={Trash2} color="bg-red-500" title="مسح السجلات" sub="حذف بيانات النظام" />
                 <InfoBox text="تحذير: عملية الحذف لا يمكن التراجع عنها. تأكد من وجود نسخة احتياطية." type="warning" />
                 <div className="mt-4 space-y-3">
+                  <ClearEmployeeSelector
+                    selectedId={clearEmployeeId}
+                    onSelect={setClearEmployeeId}
+                  />
                   {[
                     { id: 'attendance', label: 'سجلات الحضور', sub: 'جميع سجلات الدخول والخروج', icon: Clock, color: 'text-orange-400', border: 'border-orange-500/30 hover:bg-orange-500/5' },
                     { id: 'payroll', label: 'سجلات الرواتب', sub: 'كشوف الرواتب والمدفوعات', icon: Wallet, color: 'text-amber-400', border: 'border-amber-500/30 hover:bg-amber-500/5' },
@@ -1880,7 +2103,12 @@ export default function Settings() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm">{label}</p>
-                        <p className="text-[11px] text-muted-foreground">{sub}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {sub}
+                          {clearEmployeeId && clearEmployeeId !== 'all' && (
+                            <span className="mr-1 text-red-400 font-bold">· موظف محدد</span>
+                          )}
+                        </p>
                       </div>
                       <Trash2 className={`w-4 h-4 ${color} opacity-50 group-hover:opacity-100 transition`} />
                     </button>
@@ -2106,6 +2334,178 @@ export default function Settings() {
                   </button>
 
                   <InfoBox text="بعد التغيير ستحتاج لتسجيل الدخول مجدداً من جميع الأجهزة." type="info" />
+                </div>
+              </SCard>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              15-A. Login Page Design
+          ══════════════════════════════════════════════════════════════ */}
+          {activeSection === 'loginDesign' && (
+            <div className="grid md:grid-cols-2 gap-4">
+
+              {/* Card style */}
+              <SCard>
+                <CardHead icon={Monitor} color="bg-fuchsia-500" title="شكل كرت الدخول" sub="نمط وألوان بطاقة تسجيل الدخول" />
+                <div className="space-y-5">
+                  <Field label="نمط الكرت">
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        { v: 'glass',    label: 'Glass (افتراضي)',   sub: 'شفاف مع ضبابية',          icon: '🪟' },
+                        { v: 'gradient', label: 'Gradient',           sub: 'تدرج لوني جميل',          icon: '🌈' },
+                        { v: 'solid',    label: 'Solid Dark',         sub: 'خلفية صلبة غامقة',        icon: '⬛' },
+                        { v: 'minimal',  label: 'Minimal',            sub: 'حد شفاف بسيط',            icon: '✦' },
+                        { v: 'neon',     label: 'Neon Glow',          sub: 'توهج نيوني',              icon: '⚡' },
+                      ].map(({ v, label, sub, icon }) => (
+                        <button key={v} onClick={() => update({ loginCardStyle: v as any })}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-right transition ${s.loginCardStyle === v ? 'border-fuchsia-500 bg-fuchsia-500/10' : 'border-border hover:border-fuchsia-500/30'}`}>
+                          <span className="text-xl">{icon}</span>
+                          <div className="flex-1">
+                            <p className={`font-bold text-sm ${s.loginCardStyle === v ? 'text-fuchsia-300' : ''}`}>{label}</p>
+                            <p className="text-[11px] text-muted-foreground">{sub}</p>
+                          </div>
+                          {s.loginCardStyle === v && <Check className="w-4 h-4 text-fuchsia-400" />}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="نصف قطر زوايا الكرت" sub="كلما زاد كلما صار أكثر دائرية">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <input type="range" min="8" max="48" step="2"
+                          value={s.loginCardRadius ?? 32}
+                          onChange={e => update({ loginCardRadius: Number(e.target.value) })}
+                          className="flex-1 accent-fuchsia-500" />
+                        <span className="text-sm font-mono font-bold text-fuchsia-400 w-12 text-center">{s.loginCardRadius ?? 32}px</span>
+                      </div>
+                      <div className="h-10 border border-border bg-white/5" style={{ borderRadius: s.loginCardRadius ?? 32 }} />
+                    </div>
+                  </Field>
+                </div>
+              </SCard>
+
+              {/* Colors */}
+              <SCard>
+                <CardHead icon={Palette} color="bg-purple-500" title="ألوان الكرت والخلفية" sub="تخصيص التدرجات اللونية" />
+                <div className="space-y-5">
+                  <Field label="اللون الأساسي للكرت (من)">
+                    <div className="flex items-center gap-3">
+                      <input type="color" value={s.loginCardGradientFrom || '#6366f1'}
+                        onChange={e => update({ loginCardGradientFrom: e.target.value })}
+                        className="w-12 h-10 rounded-lg cursor-pointer border-0" />
+                      <Inp value={s.loginCardGradientFrom || '#6366f1'}
+                        onChange={e => update({ loginCardGradientFrom: e.target.value })}
+                        className="font-mono uppercase flex-1" maxLength={7} />
+                    </div>
+                  </Field>
+
+                  <Field label="اللون الثانوي للكرت (إلى)">
+                    <div className="flex items-center gap-3">
+                      <input type="color" value={s.loginCardGradientTo || '#8b5cf6'}
+                        onChange={e => update({ loginCardGradientTo: e.target.value })}
+                        className="w-12 h-10 rounded-lg cursor-pointer border-0" />
+                      <Inp value={s.loginCardGradientTo || '#8b5cf6'}
+                        onChange={e => update({ loginCardGradientTo: e.target.value })}
+                        className="font-mono uppercase flex-1" maxLength={7} />
+                    </div>
+                  </Field>
+
+                  <Field label="لون الزر والتأكيد">
+                    <div className="flex gap-2 flex-wrap">
+                      {['#6366f1','#8b5cf6','#ec4899','#f97316','#10b981','#06b6d4','#f59e0b','#ef4444','#0ea5e9','#a855f7'].map(c => (
+                        <button key={c} onClick={() => update({ loginAccentColor: c })}
+                          className={`w-7 h-7 rounded-full border-2 transition-all ${s.loginAccentColor === c ? 'border-white scale-125 shadow-lg' : 'border-transparent hover:scale-110'}`}
+                          style={{ background: c }} />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3 mt-2">
+                      <input type="color" value={s.loginAccentColor || '#6366f1'}
+                        onChange={e => update({ loginAccentColor: e.target.value })}
+                        className="w-12 h-10 rounded-lg cursor-pointer border-0" />
+                      <span className="text-xs text-muted-foreground">أو اختر لوناً مخصصاً</span>
+                    </div>
+                  </Field>
+
+                  {/* Preview */}
+                  <div className="h-14 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-lg"
+                    style={{
+                      background: s.loginCardStyle === 'gradient'
+                        ? `linear-gradient(135deg, ${s.loginCardGradientFrom || '#6366f1'}, ${s.loginCardGradientTo || '#8b5cf6'})`
+                        : s.loginCardStyle === 'neon'
+                        ? `rgba(17,0,36,.92)`
+                        : s.loginCardStyle === 'solid'
+                        ? '#1e293b'
+                        : 'rgba(255,255,255,.08)',
+                      borderRadius: (s.loginCardRadius ?? 32) / 2,
+                      border: s.loginCardStyle === 'neon'
+                        ? `1px solid ${s.loginCardGradientFrom || '#6366f1'}88`
+                        : '1px solid rgba(255,255,255,.12)',
+                      backdropFilter: 'blur(12px)',
+                    }}>
+                    معاينة كرت الدخول
+                  </div>
+                </div>
+              </SCard>
+
+              {/* Left panel (desktop) */}
+              <SCard>
+                <CardHead icon={Layout} color="bg-indigo-500" title="اللوحة الجانبية (ديسكتوب)" sub="الجهة اليسرى مع الشعار والإحصائيات" />
+                <div className="space-y-5">
+                  <Field label="تدرج لوحة العلامة التجارية (من)">
+                    <div className="flex items-center gap-3">
+                      <input type="color" value={s.loginPanelGradientFrom || '#6366f1'}
+                        onChange={e => update({ loginPanelGradientFrom: e.target.value })}
+                        className="w-12 h-10 rounded-lg cursor-pointer border-0" />
+                      <Inp value={s.loginPanelGradientFrom || '#6366f1'}
+                        onChange={e => update({ loginPanelGradientFrom: e.target.value })}
+                        className="font-mono uppercase flex-1" maxLength={7} />
+                    </div>
+                  </Field>
+
+                  <Field label="تدرج لوحة العلامة التجارية (إلى)">
+                    <div className="flex items-center gap-3">
+                      <input type="color" value={s.loginPanelGradientTo || '#8b5cf6'}
+                        onChange={e => update({ loginPanelGradientTo: e.target.value })}
+                        className="w-12 h-10 rounded-lg cursor-pointer border-0" />
+                      <Inp value={s.loginPanelGradientTo || '#8b5cf6'}
+                        onChange={e => update({ loginPanelGradientTo: e.target.value })}
+                        className="font-mono uppercase flex-1" maxLength={7} />
+                    </div>
+                  </Field>
+
+                  {/* Panel preview */}
+                  <div className="h-20 rounded-xl relative overflow-hidden flex items-center px-4 gap-3"
+                    style={{ background: `linear-gradient(135deg, ${s.loginPanelGradientFrom || '#6366f1'}, ${s.loginPanelGradientTo || '#8b5cf6'})` }}>
+                    <div className="absolute inset-0 bg-black/15" />
+                    <div className="relative z-10 w-10 h-10 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center">
+                      {s.logoUrl ? <img src={s.logoUrl} className="w-full h-full object-contain rounded-xl p-1" /> : <Monitor className="w-5 h-5 text-white" />}
+                    </div>
+                    <div className="relative z-10">
+                      <p className="text-white font-bold text-sm">{s.appName || 'WorkforceOS'}</p>
+                      <p className="text-white/60 text-xs">معاينة اللوحة</p>
+                    </div>
+                  </div>
+                </div>
+              </SCard>
+
+              {/* Visibility toggles */}
+              <SCard>
+                <CardHead icon={Eye} color="bg-sky-500" title="عناصر صفحة الدخول" sub="تحكم بما يظهر في الصفحة" />
+                <div className="space-y-1">
+                  <TRow label="عرض الشعار / اللوغو" sub="الصورة أو الأيقونة في أعلى الكرت"
+                    on={s.loginShowLogo !== false}
+                    onToggle={() => update({ loginShowLogo: !(s.loginShowLogo !== false) })} />
+                  <TRow label="عرض الساعة الرقمية" sub="ساعة حية أسفل الشعار"
+                    on={s.loginShowClock !== false}
+                    onToggle={() => update({ loginShowClock: !(s.loginShowClock !== false) })} />
+                  <TRow label="بطاقات الإحصائيات (ديسكتوب)" sub="Active Workforce و System Health"
+                    on={s.loginShowStats !== false}
+                    onToggle={() => update({ loginShowStats: !(s.loginShowStats !== false) })} />
+                </div>
+                <div className="mt-5">
+                  <SaveBtn onClick={handleSave} label="حفظ تصميم لوحة الدخول" color="fuchsia" icon={Monitor} />
                 </div>
               </SCard>
             </div>
@@ -2432,6 +2832,7 @@ export default function Settings() {
               <h3 className="font-bold text-lg">تأكيد الحذف</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 هل أنت متأكد من مسح {clearDialog === 'attendance' ? 'سجلات الحضور' : clearDialog === 'payroll' ? 'سجلات الرواتب' : clearDialog === 'leaves' ? 'سجلات الإجازات' : clearDialog === 'all' ? 'جميع السجلات' : 'السجلات'}؟
+              {clearEmployeeId !== 'all' && <><br /><span className="text-amber-400 font-bold">الموظف: {clearEmployeeName}</span></>}
               </p>
               <p className="text-xs text-red-400 mt-1">لا يمكن التراجع عن هذه العملية</p>
             </div>

@@ -42,6 +42,17 @@ function useLoginSettings() {
     showDate:   cfg.showDate    !== false,
     clockSize:  (cfg.clockSize  || 'medium') as 'small' | 'medium' | 'large',
     saveLogoUrl,
+    // Login design
+    loginCardStyle:         (cfg.loginCardStyle         || 'glass')    as string,
+    loginCardGradientFrom:  (cfg.loginCardGradientFrom  || '#6366f1')  as string,
+    loginCardGradientTo:    (cfg.loginCardGradientTo    || '#8b5cf6')  as string,
+    loginCardRadius:        Number(cfg.loginCardRadius  ?? 32),
+    loginAccentColor:       (cfg.loginAccentColor       || '#6366f1')  as string,
+    loginShowLogo:          cfg.loginShowLogo   !== false,
+    loginShowClock:         cfg.loginShowClock  !== false,
+    loginShowStats:         cfg.loginShowStats  !== false,
+    loginPanelGradientFrom: (cfg.loginPanelGradientFrom || '#6366f1')  as string,
+    loginPanelGradientTo:   (cfg.loginPanelGradientTo   || '#8b5cf6')  as string,
   };
 }
 
@@ -244,29 +255,49 @@ export default function Login() {
     </div>
   );
 
+  // Derive card style from settings
+  const cardStyle = settings.loginCardStyle;
+  const cardBg =
+    cardStyle === 'gradient' ? `linear-gradient(135deg, ${settings.loginCardGradientFrom}, ${settings.loginCardGradientTo})`
+    : cardStyle === 'solid'   ? 'var(--card)'
+    : cardStyle === 'neon'    ? 'rgba(12,2,28,.92)'
+    : cardStyle === 'minimal' ? 'transparent'
+    : undefined; // 'glass' → use CSS class
+  const cardBorder =
+    cardStyle === 'neon'    ? `1px solid ${settings.loginCardGradientFrom}55`
+    : cardStyle === 'minimal' ? '1px solid rgba(255,255,255,.12)'
+    : undefined;
+  const cardBoxShadow =
+    cardStyle === 'neon' ? `0 0 40px ${settings.loginCardGradientFrom}33, 0 0 80px ${settings.loginCardGradientFrom}15` : undefined;
+  const accentColor = settings.loginAccentColor;
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background relative overflow-hidden" dir={dir}>
       <div className="absolute inset-0 z-0 lg:hidden bg-animated-gradient opacity-10" />
-      <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[50%] bg-purple-600/20 blur-[120px] rounded-full z-0 lg:hidden" />
+      <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[50%] blur-[120px] rounded-full z-0 lg:hidden"
+        style={{ background: `${settings.loginCardGradientFrom}33` }} />
 
       {/* ── Desktop Brand Panel ─────────────────────────────────────── */}
-      <div className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden text-white bg-animated-gradient z-10">
-        <div className="absolute inset-0 bg-black/10" />
+      <div className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden text-white z-10"
+        style={{ background: `linear-gradient(135deg, ${settings.loginPanelGradientFrom}, ${settings.loginPanelGradientTo})` }}>
+        <div className="absolute inset-0 bg-black/15" />
         {/* Floating stat cards */}
-        <div className="absolute -right-12 top-1/4 w-80 h-48 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl animate-float p-6 flex flex-col justify-between" style={{ transform: 'rotate(-5deg)' }}>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><Users className="w-6 h-6 text-white" /></div>
-            <div><div className="text-white/70 text-sm">Active Workforce</div><div className="text-2xl font-bold font-data">1,248</div></div>
+        {settings.loginShowStats !== false && <>
+          <div className="absolute -right-12 top-1/4 w-80 h-48 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl animate-float p-6 flex flex-col justify-between" style={{ transform: 'rotate(-5deg)' }}>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><Users className="w-6 h-6 text-white" /></div>
+              <div><div className="text-white/70 text-sm">Active Workforce</div><div className="text-2xl font-bold font-data">1,248</div></div>
+            </div>
+            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden"><div className="w-3/4 h-full rounded-full" style={{ background: accentColor }} /></div>
           </div>
-          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden"><div className="w-3/4 h-full bg-purple-500 rounded-full" /></div>
-        </div>
-        <div className="absolute right-20 bottom-1/4 w-72 h-40 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl animate-float-delayed p-6 flex flex-col justify-between" style={{ transform: 'rotate(5deg)' }}>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><Activity className="w-6 h-6 text-white" /></div>
-            <div><div className="text-white/70 text-sm">System Health</div><div className="text-2xl font-bold text-purple-400">Optimal</div></div>
+          <div className="absolute right-20 bottom-1/4 w-72 h-40 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl animate-float-delayed p-6 flex flex-col justify-between" style={{ transform: 'rotate(5deg)' }}>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><Activity className="w-6 h-6 text-white" /></div>
+              <div><div className="text-white/70 text-sm">System Health</div><div className="text-2xl font-bold" style={{ color: accentColor }}>Optimal</div></div>
+            </div>
+            <div className="flex gap-2"><div className="h-6 w-full bg-white/20 rounded-md" /><div className="h-6 w-2/3 bg-white/20 rounded-md" /><div className="h-6 w-1/3 bg-white/20 rounded-md" /></div>
           </div>
-          <div className="flex gap-2"><div className="h-6 w-full bg-white/20 rounded-md" /><div className="h-6 w-2/3 bg-white/20 rounded-md" /><div className="h-6 w-1/3 bg-white/20 rounded-md" /></div>
-        </div>
+        </>}
 
         {/* Top: logo + name */}
         <div className="relative z-10">
@@ -307,7 +338,16 @@ export default function Login() {
         </div>
 
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-[420px] glass p-8 sm:p-10 rounded-[2rem]">
+          <div
+            className={`w-full max-w-[420px] p-8 sm:p-10 ${cardStyle === 'glass' || !cardBg ? 'glass' : ''}`}
+            style={{
+              background:    cardBg,
+              border:        cardBorder,
+              boxShadow:     cardBoxShadow,
+              borderRadius:  settings.loginCardRadius,
+              backdropFilter: cardStyle !== 'minimal' ? 'blur(16px)' : undefined,
+            }}
+          >
 
             {/* ── Logo + Digital Clock header ── */}
             <div className="flex flex-col items-center gap-3 mb-8">
@@ -384,15 +424,20 @@ export default function Login() {
                 <div className="p-4 text-sm font-bold text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl">{error}</div>
               )}
 
-              <Button
+              <button
                 type="submit"
-                className="w-full h-14 rounded-xl text-base font-bold shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-transform mt-2"
                 disabled={loginMutation.isPending}
+                className="w-full h-14 rounded-xl text-base font-bold text-white hover:-translate-y-0.5 transition-transform mt-2 flex items-center justify-center shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${accentColor}, ${settings.loginCardGradientTo})`,
+                  boxShadow: `0 8px 24px ${accentColor}40`,
+                  borderRadius: Math.min(settings.loginCardRadius, 16),
+                }}
               >
                 {loginMutation.isPending
                   ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   : t('login')}
-              </Button>
+              </button>
             </form>
 
             {/* Biometric */}

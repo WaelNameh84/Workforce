@@ -8,6 +8,8 @@ import { Link, useLocation } from 'wouter';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useTheme } from '@/components/theme-provider';
 import { useAppSettings } from '@/contexts/settings-context';
+import { useAlarm } from '@/hooks/use-alarm';
+import { ClockWidget } from '@/components/clock-widget';
 import {
   LayoutDashboard, Users, Clock, CalendarDays, CalendarCheck,
   CreditCard, Inbox, FileText, Settings, Bot, MessageSquare,
@@ -301,38 +303,66 @@ function NavItemCard({
 // ─── Live Clock widget ────────────────────────────────────────────────────────
 function LiveClock() {
   const s = useAppSettings();
-  const { locale } = useLanguage();
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
   if (s.clockPos !== 'header') return null;
-
-  const intlLocale = locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US';
-  const timeStr = now.toLocaleTimeString(s.showArabicDay ? 'ar-SA' : intlLocale, {
-    hour: '2-digit', minute: '2-digit',
-    second: s.showSeconds ? '2-digit' : undefined,
-    hour12: s.show12h,
-  });
-  const dateStr = s.showDate
-    ? now.toLocaleDateString(s.showArabicDay ? 'ar-SA' : intlLocale, { weekday: 'short', month: 'short', day: 'numeric' })
-    : null;
-
-  const sizeClass = s.clockSize === 'small' ? 'text-xs' : s.clockSize === 'large' ? 'text-base' : 'text-sm';
-
   return (
-    <div className="hidden sm:flex flex-col items-center leading-none px-3 py-1.5 rounded-xl border border-border bg-white/5">
-      <span className={`font-mono font-black ${sizeClass}`} style={{ color: s.clockColor }}>{timeStr}</span>
-      {dateStr && <span className="text-[10px] text-muted-foreground mt-0.5">{dateStr}</span>}
+    <div className="hidden sm:flex items-center justify-center px-2 py-1 rounded-xl border border-border bg-white/5 overflow-hidden">
+      <ClockWidget />
     </div>
+  );
+}
+
+// ─── Floating AI assistant button ────────────────────────────────────────────
+function FloatingAIButton() {
+  const s = useAppSettings();
+  const [location, setLocation] = useLocation();
+  const { locale } = useLanguage();
+  if (!s.assistantOn) return null;
+  if (location === '/dashboard/ai') return null;
+  return (
+    <button
+      onClick={() => setLocation('/dashboard/ai')}
+      title={locale === 'ar' ? 'المساعد الذكي' : locale === 'sv' ? 'AI-assistent' : 'AI Assistant'}
+      className="fixed z-50 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 pressable"
+      style={{
+        bottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+        insetInlineEnd: '1.25rem',
+        width: 56,
+        height: 56,
+        background: `linear-gradient(135deg, ${s.appColor}, ${s.appColor}cc)`,
+        boxShadow: `0 0 24px ${s.appColor}88, 0 8px 24px rgba(0,0,0,0.4)`,
+      }}
+      aria-label="AI Assistant"
+    >
+      <style>{`
+        @keyframes ai-fab-pulse {
+          0%,100%{box-shadow:0 0 24px ${s.appColor}88,0 8px 24px rgba(0,0,0,0.4)}
+          50%{box-shadow:0 0 36px ${s.appColor}cc,0 8px 32px rgba(0,0,0,0.5)}
+        }
+        .ai-fab-btn { animation: ai-fab-pulse 3s ease-in-out infinite; }
+        @keyframes ai-fab-ring {
+          0%{transform:scale(1);opacity:0.6}
+          100%{transform:scale(1.8);opacity:0}
+        }
+        .ai-fab-ring {
+          position:absolute;inset:0;border-radius:50%;
+          border:2px solid currentColor;
+          animation:ai-fab-ring 2s ease-out infinite;
+        }
+      `}</style>
+      <span className="ai-fab-ring" style={{ color: s.appColor }} />
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17l-4 4-4-4v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    </button>
   );
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const s = useAppSettings();
   const { user, isLoading, logout } = useAuth();
+  useAlarm(); // activate shift alarms globally
   const [location, setLocation] = useLocation();
   const { t, locale, setLocale, dir } = useLanguage();
   const { resolvedTheme, setTheme } = useTheme();
@@ -914,11 +944,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Page content — Pull-to-refresh wraps the scrollable area */}
         <PullToRefresh>
           <main className="page-shell w-full min-w-0 p-3 sm:p-4 lg:p-6 max-w-[1800px] mx-auto"
-                style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}>
+                style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
             {children}
           </main>
         </PullToRefresh>
       </div>
+      {/* Floating AI assistant button */}
+      <FloatingAIButton />
     </div>
   );
 }
