@@ -40,6 +40,11 @@ import {
 } from '@/pages';
 import Profile from '@/pages/profile';
 import DetailPage from '@/pages/detail';
+import AttendanceCorrection from '@/pages/attendance-correction';
+import Bonuses from '@/pages/bonuses';
+import Advances from '@/pages/advances';
+import Holidays from '@/pages/holidays';
+import ClearReports from '@/pages/clear-reports';
 
 const queryClient = new QueryClient();
 
@@ -102,6 +107,13 @@ function Router() {
       <ProtectedRoute path="/dashboard/integrations" component={Integrations} adminOnly />
       <ProtectedRoute path="/dashboard/security" component={Security} adminOnly />
       <ProtectedRoute path="/dashboard/developers" component={Developers} adminOnly />
+
+      {/* Department sub-sections — admin only */}
+      <ProtectedRoute path="/dashboard/attendance-correction" component={AttendanceCorrection} adminOnly />
+      <ProtectedRoute path="/dashboard/bonuses" component={Bonuses} adminOnly />
+      <ProtectedRoute path="/dashboard/advances" component={Advances} adminOnly />
+      <ProtectedRoute path="/dashboard/holidays" component={Holidays} adminOnly />
+      <ProtectedRoute path="/dashboard/clear-reports" component={ClearReports} adminOnly />
 
       <Route component={NotFound} />
     </Switch>

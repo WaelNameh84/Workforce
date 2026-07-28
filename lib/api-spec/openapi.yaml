@@ -748,11 +748,21 @@ components:
           nullable: true
         type:
           type: string
-          enum: [leave, overtime, shift_change, expense, equipment]
+          enum: [leave, overtime, shift_change, expense, equipment, advance]
         title:
           type: string
+          nullable: true
         description:
           type: string
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          nullable: true
+        installments:
+          type: integer
           nullable: true
         status:
           type: string
@@ -772,17 +782,23 @@ components:
 
     WorkRequestInput:
       type: object
-      required: [employeeId, type, title]
+      required: [employeeId, type]
       properties:
         employeeId:
           type: integer
         type:
           type: string
-          enum: [leave, overtime, shift_change, expense, equipment]
+          enum: [leave, overtime, shift_change, expense, equipment, advance]
         title:
           type: string
         description:
           type: string
+        reason:
+          type: string
+        amount:
+          type: number
+        installments:
+          type: integer
 
     WorkRequestUpdate:
       type: object

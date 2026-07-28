@@ -15,4 +15,5 @@ export const WorkRequestType = {
   shift_change: 'shift_change',
   expense: 'expense',
   equipment: 'equipment',
+  advance: 'advance',
 } as const;

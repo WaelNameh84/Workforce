@@ -15,9 +15,16 @@ export interface WorkRequest {
   /** @nullable */
   employeeName?: string | null;
   type?: WorkRequestType;
-  title?: string;
+  /** @nullable */
+  title?: string | null;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  reason?: string | null;
+  /** @nullable */
+  amount?: number | null;
+  /** @nullable */
+  installments?: number | null;
   status?: WorkRequestStatus;
   paymentStatus?: WorkRequestPaymentStatus;
   /** @nullable */

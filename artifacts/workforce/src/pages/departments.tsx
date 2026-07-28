@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useLocation } from 'wouter';
 import {
   useGetDepartments, useCreateDepartment, useDeleteDepartment,
   getGetDepartmentsQueryKey, DepartmentInput
@@ -11,8 +12,57 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Plus, Trash2, Users, Search, ImageOff } from 'lucide-react';
+import { Building2, Plus, Trash2, Users, Search, ImageOff, Clock, Gift, Banknote, CalendarDays, FileX, ChevronRight } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageProvider';
+
+/* ── Manager Modules (sub-sections of departments) ── */
+const managerModules = [
+  {
+    href: '/dashboard/attendance-correction',
+    icon: Clock,
+    accent: '#f59e0b',
+    grad: 'from-amber-500 to-orange-600',
+    label: { ar: 'تصحيح الحضور', en: 'Attendance Correction', sv: 'Närvaro­korrigering' },
+    desc:  { ar: 'تصحيح سجلات الحضور المتأخرة والإشعارات المرفوعة', en: 'Fix late arrivals and justification requests', sv: 'Korrigera sena ankomster och motiveringsförfrågningar' },
+    badge: { ar: 'إشعارات المدير', en: 'Manager Alerts', sv: 'Chefsaviseringar' },
+  },
+  {
+    href: '/dashboard/bonuses',
+    icon: Gift,
+    accent: '#22c55e',
+    grad: 'from-green-500 to-emerald-600',
+    label: { ar: 'المكافآت والخصومات', en: 'Bonuses & Deductions', sv: 'Bonusar & avdrag' },
+    desc:  { ar: 'إضافة مكافآت أو خصومات على الموظفين', en: 'Add bonuses or deductions for employees', sv: 'Lägg till bonusar eller avdrag för anställda' },
+    badge: { ar: 'خاص بالمدير', en: 'Manager Only', sv: 'Endast chef' },
+  },
+  {
+    href: '/dashboard/advances',
+    icon: Banknote,
+    accent: '#3b82f6',
+    grad: 'from-blue-500 to-indigo-600',
+    label: { ar: 'السلف', en: 'Advances', sv: 'Förskott' },
+    desc:  { ar: 'طلبات السلفة وتقسيمها إلى أقساط', en: 'Advance requests and installment plans', sv: 'Förskottsansökningar och avbetalningsplaner' },
+    badge: { ar: 'موافقة + تقسيط', en: 'Approve + Split', sv: 'Godkänn + Dela' },
+  },
+  {
+    href: '/dashboard/holidays',
+    icon: CalendarDays,
+    accent: '#8b5cf6',
+    grad: 'from-violet-500 to-purple-600',
+    label: { ar: 'العطل الرسمية', en: 'Official Holidays', sv: 'Officiella helgdagar' },
+    desc:  { ar: 'تقويم العطل الرسمية السويدية المرتبط بالهاتف', en: 'Swedish public holidays synced with device calendar', sv: 'Svenska allmänna helgdagar synkade med kalender' },
+    badge: { ar: 'تقويم السويد', en: 'SE Calendar', sv: 'SE Kalender' },
+  },
+  {
+    href: '/dashboard/clear-reports',
+    icon: FileX,
+    accent: '#ef4444',
+    grad: 'from-red-500 to-rose-600',
+    label: { ar: 'مسح التقارير', en: 'Clear Reports', sv: 'Rensa rapporter' },
+    desc:  { ar: 'حذف سجلات الحضور والرواتب والتقارير بحسب الموظف', en: 'Delete records by type or employee', sv: 'Radera poster efter typ eller anställd' },
+    badge: { ar: 'بيانات حساسة', en: 'Sensitive', sv: 'Känsligt' },
+  },
+] as const;
 
 function getDeptImageUrl(name: string): string {
   return `/api/images/dept?name=${encodeURIComponent(name)}`;
@@ -100,9 +150,12 @@ export default function Departments() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const [, setLocation] = useLocation();
   const fmt = (key: Parameters<typeof t>[0], count?: number) => t(key).replace('{count}', String(count ?? 0));
   const cid = user?.companyId || 0;
+  const l = (obj: { ar: string; en: string; sv: string }) => obj[locale as 'ar' | 'en' | 'sv'] || obj.ar;
+  const isRTL = locale === 'ar';
 
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -150,7 +203,7 @@ export default function Departments() {
   );
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -163,6 +216,53 @@ export default function Departments() {
         >
            <Plus className="h-4 w-4" /> {t('addDepartment')}
         </Button>
+      </div>
+
+      {/* ── Manager Modules ─────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          {locale === 'ar' ? 'أدوات المدير' : locale === 'sv' ? 'Chefsverktyg' : 'Manager Tools'}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {managerModules.map((mod) => {
+            const Icon = mod.icon;
+            return (
+              <button
+                key={mod.href}
+                type="button"
+                onClick={() => setLocation(mod.href)}
+                className="living-card px-5 py-4 flex items-center gap-4 text-start group transition hover:scale-[1.01] active:scale-[.98]"
+                style={{ '--card-accent': mod.accent } as React.CSSProperties}
+              >
+                <span className="living-card-orb" style={{ top: '-1rem', insetInlineEnd: '-0.5rem' }} />
+                {/* Icon */}
+                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${mod.grad} flex items-center justify-center shrink-0 shadow-lg`}>
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                {/* Text */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm leading-tight">{l(mod.label)}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{l(mod.desc)}</p>
+                  <span className="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-black border"
+                    style={{ color: mod.accent, borderColor: `${mod.accent}40`, background: `${mod.accent}15` }}>
+                    {l(mod.badge)}
+                  </span>
+                </div>
+                {/* Arrow */}
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-foreground transition" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Departments List ──────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+          {locale === 'ar' ? 'الأقسام المسجلة' : locale === 'sv' ? 'Registrerade avdelningar' : 'Registered Departments'}
+        </h2>
       </div>
 
       {/* Search */}

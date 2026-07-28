@@ -20,6 +20,11 @@ import Security from '@/pages/security';
 import Developers from '@/pages/developers';
 import Documentation from '@/pages/documentation';
 import Notifications from '@/pages/notifications';
+import AttendanceCorrection from '@/pages/attendance-correction';
+import Bonuses from '@/pages/bonuses';
+import Advances from '@/pages/advances';
+import Holidays from '@/pages/holidays';
+import ClearReports from '@/pages/clear-reports';
 
 export {
   ActionCenter,
@@ -44,4 +49,9 @@ export {
   Developers,
   Documentation,
   Notifications,
+  AttendanceCorrection,
+  Bonuses,
+  Advances,
+  Holidays,
+  ClearReports,
 };

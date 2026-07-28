@@ -660,6 +660,7 @@ export const WorkRequestType = {
   shift_change: 'shift_change',
   expense: 'expense',
   equipment: 'equipment',
+  advance: 'advance',
 } as const;
 
 export type WorkRequestStatus = typeof WorkRequestStatus[keyof typeof WorkRequestStatus];
@@ -686,9 +687,16 @@ export interface WorkRequest {
   /** @nullable */
   employeeName?: string | null;
   type?: WorkRequestType;
-  title?: string;
+  /** @nullable */
+  title?: string | null;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  reason?: string | null;
+  /** @nullable */
+  amount?: number | null;
+  /** @nullable */
+  installments?: number | null;
   status?: WorkRequestStatus;
   paymentStatus?: WorkRequestPaymentStatus;
   /** @nullable */
@@ -707,13 +715,17 @@ export const WorkRequestInputType = {
   shift_change: 'shift_change',
   expense: 'expense',
   equipment: 'equipment',
+  advance: 'advance',
 } as const;
 
 export interface WorkRequestInput {
   employeeId: number;
   type: WorkRequestInputType;
-  title: string;
+  title?: string;
   description?: string;
+  reason?: string;
+  amount?: number;
+  installments?: number;
 }
 
 export type WorkRequestUpdateStatus = typeof WorkRequestUpdateStatus[keyof typeof WorkRequestUpdateStatus];

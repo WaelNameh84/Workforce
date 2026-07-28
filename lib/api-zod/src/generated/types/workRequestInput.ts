@@ -10,6 +10,9 @@ import type { WorkRequestInputType } from './workRequestInputType';
 export interface WorkRequestInput {
   employeeId: number;
   type: WorkRequestInputType;
-  title: string;
+  title?: string;
   description?: string;
+  reason?: string;
+  amount?: number;
+  installments?: number;
 }

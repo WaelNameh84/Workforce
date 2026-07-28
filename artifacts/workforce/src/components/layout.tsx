@@ -16,6 +16,7 @@ import {
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
   LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User, ArrowLeft, ArrowRight, Download,
   Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2, Zap, FolderOpen, GripVertical,
+  Gift, Banknote, FileX,
 } from 'lucide-react';
 import {
   useGetAttendance, getGetAttendanceQueryKey,
@@ -184,6 +185,41 @@ const navVisuals: Record<string, {
     badgeBorder: 'border-indigo-400/30',
     glow: 'shadow-indigo-500/20',
   },
+  '/dashboard/attendance-correction': {
+    icon: 'text-amber-300 bg-amber-950/70 border-amber-400/40',
+    border: 'border-amber-500/30',
+    badge: 'text-amber-200 bg-amber-950/80',
+    badgeBorder: 'border-amber-400/30',
+    glow: 'shadow-amber-500/20',
+  },
+  '/dashboard/bonuses': {
+    icon: 'text-green-300 bg-green-950/70 border-green-400/40',
+    border: 'border-green-500/30',
+    badge: 'text-green-200 bg-green-950/80',
+    badgeBorder: 'border-green-400/30',
+    glow: 'shadow-green-500/20',
+  },
+  '/dashboard/advances': {
+    icon: 'text-blue-300 bg-blue-950/70 border-blue-400/40',
+    border: 'border-blue-500/30',
+    badge: 'text-blue-200 bg-blue-950/80',
+    badgeBorder: 'border-blue-400/30',
+    glow: 'shadow-blue-500/20',
+  },
+  '/dashboard/holidays': {
+    icon: 'text-violet-300 bg-violet-950/70 border-violet-400/40',
+    border: 'border-violet-500/30',
+    badge: 'text-violet-200 bg-violet-950/80',
+    badgeBorder: 'border-violet-400/30',
+    glow: 'shadow-violet-500/20',
+  },
+  '/dashboard/clear-reports': {
+    icon: 'text-rose-300 bg-rose-950/70 border-rose-400/40',
+    border: 'border-rose-500/30',
+    badge: 'text-rose-200 bg-rose-950/80',
+    badgeBorder: 'border-rose-400/30',
+    glow: 'shadow-rose-500/20',
+  },
 };
 
 const navBadges: Record<string, string> = {
@@ -209,6 +245,11 @@ const navBadges: Record<string, string> = {
   '/dashboard/departments': 'DEPTS',
   '/dashboard/locations': 'SITES',
   '/dashboard/documentation': 'DOCS',
+  '/dashboard/attendance-correction': 'FIX',
+  '/dashboard/bonuses': 'BONUS',
+  '/dashboard/advances': 'LOAN',
+  '/dashboard/holidays': 'SE 🇸🇪',
+  '/dashboard/clear-reports': 'RESET',
 };
 
 // ─── Nav item drag + animation ───────────────────────────────────────────────
@@ -529,6 +570,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { href: '/dashboard/leaves',        label: t('leaves'),      icon: CalendarCheck },
         { href: '/dashboard/payroll',       label: t('payroll'),     icon: CreditCard },
         { href: '/dashboard/requests',      label: t('requests'),    icon: Inbox },
+      ],
+    },
+    {
+      id: 'dept-tools',
+      title: locale === 'ar' ? 'أدوات المدير' : locale === 'sv' ? 'Chefsverktyg' : 'Manager Tools',
+      items: [
+        { href: '/dashboard/attendance-correction', label: locale === 'ar' ? 'تصحيح الحضور' : locale === 'sv' ? 'Närvaro­korrigering' : 'Attendance Correction', icon: Clock },
+        { href: '/dashboard/bonuses',               label: locale === 'ar' ? 'المكافآت والخصومات' : locale === 'sv' ? 'Bonusar & avdrag' : 'Bonuses & Deductions', icon: Gift },
+        { href: '/dashboard/advances',              label: locale === 'ar' ? 'السلف' : locale === 'sv' ? 'Förskott' : 'Advances', icon: Banknote },
+        { href: '/dashboard/holidays',              label: locale === 'ar' ? 'العطل الرسمية' : locale === 'sv' ? 'Helgdagar' : 'Official Holidays', icon: CalendarDays },
+        { href: '/dashboard/clear-reports',         label: locale === 'ar' ? 'مسح التقارير' : locale === 'sv' ? 'Rensa rapporter' : 'Clear Reports', icon: FileX },
       ],
     },
     {
