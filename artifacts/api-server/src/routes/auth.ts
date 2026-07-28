@@ -231,6 +231,36 @@ router.post("/auth/register", async (req, res) => {
   }
 });
 
+// TEMPORARY - one-off cleanup for a diagnostic test account, safe to remove after use.
+// Only ever matches the exact hardcoded probe email/company - cannot touch any other data.
+router.post("/auth/_cleanup-probe-test", async (req, res) => {
+  try {
+    const probeEmail = "probe-test@example.com";
+    const probeCompanyName = "Probe Co";
+
+    const [user] = await db.select().from(users).where(eq(users.email, probeEmail)).limit(1);
+    if (!user || !user.companyId) {
+      res.json({ deleted: false, reason: "not found" });
+      return;
+    }
+
+    const [company] = await db.select().from(companies).where(eq(companies.id, user.companyId)).limit(1);
+    if (!company || company.name !== probeCompanyName) {
+      res.json({ deleted: false, reason: "company name mismatch, refusing to delete" });
+      return;
+    }
+
+    await db.delete(employees).where(eq(employees.companyId, company.id));
+    await db.delete(users).where(eq(users.id, user.id));
+    await db.delete(companies).where(eq(companies.id, company.id));
+
+    res.json({ deleted: true });
+  } catch (err) {
+    req.log.error({ err }, "Cleanup error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/auth/me
 router.get("/auth/me", authMiddleware, async (req: AuthRequest, res) => {
   try {
