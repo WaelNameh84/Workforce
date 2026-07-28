@@ -1,0 +1,5 @@
+approvedBuilds:
+  - name: '@swc/core'
+  - name: esbuild
+  - name: msw
+  - name: unrs-resolver
