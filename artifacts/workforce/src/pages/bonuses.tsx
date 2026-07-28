@@ -15,20 +15,20 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 type Mode = 'bonus' | 'deduction';
 
 const BONUS_TYPES = [
-  { id: 'performance', icon: '🏆', label: { ar: 'مكافأة أداء', en: 'Performance Bonus', sv: 'Prestandabonus' } },
-  { id: 'attendance', icon: '📅', label: { ar: 'مكافأة حضور', en: 'Attendance Bonus', sv: 'Närvarobonus' } },
-  { id: 'ramadan', icon: '🌙', label: { ar: 'مكافأة رمضان', en: 'Ramadan Bonus', sv: 'Ramadanbonus' } },
-  { id: 'annual', icon: '🎁', label: { ar: 'مكافأة سنوية', en: 'Annual Bonus', sv: 'Årsbonus' } },
-  { id: 'exceptional', icon: '⭐', label: { ar: 'مكافأة استثنائية', en: 'Exceptional Bonus', sv: 'Exceptionell bonus' } },
-  { id: 'other', icon: '💰', label: { ar: 'أخرى', en: 'Other', sv: 'Övrigt' } },
+  { id: 'performance', icon: '🏆', hex: '#22c55e', grad: 'from-green-500 to-emerald-600',   label: { ar: 'مكافأة أداء', en: 'Performance Bonus', sv: 'Prestandabonus' } },
+  { id: 'attendance',  icon: '📅', hex: '#10b981', grad: 'from-emerald-500 to-teal-600',    label: { ar: 'مكافأة حضور', en: 'Attendance Bonus', sv: 'Närvarobonus' } },
+  { id: 'ramadan',     icon: '🌙', hex: '#06b6d4', grad: 'from-cyan-500 to-sky-600',        label: { ar: 'مكافأة رمضان', en: 'Ramadan Bonus', sv: 'Ramadanbonus' } },
+  { id: 'annual',      icon: '🎁', hex: '#f59e0b', grad: 'from-amber-500 to-orange-600',    label: { ar: 'مكافأة سنوية', en: 'Annual Bonus', sv: 'Årsbonus' } },
+  { id: 'exceptional', icon: '⭐', hex: '#6366f1', grad: 'from-indigo-500 to-violet-600',   label: { ar: 'مكافأة استثنائية', en: 'Exceptional Bonus', sv: 'Exceptionell bonus' } },
+  { id: 'other',       icon: '💰', hex: '#64748b', grad: 'from-slate-500 to-slate-600',      label: { ar: 'أخرى', en: 'Other', sv: 'Övrigt' } },
 ];
 const DEDUCTION_TYPES = [
-  { id: 'late', icon: '⏰', label: { ar: 'خصم تأخير', en: 'Late Deduction', sv: 'Förseningsavdrag' } },
-  { id: 'absence', icon: '🚫', label: { ar: 'خصم غياب', en: 'Absence Deduction', sv: 'Frånvaroavdrag' } },
-  { id: 'damage', icon: '💔', label: { ar: 'خصم تلف', en: 'Damage Deduction', sv: 'Skadeavdrag' } },
-  { id: 'loan', icon: '🏦', label: { ar: 'استقطاع قرض', en: 'Loan Deduction', sv: 'Lånavdrag' } },
-  { id: 'penalty', icon: '⚠️', label: { ar: 'جزاء', en: 'Penalty', sv: 'Böter' } },
-  { id: 'other', icon: '📋', label: { ar: 'أخرى', en: 'Other', sv: 'Övrigt' } },
+  { id: 'late',    icon: '⏰', hex: '#f97316', grad: 'from-orange-500 to-amber-600',   label: { ar: 'خصم تأخير', en: 'Late Deduction', sv: 'Förseningsavdrag' } },
+  { id: 'absence', icon: '🚫', hex: '#ef4444', grad: 'from-red-500 to-rose-600',       label: { ar: 'خصم غياب', en: 'Absence Deduction', sv: 'Frånvaroavdrag' } },
+  { id: 'damage',  icon: '💔', hex: '#ec4899', grad: 'from-pink-500 to-rose-600',      label: { ar: 'خصم تلف', en: 'Damage Deduction', sv: 'Skadeavdrag' } },
+  { id: 'loan',    icon: '🏦', hex: '#8b5cf6', grad: 'from-violet-500 to-purple-600',  label: { ar: 'استقطاع قرض', en: 'Loan Deduction', sv: 'Lånavdrag' } },
+  { id: 'penalty', icon: '⚠️', hex: '#eab308', grad: 'from-yellow-500 to-amber-600',   label: { ar: 'جزاء', en: 'Penalty', sv: 'Böter' } },
+  { id: 'other',   icon: '📋', hex: '#64748b', grad: 'from-slate-500 to-slate-600',    label: { ar: 'أخرى', en: 'Other', sv: 'Övrigt' } },
 ];
 
 // ─── History row ──────────────────────────────────────────────────────────────
@@ -223,15 +223,24 @@ export default function Bonuses() {
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 {mode === 'bonus' ? (t('bonusType') || 'نوع المكافأة') : (t('deductionType') || 'نوع الخصم')}
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                {types.map(bt => (
-                  <button key={bt.id} onClick={() => setSelType(bt.id)}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-sm font-bold transition
-                      ${selType === bt.id ? (mode === 'bonus' ? 'border-green-500 bg-green-500/10 text-green-300' : 'border-red-500 bg-red-500/10 text-red-300') : 'border-border hover:border-border/60 text-muted-foreground'}`}>
-                    <span className="text-lg">{bt.icon}</span>
-                    <span>{l(bt.label)}</span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-2.5">
+                {types.map(bt => {
+                  const isSelected = selType === bt.id;
+                  return (
+                    <button key={bt.id} onClick={() => setSelType(bt.id)}
+                      className="living-card p-3.5 flex items-center gap-2.5 text-start transition active:scale-[.97]"
+                      style={{
+                        '--card-accent': bt.hex,
+                        boxShadow: isSelected ? `0 0 0 2px ${bt.hex}70, 0 4px 20px ${bt.hex}25` : undefined,
+                      } as React.CSSProperties}>
+                      <span className="living-card-orb" style={{ top: '-0.6rem', insetInlineEnd: '-0.4rem' }} />
+                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${bt.grad} flex items-center justify-center text-base shrink-0 shadow`}>
+                        {bt.icon}
+                      </div>
+                      <span className="font-bold text-sm leading-tight" style={{ color: isSelected ? bt.hex : undefined }}>{l(bt.label)}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

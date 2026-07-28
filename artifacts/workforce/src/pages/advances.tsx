@@ -15,12 +15,12 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 
 // ─── Advance categories ───────────────────────────────────────────────────────
 const ADVANCE_CATS = [
-  { id: 'salary',    icon: '💵', color: 'blue',   label: { ar: 'سلفة راتب', en: 'Salary Advance', sv: 'Löneförskott' },       desc: { ar: 'سلفة على الراتب الشهري', en: 'Advance on monthly salary', sv: 'Förskott på månadslön' } },
-  { id: 'emergency', icon: '🚑', color: 'red',    label: { ar: 'طارئة',      en: 'Emergency',       sv: 'Nödsituation' },       desc: { ar: 'نفقات طارئة ومستعجلة',    en: 'Urgent emergency expenses', sv: 'Brådskande nödsituationsutgifter' } },
-  { id: 'medical',   icon: '🏥', color: 'green',  label: { ar: 'علاجية',     en: 'Medical',         sv: 'Medicinsk' },          desc: { ar: 'نفقات علاجية وصحية',      en: 'Medical and health expenses', sv: 'Medicinska och hälsoutgifter' } },
-  { id: 'education', icon: '📚', color: 'violet', label: { ar: 'تعليمية',    en: 'Educational',     sv: 'Utbildning' },         desc: { ar: 'رسوم دراسية وتعليمية',     en: 'Educational and tuition fees', sv: 'Utbildnings- och skolavgifter' } },
-  { id: 'housing',   icon: '🏠', color: 'amber',  label: { ar: 'سكنية',      en: 'Housing',         sv: 'Bostad' },             desc: { ar: 'إيجار وتكاليف السكن',      en: 'Rent and housing costs', sv: 'Hyra och bostadskostnader' } },
-  { id: 'travel',    icon: '✈️', color: 'sky',    label: { ar: 'سفر',        en: 'Travel',          sv: 'Resa' },               desc: { ar: 'تكاليف السفر والتنقل',     en: 'Travel and transportation costs', sv: 'Rese- och transportkostnader' } },
+  { id: 'salary',    icon: '💵', hex: '#3b82f6', grad: 'from-blue-500 to-indigo-600',    label: { ar: 'سلفة راتب', en: 'Salary Advance', sv: 'Löneförskott' },       desc: { ar: 'سلفة على الراتب الشهري', en: 'Advance on monthly salary', sv: 'Förskott på månadslön' } },
+  { id: 'emergency', icon: '🚑', hex: '#ef4444', grad: 'from-red-500 to-rose-600',       label: { ar: 'طارئة',      en: 'Emergency',       sv: 'Nödsituation' },       desc: { ar: 'نفقات طارئة ومستعجلة',    en: 'Urgent emergency expenses', sv: 'Brådskande nödsituationsutgifter' } },
+  { id: 'medical',   icon: '🏥', hex: '#22c55e', grad: 'from-green-500 to-emerald-600',  label: { ar: 'علاجية',     en: 'Medical',         sv: 'Medicinsk' },          desc: { ar: 'نفقات علاجية وصحية',      en: 'Medical and health expenses', sv: 'Medicinska och hälsoutgifter' } },
+  { id: 'education', icon: '📚', hex: '#8b5cf6', grad: 'from-violet-500 to-purple-600',  label: { ar: 'تعليمية',    en: 'Educational',     sv: 'Utbildning' },         desc: { ar: 'رسوم دراسية وتعليمية',     en: 'Educational and tuition fees', sv: 'Utbildnings- och skolavgifter' } },
+  { id: 'housing',   icon: '🏠', hex: '#f59e0b', grad: 'from-amber-500 to-orange-600',   label: { ar: 'سكنية',      en: 'Housing',         sv: 'Bostad' },             desc: { ar: 'إيجار وتكاليف السكن',      en: 'Rent and housing costs', sv: 'Hyra och bostadskostnader' } },
+  { id: 'travel',    icon: '✈️', hex: '#0ea5e9', grad: 'from-sky-500 to-cyan-600',       label: { ar: 'سفر',        en: 'Travel',          sv: 'Resa' },               desc: { ar: 'تكاليف السفر والتنقل',     en: 'Travel and transportation costs', sv: 'Rese- och transportkostnader' } },
 ];
 
 type AdvanceRequest = { id?: number; employeeId?: number; type?: string; status?: string; amount?: number; reason?: string; createdAt?: string; [k: string]: unknown };
@@ -167,15 +167,26 @@ export default function Advances() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {ADVANCE_CATS.map(cat => {
             const cnt = advances.filter(r => r.reason?.includes(cat.id)).length;
+            const isActive = filterCat === cat.id;
             return (
-              <button key={cat.id} onClick={() => setFilterCat(filterCat === cat.id ? 'all' : cat.id)}
-                className={`living-card p-4 text-start transition group ${filterCat === cat.id ? 'ring-2 ring-blue-500/40' : ''}`}
-                style={{ '--card-accent': `var(--color-${cat.color}-500, #3b82f6)` } as React.CSSProperties}>
-                <span className="living-card-orb" style={{ top: '-0.75rem', right: '-0.5rem' }} />
-                <div className="text-2xl mb-2">{cat.icon}</div>
-                <p className="font-bold text-sm">{l(cat.label)}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{l(cat.desc)}</p>
-                <p className={`text-xs font-black mt-2 text-${cat.color}-400`}>{cnt} {t('requests') || 'طلب'}</p>
+              <button key={cat.id} onClick={() => setFilterCat(isActive ? 'all' : cat.id)}
+                className="living-card p-4 text-start transition group active:scale-[.97]"
+                style={{
+                  '--card-accent': cat.hex,
+                  boxShadow: isActive ? `0 0 0 2px ${cat.hex}60, 0 4px 24px ${cat.hex}30` : undefined,
+                } as React.CSSProperties}>
+                <span className="living-card-orb" style={{ top: '-0.75rem', insetInlineEnd: '-0.5rem' }} />
+                {/* Icon circle */}
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cat.grad} flex items-center justify-center text-lg mb-2.5 shadow-md`}>
+                  {cat.icon}
+                </div>
+                <p className="font-bold text-sm leading-tight">{l(cat.label)}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{l(cat.desc)}</p>
+                {/* count badge */}
+                <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-full text-[10px] font-black border"
+                  style={{ color: cat.hex, borderColor: `${cat.hex}40`, background: `${cat.hex}18` }}>
+                  {cnt} {t('requests') || 'طلب'}
+                </span>
               </button>
             );
           })}
@@ -285,18 +296,28 @@ export default function Advances() {
             {/* Category */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('advanceCategory') || 'قسم السلفة'}</label>
-              <div className="grid grid-cols-2 gap-2">
-                {ADVANCE_CATS.map(c => (
-                  <button key={c.id} onClick={() => setSelCat(c.id)}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-sm font-bold transition
-                      ${selCat === c.id ? 'border-blue-500 bg-blue-500/10 text-blue-300' : 'border-border hover:border-border/60 text-muted-foreground'}`}>
-                    <span className="text-lg">{c.icon}</span>
-                    <div className="text-start">
-                      <p>{l(c.label)}</p>
-                      <p className="text-[10px] font-normal opacity-60">{l(c.desc)}</p>
-                    </div>
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-2.5">
+                {ADVANCE_CATS.map(c => {
+                  const isSelected = selCat === c.id;
+                  return (
+                    <button key={c.id} onClick={() => setSelCat(c.id)}
+                      className="living-card p-3.5 flex items-center gap-2.5 text-start transition active:scale-[.97]"
+                      style={{
+                        '--card-accent': c.hex,
+                        boxShadow: isSelected ? `0 0 0 2px ${c.hex}70, 0 4px 20px ${c.hex}25` : undefined,
+                      } as React.CSSProperties}>
+                      <span className="living-card-orb" style={{ top: '-0.6rem', insetInlineEnd: '-0.4rem' }} />
+                      {/* Icon */}
+                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${c.grad} flex items-center justify-center text-base shrink-0 shadow`}>
+                        {c.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm leading-tight truncate" style={{ color: isSelected ? c.hex : undefined }}>{l(c.label)}</p>
+                        <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2 mt-0.5">{l(c.desc)}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
