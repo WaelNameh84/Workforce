@@ -10,11 +10,16 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Render external URLs require SSL; internal URLs work without it.
-// We enable SSL with rejectUnauthorized:false so both cases are covered.
-const sslConfig = process.env.DATABASE_URL?.includes("localhost")
-  ? undefined
-  : { rejectUnauthorized: false };
+// SSL rules:
+// - localhost / 127.0.0.1 → no SSL (local dev)
+// - *.internal (Render private network) → no SSL (same-region private link)
+// - everything else (Render external URL, Supabase, Neon, etc.) → SSL, no cert check
+const _dbUrl = process.env.DATABASE_URL ?? "";
+const _noSsl =
+  _dbUrl.includes("localhost") ||
+  _dbUrl.includes("127.0.0.1") ||
+  _dbUrl.includes(".internal");
+const sslConfig = _noSsl ? undefined : { rejectUnauthorized: false };
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

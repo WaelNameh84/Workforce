@@ -36,7 +36,7 @@ export default function Register() {
         setLocation('/dashboard');
       }
     } catch (err: any) {
-      setError(err?.error || 'Failed to register');
+      setError(err?.data?.error || err?.message || 'Failed to register');
     }
   };
 

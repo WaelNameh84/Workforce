@@ -147,7 +147,7 @@ export default function Login() {
       await doLogin(email, password);
       if (biometricAvailable && !biometricSaved) await registerBiometric(email);
     } catch (err: any) {
-      setError(err?.error || err?.message || 'فشل تسجيل الدخول');
+      setError(err?.data?.error || err?.message || 'فشل تسجيل الدخول');
     }
   };
 
