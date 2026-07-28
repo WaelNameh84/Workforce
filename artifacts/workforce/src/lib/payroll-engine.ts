@@ -41,6 +41,10 @@ export interface WorkedTimeResult {
   weekendOvertimeHours: number;
   /** Night-shift hours worked between nightStart and nightEnd */
   nightHours: number;
+  /** Days where worked hours >= scheduled daily hours (count as full day) */
+  fullDays: number;
+  /** Hours worked on days where total < scheduled daily hours (paid at hourly rate) */
+  partialHours: number;
 }
 
 export function calcWorkedTime(
@@ -55,7 +59,9 @@ export function calcWorkedTime(
   /** Night shift start hour (24h). Default 22 */
   nightStartHour: number = 22,
   /** Night shift end hour (24h). Default 6 */
-  nightEndHour: number = 6
+  nightEndHour: number = 6,
+  /** Scheduled working hours per day (used to distinguish full vs partial days) */
+  dailyHoursScheduled: number = 8
 ): WorkedTimeResult {
   let workedSeconds = 0;
   let lateMinutesTotal = 0;
@@ -65,9 +71,12 @@ export function calcWorkedTime(
   let nightMinutesTotal = 0;
   let workedDaysCount = 0;
   let absentDaysCount = 0;
+  let fullDaysCount = 0;
+  let partialHoursTotal = 0;
 
   const startMin = parseTimeToMinutes(workStart);
   const endMin = parseTimeToMinutes(workEnd);
+  const scheduledSeconds = dailyHoursScheduled * 3600;
 
   attendanceRows.forEach((row) => {
     if (row.status === 'absent') {
@@ -95,6 +104,14 @@ export function calcWorkedTime(
     durationSeconds = Math.max(0, durationSeconds - breakMin * 60);
     workedSeconds += durationSeconds;
 
+    // Full day vs partial day — compare net worked seconds to scheduled
+    if (durationSeconds >= scheduledSeconds) {
+      fullDaysCount++;
+    } else {
+      // Partial day: accumulate hours worked (will be paid at hourly rate)
+      partialHoursTotal += durationSeconds / 3600;
+    }
+
     // Late
     if (inMin > startMin + lateGrace) {
       lateMinutesTotal += inMin - startMin;
@@ -118,7 +135,6 @@ export function calcWorkedTime(
     // Night hours: count minutes within [nightStartHour, 24) ∪ [0, nightEndHour)
     const startHour = inDate.getHours();
     const endHour = outDate.getHours();
-    // Simple approximation: count hours between nightStartHour and nightEndHour
     for (let h = startHour; h < endHour + 1; h++) {
       const normalizedH = h % 24;
       if (normalizedH >= nightStartHour || normalizedH < nightEndHour) {
@@ -138,6 +154,8 @@ export function calcWorkedTime(
     overtimeHours: Math.floor((overtimeMinutesTotal / 60) * 10) / 10,
     weekendOvertimeHours: Math.floor((weekendOvertimeMinutesTotal / 60) * 10) / 10,
     nightHours: Math.floor((nightMinutesTotal / 60) * 10) / 10,
+    fullDays: fullDaysCount,
+    partialHours: Math.floor(partialHoursTotal * 100) / 100,
   };
 }
 
@@ -239,7 +257,8 @@ export function buildPayrollSummary(
     cfg.otThreshold,
     cfg.weekendDays,
     cfg.nightStartHour,
-    cfg.nightEndHour
+    cfg.nightEndHour,
+    cfg.dailyHoursScheduled
   );
 
   const leaves = calcLeaveDeductions(leaveRows, period);
@@ -288,10 +307,11 @@ export function buildPayrollSummary(
 
   // Contract-type adjustments
   let actualBasic = basicSalary;
+  let partialDayPay = 0;
   if (contractType === 'daily') {
     // Daily: pay per worked day only
     actualBasic = time.workedDays * rates.dailyRate;
-    absenceDeduction = 0; // absence already excluded from worked days
+    absenceDeduction = 0;
   } else if (contractType === 'hourly') {
     // Hourly: pay per worked hour only
     actualBasic = time.workedHours * rates.hourlyRate;
@@ -299,16 +319,18 @@ export function buildPayrollSummary(
     lateDeductionAmt = 0;
     earlyDeductionAmt = 0;
   } else {
-    // Monthly: pay proportionally — workedDays / workDaysPerMonth × basicSalary
-    // 0 worked days → 0 salary; partial attendance → proportional pay
-    const effectiveDays = cfg.workDaysPerMonth > 0 ? cfg.workDaysPerMonth : 1;
-    actualBasic = (time.workedDays / effectiveDays) * basicSalary;
-    // Absent & unrecorded days are already excluded from workedDays — no double deduction
+    // Monthly hybrid:
+    //   • Full days (worked hours >= scheduled hours) → paid at daily rate
+    //   • Partial days (worked hours < scheduled hours) → paid at hourly rate
+    //   • Days with no record and absent days → not paid (already excluded)
+    actualBasic = time.fullDays * rates.dailyRate;
+    partialDayPay = time.partialHours * rates.hourlyRate;
+    // Absence and unpaid leave are already excluded (not in fullDays/partialHours)
     absenceDeduction = 0;
-    unpaidLeaveDeduction = 0; // unpaid leave reduces workedDays directly
+    unpaidLeaveDeduction = 0;
   }
 
-  const grossSalary = actualBasic + overtimePay + nightDifferentialPay + bonus + allowances + commissions;
+  const grossSalary = actualBasic + partialDayPay + overtimePay + nightDifferentialPay + bonus + allowances + commissions;
 
   const taxDeduction = grossSalary * (taxRate / 100);
   const insuranceDeduction = grossSalary * (insuranceRate / 100);
