@@ -275,7 +275,7 @@ router.post("/payroll/:id/approve", authMiddleware, async (req, res) => {
       res.status(409).json({ error: "Payroll is locked" }); return;
     }
 
-    const approvedBy = req.body?.approvedBy ?? req.user?.id;
+    const approvedBy = req.body?.approvedBy ?? req.user?.userId;
     const [record] = await db
       .update(payroll)
       .set({ status: 'approved', approvedBy, approvedAt: new Date(), updatedAt: new Date() })
