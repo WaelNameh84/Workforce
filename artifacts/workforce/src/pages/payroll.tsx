@@ -583,101 +583,89 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto overflow-x-hidden p-0 border border-white/[0.06] custom-scrollbar payslip-dialog w-full" style={{ background: 'linear-gradient(160deg,#07091a 0%,#0a0d20 50%,#06080f 100%)' }}>
-        <style>{`[data-radix-dialog-content]{max-width:min(720px,100vw)!important;overflow-x:hidden!important;} .ps-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:10px;font-size:14px;} .ps-row-em{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);} .ps-row-de{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);} .ps-row-neu{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);}`}</style>
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto overflow-x-hidden p-0 border-border bg-background custom-scrollbar payslip-dialog w-full">
+        <style>{`[data-radix-dialog-content]{max-width:min(720px,100vw)!important;overflow-x:hidden!important;}`}</style>
 
         {/* ── Sticky header ── */}
-        <div className="sticky top-0 z-20 backdrop-blur-2xl border-b border-white/[0.07] p-3 flex items-center justify-between print:hidden" style={{ background: 'rgba(7,9,26,0.88)' }}>
-          <DialogTitle className="text-base font-bold font-display flex items-center gap-2 text-white">
-            <FileText className="w-4 h-4 text-emerald-400" />
+        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border p-3 flex items-center justify-between print:hidden">
+          <DialogTitle className="text-base font-bold font-display flex items-center gap-2">
+            <FileText className="w-4 h-4 text-emerald-500" />
             كشف راتب موظف
           </DialogTitle>
-          <div className="flex gap-1.5">
-            <Button variant="ghost" size="sm" onClick={handlePrint} className="text-white/60 hover:text-white h-8 px-2 text-xs"><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
-            <Button variant="ghost" size="sm" onClick={handlePrint} className="text-white/60 hover:text-white h-8 px-2 text-xs"><Download className="w-3.5 h-3.5 ml-1" /> PDF</Button>
-            <Button variant="ghost" size="sm" className="text-white/60 hover:text-white h-8 px-2 text-xs"><Share2 className="w-3.5 h-3.5 ml-1" /> مشاركة</Button>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" onClick={handlePrint} className="h-8 px-2 text-xs gap-1"><Printer className="w-3.5 h-3.5" /> طباعة</Button>
+            <Button variant="ghost" size="sm" onClick={handlePrint} className="h-8 px-2 text-xs gap-1"><Download className="w-3.5 h-3.5" /> PDF</Button>
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs gap-1"><Share2 className="w-3.5 h-3.5" /> مشاركة</Button>
           </div>
         </div>
 
-        {/* ── Hero: Net salary banner with waves ── */}
-        <div className="relative overflow-hidden print-section">
-          {/* wave layers */}
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg,rgba(16,185,129,0.18) 0%,rgba(16,185,129,0.04) 60%,transparent 100%)' }} />
-          <div className="stat-wave" style={{ animationDelay: '0s', background: 'linear-gradient(100deg,transparent 0%,rgba(16,185,129,0.06) 44%,rgba(16,185,129,0.14) 50%,rgba(16,185,129,0.06) 56%,transparent 100%)' }} />
-          <div className="stat-wave" style={{ animationDelay: '2.5s', background: 'linear-gradient(100deg,transparent 0%,rgba(99,102,241,0.04) 44%,rgba(99,102,241,0.09) 50%,rgba(99,102,241,0.04) 56%,transparent 100%)' }} />
-          <div className="absolute inset-0 border-b border-emerald-500/10 pointer-events-none" />
-
-          <div className="relative z-10 px-5 pt-6 pb-5">
-            {/* Company + period */}
-            <div className="flex items-start justify-between mb-5">
+        {/* ── Hero: net salary living card ── */}
+        <div className="px-4 pt-4 print-section">
+          <div className="living-card p-5 mb-4" style={{ '--card-accent': '#10b981' } as React.CSSProperties}>
+            <span className="living-card-orb -left-6 -bottom-6" style={{ '--card-accent': '#10b981' } as React.CSSProperties} />
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs text-white/40 font-medium mb-0.5">الشركة</p>
-                <h2 className="text-xl font-bold font-display text-white">{settings.companyName || 'اسم الشركة'}</h2>
-                <p className="text-white/50 text-xs mt-1">مسير الرواتب · {summary.period}</p>
+                <p className="text-xs text-muted-foreground font-medium mb-0.5">الشركة</p>
+                <h2 className="text-lg font-bold font-display">{settings.companyName || 'اسم الشركة'}</h2>
+                <p className="text-muted-foreground text-xs mt-0.5">مسير الرواتب · {summary.period}</p>
               </div>
-              <div className="mt-1">{getStatusBadge(summary.status)}</div>
+              <div>{getStatusBadge(summary.status)}</div>
             </div>
+            <p className="text-xs text-muted-foreground font-semibold mb-1">صافي الراتب</p>
+            <p className="text-4xl font-bold font-data text-emerald-500">{formatMoney(computedNet.toFixed(2))}</p>
+            <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
+              <span>الاستحقاقات: <span className="text-emerald-500 font-data font-semibold">{formatMoney(gross.toFixed(2))}</span></span>
+              <span>الخصومات: <span className="text-rose-500 font-data font-semibold">{formatMoney(totDed.toFixed(2))}</span></span>
+            </div>
+          </div>
 
-            {/* Net salary hero */}
-            <div className="rounded-2xl p-4 mb-4 border border-emerald-500/20" style={{ background: 'rgba(16,185,129,0.07)' }}>
-              <p className="text-emerald-400/70 text-xs font-semibold mb-1">صافي الراتب</p>
-              <p className="text-4xl font-bold font-data text-emerald-400">{formatMoney(computedNet.toFixed(2))}</p>
-              <div className="flex gap-4 mt-3 text-xs">
-                <span className="text-white/50">الاستحقاقات: <span className="text-emerald-400 font-data font-semibold">{formatMoney(gross.toFixed(2))}</span></span>
-                <span className="text-white/50">الخصومات: <span className="text-rose-400 font-data font-semibold">{formatMoney(totDed.toFixed(2))}</span></span>
+          {/* Emp info chips */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {[
+              { label: 'الاسم',          val: summary.employeeName,         accent: '#6366f1' },
+              { label: 'القسم',          val: summary.departmentName||'—',  accent: '#8b5cf6' },
+              { label: 'نوع العقد',      val: summary.contractType==='monthly'?'شهري':summary.contractType==='daily'?'يومي':'بالساعة', accent: '#06b6d4' },
+              { label: 'الراتب الأساسي',val: formatMoney(summary.basicSalary), accent: '#10b981', data: true },
+            ].map(({ label, val, accent, data }) => (
+              <div key={label} className="living-card p-3" style={{ '--card-accent': accent } as React.CSSProperties}>
+                <p className="text-[10px] text-muted-foreground font-medium mb-0.5">{label}</p>
+                <p className={`font-semibold text-sm ${data?'font-data':''}`}>{val}</p>
               </div>
-            </div>
-
-            {/* Emp info chips */}
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: 'الاسم',          val: summary.employeeName },
-                { label: 'القسم',          val: summary.departmentName || '—' },
-                { label: 'نوع العقد',      val: summary.contractType === 'monthly' ? 'شهري' : summary.contractType === 'daily' ? 'يومي' : 'بالساعة' },
-                { label: 'الراتب الأساسي', val: formatMoney(summary.basicSalary), data: true },
-              ].map(({ label, val, data }) => (
-                <div key={label} className="rounded-xl p-3 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <p className="text-[10px] text-white/40 font-medium mb-0.5">{label}</p>
-                  <p className={`font-semibold text-white text-sm ${data ? 'font-data' : ''}`}>{val}</p>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
 
-        <div className="px-4 pb-4 space-y-5 overflow-x-hidden print:p-0">
+        <div className="px-4 pb-4 space-y-4 overflow-x-hidden print:p-0">
 
           {/* ── Attendance metrics ── */}
           <section>
-            <h3 className="text-sm font-bold text-white/80 mb-3 flex items-center gap-2 pt-4">
-              <span className="inline-block w-1 h-4 rounded-full bg-sky-400" />
+            <h3 className="text-sm font-bold mb-2 flex items-center gap-2">
+              <span className="inline-block w-1 h-4 rounded-full bg-sky-500" />
               ملخص الدوام
             </h3>
             <div className="grid grid-cols-3 gap-2 mb-2">
-              <MetricBox label="أيام الحضور"     val={summary.workedDays} />
-              <MetricBox label="أيام الغياب"      val={summary.absentDays}  color="text-rose-500" />
-              <MetricBox label="ساعات العمل"      val={summary.workedHours} />
-              <MetricBox label="إضافي عادي (س)"  val={summary.weekdayOvertimeHours ?? summary.overtimeHours} color="text-indigo-500" />
-              <MetricBox label="إضافي عطلة (س)"  val={summary.weekendOvertimeHours ?? 0}  color="text-purple-500" />
-              <MetricBox label="ساعات ليلية (س)" val={summary.nightHours ?? 0}             color="text-blue-400" />
+              <MetricBox label="أيام الحضور"     val={summary.workedDays}  accent="#10b981" />
+              <MetricBox label="أيام الغياب"      val={summary.absentDays}  accent="#f43f5e" />
+              <MetricBox label="ساعات العمل"      val={summary.workedHours} accent="#0ea5e9" />
+              <MetricBox label="إضافي عادي (س)"  val={summary.weekdayOvertimeHours??summary.overtimeHours} accent="#6366f1" />
+              <MetricBox label="إضافي عطلة (س)"  val={summary.weekendOvertimeHours??0}  accent="#a855f7" />
+              <MetricBox label="ساعات ليلية (س)" val={summary.nightHours??0}             accent="#3b82f6" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <MetricBox label="دقائق التأخير"         val={summary.lateMinutes}    color="text-amber-500" />
-              <MetricBox label="خروج مبكر (د)"         val={summary.earlyMinutes}   color="text-amber-500" />
-              <MetricBox label="إجازات مدفوعة (ي)"    val={summary.paidLeaveDays} />
-              <MetricBox label="إجازات غ.مدفوعة (ي)"  val={summary.unpaidLeaveDays} color="text-rose-400" />
+              <MetricBox label="دقائق التأخير"        val={summary.lateMinutes}    accent="#f59e0b" />
+              <MetricBox label="خروج مبكر (د)"        val={summary.earlyMinutes}   accent="#f59e0b" />
+              <MetricBox label="إجازات مدفوعة (ي)"   val={summary.paidLeaveDays}  accent="#10b981" />
+              <MetricBox label="إجازات غ.مدفوعة (ي)" val={summary.unpaidLeaveDays} accent="#f43f5e" />
             </div>
-
-            {/* Rate strip */}
-            <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 mt-2">
               {[
-                { label: 'أجر اليوم',    val: formatMoney(summary.dailyRate) },
-                { label: 'أجر الساعة',   val: formatMoney(summary.hourlyRate) },
-                { label: 'أجر الدقيقة',  val: formatMoney(summary.minuteRate) },
-                { label: 'ثواني العمل',  val: summary.workedSeconds },
-              ].map(({ label, val }) => (
-                <div key={label} className="rounded-lg p-2 border border-white/[0.07] text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <span className="text-white/50">{label}: </span>
+                { label: 'أجر اليوم',   val: formatMoney(summary.dailyRate),  accent: '#6366f1' },
+                { label: 'أجر الساعة',  val: formatMoney(summary.hourlyRate), accent: '#8b5cf6' },
+                { label: 'أجر الدقيقة', val: formatMoney(summary.minuteRate), accent: '#06b6d4' },
+                { label: 'ثواني العمل', val: summary.workedSeconds,           accent: '#64748b' },
+              ].map(({ label, val, accent }) => (
+                <div key={label} className="living-card px-3 py-2 text-center text-xs" style={{ '--card-accent': accent } as React.CSSProperties}>
+                  <span className="text-muted-foreground">{label}: </span>
                   <span className="font-data font-bold text-primary">{val}</span>
                 </div>
               ))}
@@ -685,83 +673,98 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
           </section>
 
           {/* ── Earnings ── */}
-          <section className="rounded-2xl border border-emerald-500/15 overflow-hidden" style={{ background: 'rgba(16,185,129,0.04)' }}>
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-emerald-500/10">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <h3 className="font-bold text-emerald-400 text-sm">الاستحقاقات</h3>
+          <section className="living-card overflow-hidden" style={{ '--card-accent': '#10b981' } as React.CSSProperties}>
+            <span className="living-card-orb -right-6 -top-6" />
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <h3 className="font-bold text-emerald-500 text-sm">الاستحقاقات</h3>
             </div>
             <div className="p-3 space-y-2">
-              <div className="ps-row ps-row-em"><span className="text-white/80">الراتب الأساسي المحتسب</span><span className="font-data font-semibold text-emerald-300">{formatMoney(summary.basicSalary)}</span></div>
-              <div className="ps-row ps-row-neu"><span className="text-white/70 text-xs">إضافي عادي ({summary.overtimeRate}×)</span><span className="font-data text-emerald-300 text-sm">{formatMoney(summary.overtime)}</span></div>
-              {(summary.weekendOvertimeHours ?? 0) > 0 && (
-                <div className="ps-row" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
-                  <span className="text-white/70 text-xs flex items-center gap-1"><Calendar className="w-3 h-3 text-purple-400" /> إضافي عطلة × {summary.weekendOvertimeHours}س</span>
-                  <span className="font-data text-purple-300 text-sm">{formatMoney(summary.weekendOvertimePay ?? 0)}</span>
+              {[
+                { label: 'الراتب الأساسي المحتسب', val: formatMoney(summary.basicSalary) },
+                { label: `إضافي عادي (${summary.overtimeRate}×)`, val: formatMoney(summary.overtime) },
+              ].map(({ label, val }) => (
+                <div key={label} className="flex justify-between items-center bg-emerald-500/5 border border-emerald-500/15 px-3 py-2 rounded-xl text-sm">
+                  <span className="text-foreground/80">{label}</span>
+                  <span className="font-data font-semibold text-emerald-500">{val}</span>
+                </div>
+              ))}
+              {(summary.weekendOvertimeHours??0)>0&&(
+                <div className="flex justify-between items-center bg-purple-500/5 border border-purple-500/15 px-3 py-2 rounded-xl text-sm">
+                  <span className="flex items-center gap-1 text-foreground/80"><Calendar className="w-3 h-3 text-purple-500" /> إضافي عطلة × {summary.weekendOvertimeHours}س</span>
+                  <span className="font-data font-semibold text-purple-500">{formatMoney(summary.weekendOvertimePay??0)}</span>
                 </div>
               )}
-              {(summary.nightDifferentialPay ?? 0) > 0 && (
-                <div className="ps-row" style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)' }}>
-                  <span className="text-white/70 text-xs flex items-center gap-1"><Moon className="w-3 h-3 text-blue-400" /> بدل ليلي × {summary.nightHours}س</span>
-                  <span className="font-data text-blue-300 text-sm">{formatMoney(summary.nightDifferentialPay ?? 0)}</span>
+              {(summary.nightDifferentialPay??0)>0&&(
+                <div className="flex justify-between items-center bg-blue-500/5 border border-blue-500/15 px-3 py-2 rounded-xl text-sm">
+                  <span className="flex items-center gap-1 text-foreground/80"><Moon className="w-3 h-3 text-blue-500" /> بدل ليلي × {summary.nightHours}س</span>
+                  <span className="font-data font-semibold text-blue-500">{formatMoney(summary.nightDifferentialPay??0)}</span>
                 </div>
               )}
-              {/* Editable inputs */}
               {[
                 { label: 'مكافآت إضافية', key: 'bonus' as const },
                 { label: 'بدلات',          key: 'allowances' as const },
                 { label: 'عمولات',         key: 'commissions' as const },
               ].map(({ label, key }) => (
-                <div key={key} className="rounded-xl px-3 py-2 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <Label className="text-[10px] text-white/40 mb-1 block">{label}</Label>
-                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm bg-white/5 border-white/10 text-white" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
+                <div key={key} className="bg-muted/20 border border-border px-3 py-2 rounded-xl">
+                  <Label className="text-[10px] text-muted-foreground mb-1 block">{label}</Label>
+                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
                 </div>
               ))}
-              <div className="flex justify-between items-center font-bold pt-2 border-t border-emerald-500/20 mt-2 px-1">
-                <span className="text-white">إجمالي الاستحقاقات</span>
-                <span className="font-data text-emerald-400 text-lg">{formatMoney(gross.toFixed(2))}</span>
+              <div className="flex justify-between items-center font-bold pt-2 border-t border-emerald-500/20 mt-1 px-1">
+                <span>إجمالي الاستحقاقات</span>
+                <span className="font-data text-emerald-500 text-lg">{formatMoney(gross.toFixed(2))}</span>
               </div>
             </div>
           </section>
 
           {/* ── Deductions ── */}
-          <section className="rounded-2xl border border-rose-500/15 overflow-hidden" style={{ background: 'rgba(239,68,68,0.04)' }}>
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-rose-500/10">
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
-              <h3 className="font-bold text-rose-400 text-sm">الخصومات</h3>
+          <section className="living-card overflow-hidden" style={{ '--card-accent': '#f43f5e' } as React.CSSProperties}>
+            <span className="living-card-orb -left-6 -bottom-6" />
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+              <AlertTriangle className="w-4 h-4 text-rose-500" />
+              <h3 className="font-bold text-rose-500 text-sm">الخصومات</h3>
             </div>
             <div className="p-3 space-y-2">
-              <div className="ps-row ps-row-de text-xs"><span className="text-white/70">خصم التأخير ({summary.lateMinutes}د)</span><span className="font-data text-amber-400">{formatMoney(parseFloat(summary.lateDeduction||'0').toString())}</span></div>
-              <div className="ps-row ps-row-de text-xs"><span className="text-white/70">خصم الخروج المبكر ({summary.earlyMinutes}د)</span><span className="font-data text-amber-400">{formatMoney(parseFloat(summary.earlyDeduction||'0').toString())}</span></div>
-              <div className="ps-row ps-row-de text-xs"><span className="text-white/70">خصم الغياب والإجازات</span><span className="font-data text-rose-400">{formatMoney(summary.absenceDeduction)}</span></div>
+              {[
+                { label: `خصم التأخير (${summary.lateMinutes}د)`,      val: formatMoney(parseFloat(summary.lateDeduction||'0').toString()),  cls: 'text-amber-500' },
+                { label: `خروج مبكر (${summary.earlyMinutes}د)`,       val: formatMoney(parseFloat(summary.earlyDeduction||'0').toString()), cls: 'text-amber-500' },
+                { label: 'خصم الغياب والإجازات غير المدفوعة',          val: formatMoney(summary.absenceDeduction),                          cls: 'text-rose-500' },
+              ].map(({ label, val, cls }) => (
+                <div key={label} className="flex justify-between items-center bg-rose-500/5 border border-rose-500/15 px-3 py-2 rounded-xl text-sm">
+                  <span className="text-foreground/80">{label}</span>
+                  <span className={`font-data font-semibold ${cls}`}>{val}</span>
+                </div>
+              ))}
               {[
                 { label: 'سلف مستردة (دفعة واحدة)', key: 'advances' as const },
                 { label: 'قسط السلف الشهري',        key: 'installment' as const },
                 { label: 'غرامات وجزاءات',           key: 'fines' as const },
               ].map(({ label, key }) => (
-                <div key={key} className="rounded-xl px-3 py-2 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <Label className="text-[10px] text-white/40 mb-1 block">{label}</Label>
-                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm bg-white/5 border-white/10 text-white" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
+                <div key={key} className="bg-muted/20 border border-border px-3 py-2 rounded-xl">
+                  <Label className="text-[10px] text-muted-foreground mb-1 block">{label}</Label>
+                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-2">
                 {[{ label: 'ضريبة (%)', key: 'tax' as const }, { label: 'تأمينات (%)', key: 'insurance' as const }].map(({ label, key }) => (
-                  <div key={key} className="rounded-xl px-3 py-2 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <Label className="text-[10px] text-white/40 mb-1 block">{label}</Label>
-                    <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm bg-white/5 border-white/10 text-white" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
+                  <div key={key} className="bg-muted/20 border border-border px-3 py-2 rounded-xl">
+                    <Label className="text-[10px] text-muted-foreground mb-1 block">{label}</Label>
+                    <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between items-center font-bold pt-2 border-t border-rose-500/20 mt-2 px-1">
-                <span className="text-white">إجمالي الخصومات</span>
-                <span className="font-data text-rose-400 text-lg">{formatMoney(totDed.toFixed(2))}</span>
+              <div className="flex justify-between items-center font-bold pt-2 border-t border-rose-500/20 mt-1 px-1">
+                <span>إجمالي الخصومات</span>
+                <span className="font-data text-rose-500 text-lg">{formatMoney(totDed.toFixed(2))}</span>
               </div>
             </div>
           </section>
 
           {/* ── Notes ── */}
-          <div className="rounded-xl px-3 py-2.5 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
-            <Label className="text-xs text-white/40 font-medium mb-1 block">ملاحظات المسير</Label>
-            <Input disabled={isLocked} value={edits.notes} onChange={e=>setEdits({...edits,notes:e.target.value})} placeholder="أضف ملاحظات إدارية..." className="bg-white/5 border-white/10 text-white placeholder:text-white/20" />
+          <div className="living-card px-3 py-2.5" style={{ '--card-accent': '#64748b' } as React.CSSProperties}>
+            <Label className="text-xs text-muted-foreground font-medium mb-1 block">ملاحظات المسير</Label>
+            <Input disabled={isLocked} value={edits.notes} onChange={e=>setEdits({...edits,notes:e.target.value})} placeholder="أضف ملاحظات إدارية..." />
           </div>
 
           {/* Signatures — print only */}
@@ -770,16 +773,15 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
               <div key={t} className="text-center w-40"><p className="font-bold mb-8">{t}</p><div className="border-b border-black" /></div>
             ))}
           </div>
-
           <div className="h-2" />
         </div>
 
         {/* ── Actions ── */}
-        <div className="sticky bottom-0 p-3 backdrop-blur-xl border-t border-white/[0.07] flex flex-wrap justify-end gap-2 print:hidden" style={{ background: 'rgba(7,9,26,0.92)' }}>
-          <Button variant="ghost" onClick={onClose} className="text-white/60 hover:text-white border border-white/10">إغلاق</Button>
+        <div className="sticky bottom-0 p-3 bg-background/90 backdrop-blur-xl border-t border-border flex flex-wrap justify-end gap-2 print:hidden">
+          <Button variant="outline" onClick={onClose}>إغلاق</Button>
           {!isLocked && (
             <>
-              <Button variant="secondary" onClick={() => handleSave()} disabled={updatePayroll.isPending || createPayroll.isPending} className="gap-1.5 text-sm">
+              <Button variant="secondary" onClick={() => handleSave()} disabled={updatePayroll.isPending||createPayroll.isPending} className="gap-1.5 text-sm">
                 <Save className="w-3.5 h-3.5" /> حفظ التعديلات
               </Button>
               {summary.status !== 'approved' && pid && (
@@ -800,22 +802,11 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
   );
 }
 
-function MetricBox({ label, val, color="text-emerald-400" }: any) {
-  const themeMap: Record<string, { bg: string; border: string; glow: string }> = {
-    'text-rose-500':   { bg: 'bg-rose-950/60',   border: 'border-rose-500/40',   glow: 'shadow-rose-900/40' },
-    'text-indigo-500': { bg: 'bg-indigo-950/60', border: 'border-indigo-500/40', glow: 'shadow-indigo-900/40' },
-    'text-purple-500': { bg: 'bg-purple-950/60', border: 'border-purple-500/40', glow: 'shadow-purple-900/40' },
-    'text-blue-400':   { bg: 'bg-blue-950/60',   border: 'border-blue-500/40',   glow: 'shadow-blue-900/40' },
-    'text-amber-500':  { bg: 'bg-amber-950/60',  border: 'border-amber-500/40',  glow: 'shadow-amber-900/40' },
-    'text-rose-400':   { bg: 'bg-rose-950/60',   border: 'border-rose-400/40',   glow: 'shadow-rose-900/40' },
-    'text-emerald-400':{ bg: 'bg-emerald-950/60',border: 'border-emerald-500/40',glow: 'shadow-emerald-900/40' },
-  };
-  const t = themeMap[color] ?? { bg: 'bg-white/5', border: 'border-white/10', glow: 'shadow-black/20' };
+function MetricBox({ label, val, accent = '#6366f1' }: { label: string; val: any; accent?: string }) {
   return (
-    <div className={`relative overflow-hidden p-3 rounded-xl border text-center shadow-lg ${t.bg} ${t.border} ${t.glow} transition-all`}>
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
-      <div className="text-[10px] font-semibold text-white/70 mb-1 leading-tight relative z-10">{label}</div>
-      <div className={`text-xl font-bold font-data relative z-10 ${color}`}>{val}</div>
+    <div className="living-card p-3 text-center" style={{ '--card-accent': accent } as React.CSSProperties}>
+      <div className="text-[10px] font-semibold text-muted-foreground mb-1 leading-tight">{label}</div>
+      <div className="text-xl font-bold font-data" style={{ color: accent }}>{val}</div>
     </div>
   );
 }
