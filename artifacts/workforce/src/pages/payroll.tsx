@@ -50,7 +50,8 @@ import {
   Briefcase,
   Moon,
   Sun,
-  Calendar
+  Calendar,
+  Mail
 } from 'lucide-react';
 
 export default function PayrollPage() {
@@ -579,7 +580,158 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
     }
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    document.body.classList.add('payslip-printing');
+    setTimeout(() => {
+      window.print();
+      // remove class after dialog is dismissed or printing finishes
+      const afterPrint = () => {
+        document.body.classList.remove('payslip-printing');
+        window.removeEventListener('afterprint', afterPrint);
+      };
+      window.addEventListener('afterprint', afterPrint);
+      // fallback in case afterprint doesn't fire (Safari)
+      setTimeout(() => document.body.classList.remove('payslip-printing'), 4000);
+    }, 80);
+  };
+
+  const buildPayslipHtml = () => {
+    const dialogEl = document.querySelector('.payslip-dialog') as HTMLElement | null;
+    if (!dialogEl) return null;
+
+    // Collect only <link rel="stylesheet"> — skip <style> blocks that carry dark-mode vars
+    const linkNodes = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map(el => el.outerHTML).join('\n');
+
+    return `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8"/>
+<title>كشف راتب — ${summary.employeeName} — ${summary.period}</title>
+${linkNodes}
+<style>
+  /* ── Force light-mode CSS variables ── */
+  :root, html, body {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    color-scheme: light;
+  }
+  @page { margin: 10mm; size: A4 portrait; }
+  html, body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    direction: rtl;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    margin: 0; padding: 16px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* strip dialog chrome */
+  [data-radix-dialog-content], .payslip-dialog {
+    position: static !important; max-height: none !important;
+    overflow: visible !important; width: 100% !important;
+    border: none !important; box-shadow: none !important;
+    border-radius: 0 !important; transform: none !important;
+    background: transparent !important; opacity: 1 !important;
+  }
+  /* living-card light overrides */
+  .living-card {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+  }
+  .living-card-orb { display: none !important; }
+  /* text overrides */
+  .text-muted-foreground { color: #6b7280 !important; }
+  .text-foreground\\/80, .text-foreground { color: #111827 !important; }
+  .text-white { color: #111827 !important; }
+  .text-white\\/75 { color: #374151 !important; }
+  /* section backgrounds */
+  .bg-muted\\/20, .bg-muted\\/30 { background: #f1f5f9 !important; }
+  .bg-emerald-500\\/5 { background: #ecfdf5 !important; }
+  .bg-rose-500\\/5 { background: #fff1f2 !important; }
+  .bg-purple-500\\/5 { background: #faf5ff !important; }
+  .bg-blue-500\\/5 { background: #eff6ff !important; }
+  /* borders */
+  .border-border { border-color: #e2e8f0 !important; }
+  .border-emerald-500\\/15, .border-emerald-500\\/20 { border-color: #6ee7b7 !important; }
+  .border-rose-500\\/15, .border-rose-500\\/20 { border-color: #fca5a5 !important; }
+  .border-purple-500\\/15 { border-color: #d8b4fe !important; }
+  .border-blue-500\\/15 { border-color: #93c5fd !important; }
+  /* stat-card-dark used in hero → override to white card */
+  .stat-card-dark {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #111827 !important;
+    border-radius: 12px;
+  }
+  .stat-wave { display: none !important; }
+  /* inputs — show values clearly */
+  input { background: #f9fafb !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+  /* hide UI-only elements */
+  .print\\:hidden, [class*="sticky"], .backdrop-blur-xl { display: none !important; }
+  /* ensure color accents still render */
+  .text-emerald-500 { color: #10b981 !important; }
+  .text-rose-500    { color: #f43f5e !important; }
+  .text-amber-500   { color: #f59e0b !important; }
+  .text-indigo-500  { color: #6366f1 !important; }
+  .text-purple-500  { color: #a855f7 !important; }
+  .text-blue-500    { color: #3b82f6 !important; }
+  .text-sky-500     { color: #0ea5e9 !important; }
+</style>
+</head>
+<body>
+${dialogEl.innerHTML}
+</body>
+</html>`;
+  };
+
+  const handleExportPdf = () => {
+    const html = buildPayslipHtml();
+    if (!html) return;
+    const win = window.open('', '_blank', 'width=794,height=1123');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 700);
+  };
+
+  const handleSendEmail = () => {
+    const employeeEmail = (summary as any).email || '';
+    const subject = encodeURIComponent(`كشف راتب — ${summary.employeeName} — ${summary.period}`);
+    const body = encodeURIComponent(
+      `السلام عليكم ${summary.employeeName}،\n\n` +
+      `يُرفق كشف راتبك للفترة: ${summary.period}\n\n` +
+      `📊 ملخص:\n` +
+      `• الراتب الأساسي: ${formatMoney(summary.basicSalary || '0')}\n` +
+      `• إجمالي الاستحقاقات: ${formatMoney(gross.toFixed(2))}\n` +
+      `• إجمالي الخصومات: ${formatMoney(totDed.toFixed(2))}\n` +
+      `• الراتب الصافي: ${formatMoney(computedNet.toFixed(2))}\n\n` +
+      `يمكنك تحميل كشف الراتب المفصّل من النظام.\n\n` +
+      `مع التحية،\n${settings.companyName || 'الإدارة'}`
+    );
+    window.open(`mailto:${employeeEmail}?subject=${subject}&body=${body}`, '_self');
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -594,8 +746,8 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
           </DialogTitle>
           <div className="flex gap-1">
             <Button variant="ghost" size="sm" onClick={handlePrint} className="h-8 px-2 text-xs gap-1"><Printer className="w-3.5 h-3.5" /> طباعة</Button>
-            <Button variant="ghost" size="sm" onClick={handlePrint} className="h-8 px-2 text-xs gap-1"><Download className="w-3.5 h-3.5" /> PDF</Button>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs gap-1"><Share2 className="w-3.5 h-3.5" /> مشاركة</Button>
+            <Button variant="ghost" size="sm" onClick={handleExportPdf} className="h-8 px-2 text-xs gap-1 text-primary"><Download className="w-3.5 h-3.5" /> PDF</Button>
+            <Button variant="ghost" size="sm" onClick={handleSendEmail} className="h-8 px-2 text-xs gap-1 text-blue-500 hover:text-blue-600"><Mail className="w-3.5 h-3.5" /> إيميل</Button>
           </div>
         </div>
 

@@ -838,3 +838,31 @@ button:disabled,
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
+/* ─── Payslip print isolation ─────────────────────────────────────────────── */
+@media print {
+  /* Hide the whole app and overlay when printing a payslip */
+  body.payslip-printing #root                { display: none !important; }
+  body.payslip-printing [data-radix-dialog-overlay] { display: none !important; }
+
+  /* Let the dialog portal and its content flow naturally */
+  body.payslip-printing [data-radix-portal]  { position: static !important; }
+  body.payslip-printing [data-radix-dialog-content] {
+    position: static  !important;
+    max-height: none  !important;
+    overflow: visible !important;
+    width: 100%       !important;
+    max-width: 100%   !important;
+    border: none      !important;
+    box-shadow: none  !important;
+    border-radius: 0  !important;
+    transform: none   !important;
+  }
+
+  /* Page setup */
+  @page { margin: 12mm; size: A4 portrait; }
+  body  { background: #fff !important; color: #000 !important; direction: rtl; }
+
+  /* Hide action buttons inside the dialog */
+  .print\:hidden { display: none !important; }
+}
+
