@@ -583,232 +583,213 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 border-0 bg-background custom-scrollbar payslip-dialog w-full">
-        <style>{`[data-radix-dialog-content]{max-width:min(896px,100vw)!important;overflow-x:hidden!important;}`}</style>
-        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border p-4 flex items-center justify-between print:hidden">
-          <DialogTitle className="text-xl font-bold font-display flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto overflow-x-hidden p-0 border border-white/[0.06] custom-scrollbar payslip-dialog w-full" style={{ background: 'linear-gradient(160deg,#07091a 0%,#0a0d20 50%,#06080f 100%)' }}>
+        <style>{`[data-radix-dialog-content]{max-width:min(720px,100vw)!important;overflow-x:hidden!important;} .ps-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:10px;font-size:14px;} .ps-row-em{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);} .ps-row-de{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);} .ps-row-neu{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);}`}</style>
+
+        {/* ── Sticky header ── */}
+        <div className="sticky top-0 z-20 backdrop-blur-2xl border-b border-white/[0.07] p-3 flex items-center justify-between print:hidden" style={{ background: 'rgba(7,9,26,0.88)' }}>
+          <DialogTitle className="text-base font-bold font-display flex items-center gap-2 text-white">
+            <FileText className="w-4 h-4 text-emerald-400" />
             كشف راتب موظف
           </DialogTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="w-4 h-4 ml-2" /> طباعة</Button>
-            <Button variant="outline" size="sm" onClick={handlePrint}><Download className="w-4 h-4 ml-2" /> PDF</Button>
-            <Button variant="outline" size="sm"><Share2 className="w-4 h-4 ml-2" /> مشاركة</Button>
+          <div className="flex gap-1.5">
+            <Button variant="ghost" size="sm" onClick={handlePrint} className="text-white/60 hover:text-white h-8 px-2 text-xs"><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
+            <Button variant="ghost" size="sm" onClick={handlePrint} className="text-white/60 hover:text-white h-8 px-2 text-xs"><Download className="w-3.5 h-3.5 ml-1" /> PDF</Button>
+            <Button variant="ghost" size="sm" className="text-white/60 hover:text-white h-8 px-2 text-xs"><Share2 className="w-3.5 h-3.5 ml-1" /> مشاركة</Button>
           </div>
         </div>
 
-        <div className="p-4 sm:p-8 print-section print:p-0 overflow-x-hidden">
-          {/* HEADER */}
-          <div className="flex justify-between items-start mb-8 pb-6 border-b border-border/50">
-            <div>
-              <h2 className="text-2xl font-bold font-display text-foreground">{settings.companyName || 'اسم الشركة'}</h2>
-              <p className="text-muted-foreground mt-1">مسير الرواتب - فترة: {summary.period}</p>
-            </div>
-            <div className="text-left">
-              {getStatusBadge(summary.status)}
-              <div className="text-3xl font-bold font-data text-emerald-600 dark:text-emerald-400 mt-2">{formatMoney(computedNet.toFixed(2))}</div>
-              <div className="text-sm text-muted-foreground mt-1">الراتب الصافي</div>
-            </div>
-          </div>
+        {/* ── Hero: Net salary banner with waves ── */}
+        <div className="relative overflow-hidden print-section">
+          {/* wave layers */}
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg,rgba(16,185,129,0.18) 0%,rgba(16,185,129,0.04) 60%,transparent 100%)' }} />
+          <div className="stat-wave" style={{ animationDelay: '0s', background: 'linear-gradient(100deg,transparent 0%,rgba(16,185,129,0.06) 44%,rgba(16,185,129,0.14) 50%,rgba(16,185,129,0.06) 56%,transparent 100%)' }} />
+          <div className="stat-wave" style={{ animationDelay: '2.5s', background: 'linear-gradient(100deg,transparent 0%,rgba(99,102,241,0.04) 44%,rgba(99,102,241,0.09) 50%,rgba(99,102,241,0.04) 56%,transparent 100%)' }} />
+          <div className="absolute inset-0 border-b border-emerald-500/10 pointer-events-none" />
 
-          {/* EMP INFO */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-muted/20 p-3 rounded-lg border border-border/50">
-              <span className="block text-xs text-muted-foreground">الاسم</span>
-              <span className="font-semibold">{summary.employeeName}</span>
+          <div className="relative z-10 px-5 pt-6 pb-5">
+            {/* Company + period */}
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <p className="text-xs text-white/40 font-medium mb-0.5">الشركة</p>
+                <h2 className="text-xl font-bold font-display text-white">{settings.companyName || 'اسم الشركة'}</h2>
+                <p className="text-white/50 text-xs mt-1">مسير الرواتب · {summary.period}</p>
+              </div>
+              <div className="mt-1">{getStatusBadge(summary.status)}</div>
             </div>
-            <div className="bg-muted/20 p-3 rounded-lg border border-border/50">
-              <span className="block text-xs text-muted-foreground">القسم</span>
-              <span className="font-semibold">{summary.departmentName || '---'}</span>
-            </div>
-            <div className="bg-muted/20 p-3 rounded-lg border border-border/50">
-              <span className="block text-xs text-muted-foreground">نوع العقد</span>
-              <span className="font-semibold">{summary.contractType === 'monthly' ? 'شهري' : summary.contractType === 'daily' ? 'يومي' : 'بالساعة'}</span>
-            </div>
-            <div className="bg-muted/20 p-3 rounded-lg border border-border/50">
-              <span className="block text-xs text-muted-foreground">الراتب الأساسي</span>
-              <span className="font-semibold font-data">{formatMoney(summary.basicSalary)}</span>
-            </div>
-          </div>
 
-          {/* TIME METRICS */}
-          <h3 className="text-lg font-bold mb-3 border-r-4 border-primary pr-2">ملخص الدوام</h3>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
-            <MetricBox label="أيام الحضور" val={summary.workedDays} />
-            <MetricBox label="أيام الغياب" val={summary.absentDays} color="text-rose-500" />
-            <MetricBox label="ساعات العمل" val={summary.workedHours} />
-            <MetricBox label="إضافي عادي (س)" val={summary.weekdayOvertimeHours ?? summary.overtimeHours} color="text-indigo-500" />
-            <MetricBox label="إضافي عطلة (س)" val={summary.weekendOvertimeHours ?? 0} color="text-purple-500" />
-            <MetricBox label="ساعات ليلية (س)" val={summary.nightHours ?? 0} color="text-blue-400" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-            <MetricBox label="دقائق التأخير" val={summary.lateMinutes} color="text-amber-500" />
-            <MetricBox label="دقائق الخروج المبكر" val={summary.earlyMinutes} color="text-amber-500" />
-            <MetricBox label="إجازات مدفوعة (ي)" val={summary.paidLeaveDays} />
-            <MetricBox label="إجازات غير مدفوعة (ي)" val={summary.unpaidLeaveDays} color="text-rose-400" />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 text-xs">
-            <div className="p-2 border border-dashed border-border rounded text-center">أجر اليوم: <span className="font-data font-bold text-primary">{formatMoney(summary.dailyRate)}</span></div>
-            <div className="p-2 border border-dashed border-border rounded text-center">أجر الساعة: <span className="font-data font-bold text-primary">{formatMoney(summary.hourlyRate)}</span></div>
-            <div className="p-2 border border-dashed border-border rounded text-center">أجر الدقيقة: <span className="font-data font-bold text-primary">{formatMoney(summary.minuteRate)}</span></div>
-            <div className="p-2 border border-dashed border-border rounded text-center">ثواني العمل: <span className="font-data font-bold text-primary">{summary.workedSeconds}</span></div>
-          </div>
-
-          {/* TABLES */}
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
-            {/* EARNINGS */}
-            <div>
-              <h3 className="text-lg font-bold mb-3 text-emerald-600 flex items-center gap-2 border-b border-border pb-2">
-                <CheckCircle2 className="w-5 h-5" /> الاستحقاقات
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center bg-muted/10 p-2 rounded">
-                  <span>الراتب الأساسي المحتسب</span>
-                  <span className="font-data font-semibold">{formatMoney(summary.basicSalary)}</span>
-                </div>
-                <div className="flex justify-between items-center bg-muted/10 p-2 rounded text-sm">
-                  <span>إضافي عادي ({summary.overtimeRate}x = 150%)</span>
-                  <span className="font-data font-semibold">{formatMoney((summary.weekdayOvertimeHours ?? 0) > 0 ? summary.overtime : summary.overtime)}</span>
-                </div>
-                {(summary.weekendOvertimeHours ?? 0) > 0 && (
-                  <div className="flex justify-between items-center bg-purple-50 dark:bg-purple-900/20 p-2 rounded text-sm">
-                    <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-purple-500" /> إضافي عطلة (200%) × {summary.weekendOvertimeHours}س</span>
-                    <span className="font-data font-semibold text-purple-600">{formatMoney(summary.weekendOvertimePay ?? 0)}</span>
-                  </div>
-                )}
-                {(summary.nightDifferentialPay ?? 0) > 0 && (
-                  <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-sm">
-                    <span className="flex items-center gap-1"><Moon className="w-3.5 h-3.5 text-blue-400" /> بدل العمل الليلي (25%) × {summary.nightHours}س</span>
-                    <span className="font-data font-semibold text-blue-600">{formatMoney(summary.nightDifferentialPay ?? 0)}</span>
-                  </div>
-                )}
-                
-                <div className="pt-2">
-                  <Label className="text-xs text-muted-foreground mb-1 block">مكافآت إضافية</Label>
-                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-8" value={edits.bonus} onChange={e=>setEdits({...edits, bonus: e.target.value})} />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">بدلات</Label>
-                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-8" value={edits.allowances} onChange={e=>setEdits({...edits, allowances: e.target.value})} />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">عمولات</Label>
-                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-8" value={edits.commissions} onChange={e=>setEdits({...edits, commissions: e.target.value})} />
-                </div>
-
-                <div className="flex justify-between items-center font-bold text-lg pt-3 border-t border-border mt-3">
-                  <span>إجمالي الاستحقاقات</span>
-                  <span className="font-data text-emerald-600">{formatMoney(gross.toFixed(2))}</span>
-                </div>
+            {/* Net salary hero */}
+            <div className="rounded-2xl p-4 mb-4 border border-emerald-500/20" style={{ background: 'rgba(16,185,129,0.07)' }}>
+              <p className="text-emerald-400/70 text-xs font-semibold mb-1">صافي الراتب</p>
+              <p className="text-4xl font-bold font-data text-emerald-400">{formatMoney(computedNet.toFixed(2))}</p>
+              <div className="flex gap-4 mt-3 text-xs">
+                <span className="text-white/50">الاستحقاقات: <span className="text-emerald-400 font-data font-semibold">{formatMoney(gross.toFixed(2))}</span></span>
+                <span className="text-white/50">الخصومات: <span className="text-rose-400 font-data font-semibold">{formatMoney(totDed.toFixed(2))}</span></span>
               </div>
             </div>
 
-            {/* DEDUCTIONS */}
-            <div>
-              <h3 className="text-lg font-bold mb-3 text-rose-600 flex items-center gap-2 border-b border-border pb-2">
-                <AlertTriangle className="w-5 h-5" /> الخصومات
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center bg-muted/10 p-2 rounded text-sm">
-                  <span>خصم التأخير ({summary.lateMinutes}د)</span>
-                  <span className="font-data font-semibold text-amber-500">{formatMoney(parseFloat(summary.lateDeduction || '0').toString())}</span>
+            {/* Emp info chips */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'الاسم',          val: summary.employeeName },
+                { label: 'القسم',          val: summary.departmentName || '—' },
+                { label: 'نوع العقد',      val: summary.contractType === 'monthly' ? 'شهري' : summary.contractType === 'daily' ? 'يومي' : 'بالساعة' },
+                { label: 'الراتب الأساسي', val: formatMoney(summary.basicSalary), data: true },
+              ].map(({ label, val, data }) => (
+                <div key={label} className="rounded-xl p-3 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <p className="text-[10px] text-white/40 font-medium mb-0.5">{label}</p>
+                  <p className={`font-semibold text-white text-sm ${data ? 'font-data' : ''}`}>{val}</p>
                 </div>
-                <div className="flex justify-between items-center bg-muted/10 p-2 rounded text-sm">
-                  <span>خصم الخروج المبكر ({summary.earlyMinutes}د)</span>
-                  <span className="font-data font-semibold text-amber-500">{formatMoney((parseFloat(summary.earlyDeduction || '0')).toString())}</span>
-                </div>
-                <div className="flex justify-between items-center bg-muted/10 p-2 rounded text-sm">
-                  <span>خصم الغياب والإجازات غير المدفوعة</span>
-                  <span className="font-data font-semibold text-rose-500">{formatMoney(summary.absenceDeduction)}</span>
-                </div>
-                
-                <div className="pt-2">
-                  <Label className="text-xs text-muted-foreground mb-1 block">سلف مستردة (دفعة واحدة)</Label>
-                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-8" value={edits.advances} onChange={e=>setEdits({...edits, advances: e.target.value})} />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
-                    <span className="inline-block w-2 h-2 rounded-full bg-orange-500"></span>
-                    قسط السلف الشهري
-                  </Label>
-                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-8 border-orange-300 focus-visible:ring-orange-400" value={edits.installment} onChange={e=>setEdits({...edits, installment: e.target.value})} placeholder="0.00" />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">غرامات وجزاءات</Label>
-                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-8" value={edits.fines} onChange={e=>setEdits({...edits, fines: e.target.value})} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">ضريبة (%)</Label>
-                    <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-8" value={edits.tax} onChange={e=>setEdits({...edits, tax: e.target.value})} />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">تأمينات (%)</Label>
-                    <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-8" value={edits.insurance} onChange={e=>setEdits({...edits, insurance: e.target.value})} />
-                  </div>
-                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-                <div className="flex justify-between items-center font-bold text-lg pt-3 border-t border-border mt-3">
-                  <span>إجمالي الخصومات</span>
-                  <span className="font-data text-rose-600">{formatMoney(totDed.toFixed(2))}</span>
+        <div className="px-4 pb-4 space-y-5 overflow-x-hidden print:p-0">
+
+          {/* ── Attendance metrics ── */}
+          <section>
+            <h3 className="text-sm font-bold text-white/80 mb-3 flex items-center gap-2 pt-4">
+              <span className="inline-block w-1 h-4 rounded-full bg-sky-400" />
+              ملخص الدوام
+            </h3>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <MetricBox label="أيام الحضور"     val={summary.workedDays} />
+              <MetricBox label="أيام الغياب"      val={summary.absentDays}  color="text-rose-500" />
+              <MetricBox label="ساعات العمل"      val={summary.workedHours} />
+              <MetricBox label="إضافي عادي (س)"  val={summary.weekdayOvertimeHours ?? summary.overtimeHours} color="text-indigo-500" />
+              <MetricBox label="إضافي عطلة (س)"  val={summary.weekendOvertimeHours ?? 0}  color="text-purple-500" />
+              <MetricBox label="ساعات ليلية (س)" val={summary.nightHours ?? 0}             color="text-blue-400" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <MetricBox label="دقائق التأخير"         val={summary.lateMinutes}    color="text-amber-500" />
+              <MetricBox label="خروج مبكر (د)"         val={summary.earlyMinutes}   color="text-amber-500" />
+              <MetricBox label="إجازات مدفوعة (ي)"    val={summary.paidLeaveDays} />
+              <MetricBox label="إجازات غ.مدفوعة (ي)"  val={summary.unpaidLeaveDays} color="text-rose-400" />
+            </div>
+
+            {/* Rate strip */}
+            <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+              {[
+                { label: 'أجر اليوم',    val: formatMoney(summary.dailyRate) },
+                { label: 'أجر الساعة',   val: formatMoney(summary.hourlyRate) },
+                { label: 'أجر الدقيقة',  val: formatMoney(summary.minuteRate) },
+                { label: 'ثواني العمل',  val: summary.workedSeconds },
+              ].map(({ label, val }) => (
+                <div key={label} className="rounded-lg p-2 border border-white/[0.07] text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <span className="text-white/50">{label}: </span>
+                  <span className="font-data font-bold text-primary">{val}</span>
                 </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ── Earnings ── */}
+          <section className="rounded-2xl border border-emerald-500/15 overflow-hidden" style={{ background: 'rgba(16,185,129,0.04)' }}>
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-emerald-500/10">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <h3 className="font-bold text-emerald-400 text-sm">الاستحقاقات</h3>
+            </div>
+            <div className="p-3 space-y-2">
+              <div className="ps-row ps-row-em"><span className="text-white/80">الراتب الأساسي المحتسب</span><span className="font-data font-semibold text-emerald-300">{formatMoney(summary.basicSalary)}</span></div>
+              <div className="ps-row ps-row-neu"><span className="text-white/70 text-xs">إضافي عادي ({summary.overtimeRate}×)</span><span className="font-data text-emerald-300 text-sm">{formatMoney(summary.overtime)}</span></div>
+              {(summary.weekendOvertimeHours ?? 0) > 0 && (
+                <div className="ps-row" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                  <span className="text-white/70 text-xs flex items-center gap-1"><Calendar className="w-3 h-3 text-purple-400" /> إضافي عطلة × {summary.weekendOvertimeHours}س</span>
+                  <span className="font-data text-purple-300 text-sm">{formatMoney(summary.weekendOvertimePay ?? 0)}</span>
+                </div>
+              )}
+              {(summary.nightDifferentialPay ?? 0) > 0 && (
+                <div className="ps-row" style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)' }}>
+                  <span className="text-white/70 text-xs flex items-center gap-1"><Moon className="w-3 h-3 text-blue-400" /> بدل ليلي × {summary.nightHours}س</span>
+                  <span className="font-data text-blue-300 text-sm">{formatMoney(summary.nightDifferentialPay ?? 0)}</span>
+                </div>
+              )}
+              {/* Editable inputs */}
+              {[
+                { label: 'مكافآت إضافية', key: 'bonus' as const },
+                { label: 'بدلات',          key: 'allowances' as const },
+                { label: 'عمولات',         key: 'commissions' as const },
+              ].map(({ label, key }) => (
+                <div key={key} className="rounded-xl px-3 py-2 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <Label className="text-[10px] text-white/40 mb-1 block">{label}</Label>
+                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm bg-white/5 border-white/10 text-white" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
+                </div>
+              ))}
+              <div className="flex justify-between items-center font-bold pt-2 border-t border-emerald-500/20 mt-2 px-1">
+                <span className="text-white">إجمالي الاستحقاقات</span>
+                <span className="font-data text-emerald-400 text-lg">{formatMoney(gross.toFixed(2))}</span>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="mb-8">
-            <Label className="text-sm font-semibold mb-2 block">ملاحظات المسير</Label>
-            <Input disabled={isLocked} value={edits.notes} onChange={e=>setEdits({...edits, notes: e.target.value})} placeholder="أضف أي ملاحظات إدارية هنا..." />
-          </div>
-
-          {/* NET SUMMARY BOX */}
-          <div className="bg-gradient-to-r from-emerald-500/10 to-transparent rounded-xl p-4 mb-8 border border-emerald-500/20 flex justify-between items-center">
-            <div>
-              <p className="text-sm text-muted-foreground">الاستحقاقات: <span className="text-emerald-600 font-data font-semibold">{formatMoney(gross.toFixed(2))}</span></p>
-              <p className="text-sm text-muted-foreground mt-1">الخصومات: <span className="text-rose-600 font-data font-semibold">{formatMoney(totDed.toFixed(2))}</span></p>
+          {/* ── Deductions ── */}
+          <section className="rounded-2xl border border-rose-500/15 overflow-hidden" style={{ background: 'rgba(239,68,68,0.04)' }}>
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-rose-500/10">
+              <AlertTriangle className="w-4 h-4 text-rose-400" />
+              <h3 className="font-bold text-rose-400 text-sm">الخصومات</h3>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">صافي الراتب</p>
-              <p className="text-3xl font-bold font-data text-emerald-600">{formatMoney(computedNet.toFixed(2))}</p>
+            <div className="p-3 space-y-2">
+              <div className="ps-row ps-row-de text-xs"><span className="text-white/70">خصم التأخير ({summary.lateMinutes}د)</span><span className="font-data text-amber-400">{formatMoney(parseFloat(summary.lateDeduction||'0').toString())}</span></div>
+              <div className="ps-row ps-row-de text-xs"><span className="text-white/70">خصم الخروج المبكر ({summary.earlyMinutes}د)</span><span className="font-data text-amber-400">{formatMoney(parseFloat(summary.earlyDeduction||'0').toString())}</span></div>
+              <div className="ps-row ps-row-de text-xs"><span className="text-white/70">خصم الغياب والإجازات</span><span className="font-data text-rose-400">{formatMoney(summary.absenceDeduction)}</span></div>
+              {[
+                { label: 'سلف مستردة (دفعة واحدة)', key: 'advances' as const },
+                { label: 'قسط السلف الشهري',        key: 'installment' as const },
+                { label: 'غرامات وجزاءات',           key: 'fines' as const },
+              ].map(({ label, key }) => (
+                <div key={key} className="rounded-xl px-3 py-2 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <Label className="text-[10px] text-white/40 mb-1 block">{label}</Label>
+                  <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm bg-white/5 border-white/10 text-white" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
+                </div>
+              ))}
+              <div className="grid grid-cols-2 gap-2">
+                {[{ label: 'ضريبة (%)', key: 'tax' as const }, { label: 'تأمينات (%)', key: 'insurance' as const }].map(({ label, key }) => (
+                  <div key={key} className="rounded-xl px-3 py-2 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <Label className="text-[10px] text-white/40 mb-1 block">{label}</Label>
+                    <Input disabled={isLocked} type="number" dir="ltr" className="text-right h-7 text-sm bg-white/5 border-white/10 text-white" value={edits[key]} onChange={e=>setEdits({...edits,[key]:e.target.value})} />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between items-center font-bold pt-2 border-t border-rose-500/20 mt-2 px-1">
+                <span className="text-white">إجمالي الخصومات</span>
+                <span className="font-data text-rose-400 text-lg">{formatMoney(totDed.toFixed(2))}</span>
+              </div>
             </div>
+          </section>
+
+          {/* ── Notes ── */}
+          <div className="rounded-xl px-3 py-2.5 border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <Label className="text-xs text-white/40 font-medium mb-1 block">ملاحظات المسير</Label>
+            <Input disabled={isLocked} value={edits.notes} onChange={e=>setEdits({...edits,notes:e.target.value})} placeholder="أضف ملاحظات إدارية..." className="bg-white/5 border-white/10 text-white placeholder:text-white/20" />
           </div>
 
-          {/* SIGNATURES (Print only) */}
+          {/* Signatures — print only */}
           <div className="hidden print:flex justify-between mt-24 pt-8 border-t border-border">
-            <div className="text-center w-48">
-              <p className="font-bold mb-8">توقيع الموظف</p>
-              <div className="border-b border-black"></div>
-            </div>
-            <div className="text-center w-48">
-              <p className="font-bold mb-8">توقيع المحاسب</p>
-              <div className="border-b border-black"></div>
-            </div>
-            <div className="text-center w-48">
-              <p className="font-bold mb-8">اعتماد المدير</p>
-              <div className="border-b border-black"></div>
-            </div>
+            {['توقيع الموظف','توقيع المحاسب','اعتماد المدير'].map(t => (
+              <div key={t} className="text-center w-40"><p className="font-bold mb-8">{t}</p><div className="border-b border-black" /></div>
+            ))}
           </div>
 
+          <div className="h-2" />
         </div>
 
-        {/* ACTIONS */}
-        <div className="sticky bottom-0 p-4 bg-background/90 backdrop-blur border-t border-border flex justify-end gap-3 print:hidden">
-          <Button variant="outline" onClick={onClose}>إغلاق</Button>
-          
+        {/* ── Actions ── */}
+        <div className="sticky bottom-0 p-3 backdrop-blur-xl border-t border-white/[0.07] flex flex-wrap justify-end gap-2 print:hidden" style={{ background: 'rgba(7,9,26,0.92)' }}>
+          <Button variant="ghost" onClick={onClose} className="text-white/60 hover:text-white border border-white/10">إغلاق</Button>
           {!isLocked && (
             <>
-              <Button variant="secondary" onClick={() => handleSave()} disabled={updatePayroll.isPending || createPayroll.isPending} className="gap-2">
-                <Save className="w-4 h-4" /> حفظ التعديلات
+              <Button variant="secondary" onClick={() => handleSave()} disabled={updatePayroll.isPending || createPayroll.isPending} className="gap-1.5 text-sm">
+                <Save className="w-3.5 h-3.5" /> حفظ التعديلات
               </Button>
               {summary.status !== 'approved' && pid && (
-                <Button onClick={handleApprove} disabled={approvePayroll.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-                  <CheckCircle2 className="w-4 h-4" /> اعتماد الراتب
+                <Button onClick={handleApprove} disabled={approvePayroll.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 text-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> اعتماد الراتب
                 </Button>
               )}
               {summary.status === 'approved' && pid && (
-                <Button onClick={handleLock} disabled={lockPayroll.isPending} className="bg-slate-800 hover:bg-slate-900 text-white gap-2">
-                  <Lock className="w-4 h-4" /> قفل نهائي
+                <Button onClick={handleLock} disabled={lockPayroll.isPending} className="bg-slate-700 hover:bg-slate-800 text-white gap-1.5 text-sm">
+                  <Lock className="w-3.5 h-3.5" /> قفل نهائي
                 </Button>
               )}
             </>
@@ -819,22 +800,22 @@ function PayslipModal({ summary, open, onClose, formatMoney, getStatusBadge, onS
   );
 }
 
-function MetricBox({ label, val, color="text-foreground" }: any) {
-  // map text colour to a matching bg glow
-  const bgMap: Record<string, string> = {
-    'text-rose-500':    'bg-rose-500/10 border-rose-500/20 shadow-rose-500/10',
-    'text-indigo-500':  'bg-indigo-500/10 border-indigo-500/20 shadow-indigo-500/10',
-    'text-purple-500':  'bg-purple-500/10 border-purple-500/20 shadow-purple-500/10',
-    'text-blue-400':    'bg-blue-500/10 border-blue-500/20 shadow-blue-500/10',
-    'text-amber-500':   'bg-amber-500/10 border-amber-500/20 shadow-amber-500/10',
-    'text-rose-400':    'bg-rose-400/10 border-rose-400/20 shadow-rose-400/10',
-    'text-foreground':  'bg-muted/10 border-border/40 shadow-transparent',
+function MetricBox({ label, val, color="text-emerald-400" }: any) {
+  const themeMap: Record<string, { bg: string; border: string; glow: string }> = {
+    'text-rose-500':   { bg: 'bg-rose-950/60',   border: 'border-rose-500/40',   glow: 'shadow-rose-900/40' },
+    'text-indigo-500': { bg: 'bg-indigo-950/60', border: 'border-indigo-500/40', glow: 'shadow-indigo-900/40' },
+    'text-purple-500': { bg: 'bg-purple-950/60', border: 'border-purple-500/40', glow: 'shadow-purple-900/40' },
+    'text-blue-400':   { bg: 'bg-blue-950/60',   border: 'border-blue-500/40',   glow: 'shadow-blue-900/40' },
+    'text-amber-500':  { bg: 'bg-amber-950/60',  border: 'border-amber-500/40',  glow: 'shadow-amber-900/40' },
+    'text-rose-400':   { bg: 'bg-rose-950/60',   border: 'border-rose-400/40',   glow: 'shadow-rose-900/40' },
+    'text-emerald-400':{ bg: 'bg-emerald-950/60',border: 'border-emerald-500/40',glow: 'shadow-emerald-900/40' },
   };
-  const cls = bgMap[color] ?? 'bg-muted/10 border-border/40';
+  const t = themeMap[color] ?? { bg: 'bg-white/5', border: 'border-white/10', glow: 'shadow-black/20' };
   return (
-    <div className={`p-3 rounded-xl border text-center shadow-lg ${cls} transition-all`}>
-      <div className="text-[10px] font-medium text-white/60 mb-1 leading-tight">{label}</div>
-      <div className={`text-xl font-bold font-data ${color}`}>{val}</div>
+    <div className={`relative overflow-hidden p-3 rounded-xl border text-center shadow-lg ${t.bg} ${t.border} ${t.glow} transition-all`}>
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
+      <div className="text-[10px] font-semibold text-white/70 mb-1 leading-tight relative z-10">{label}</div>
+      <div className={`text-xl font-bold font-data relative z-10 ${color}`}>{val}</div>
     </div>
   );
 }
