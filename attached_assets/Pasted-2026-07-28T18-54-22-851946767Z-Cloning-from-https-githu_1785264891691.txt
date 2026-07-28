@@ -1,0 +1,25 @@
+2026-07-28T18:54:22.851946767Z ==> Cloning from https://github.com/WaelNameh84/Workforce
+2026-07-28T18:54:28.152118936Z ==> Checking out commit 3ff654eda9c810bc55ad66546fd724d3d575f8ae in branch main
+2026-07-28T18:54:29.333939175Z ==> Using Node.js version 24.14.1 (default)
+2026-07-28T18:54:29.333950402Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-07-28T18:54:29.368580251Z ==> Running build command 'npm install pnpm && ./node_modules/.bin/pnpm install --frozen-lockfile && ./node_modules/.bin/pnpm --filter @workspace/api-server run build'...
+2026-07-28T18:54:31.026578482Z 
+2026-07-28T18:54:31.026596437Z added 2 packages, and audited 3 packages in 2s
+2026-07-28T18:54:31.026598588Z 
+2026-07-28T18:54:31.026640916Z 1 package is looking for funding
+2026-07-28T18:54:31.026686977Z   run `npm fund` for details
+2026-07-28T18:54:31.027234251Z 
+2026-07-28T18:54:31.027236819Z found 0 vulnerabilities
+2026-07-28T18:54:31.622265457Z Scope: all 9 workspace projects
+2026-07-28T18:54:31.712745435Z ? Verifying lockfile against supply-chain policies (478 entries)...
+2026-07-28T18:54:33.679599889Z ✓ Lockfile passes supply-chain policies (478 entries in 1.9s)
+2026-07-28T18:54:33.69766077Z [ERR_PNPM_OUTDATED_LOCKFILE] Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-07-28T18:54:33.697677452Z 
+2026-07-28T18:54:33.697679302Z Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-07-28T18:54:33.697680047Z 
+2026-07-28T18:54:33.697681402Z   Failure reason:
+2026-07-28T18:54:33.69768263Z   specifiers in the lockfile don't match specifiers in package.json:
+2026-07-28T18:54:33.697684468Z * 1 dependencies were added: pnpm@^11.17.0
+2026-07-28T18:54:33.697685195Z 
+2026-07-28T18:54:33.772237541Z ==> Build failed 😞
+2026-07-28T18:54:33.77225518Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
