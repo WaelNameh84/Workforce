@@ -1,0 +1,48 @@
+2026-07-28T18:55:42.787130429Z ==> Cloning from https://github.com/WaelNameh84/Workforce
+2026-07-28T18:55:48.648232472Z ==> Checking out commit 3ff654eda9c810bc55ad66546fd724d3d575f8ae in branch main
+2026-07-28T18:55:49.768442685Z ==> Using Node.js version 24.14.1 (default)
+2026-07-28T18:55:49.768447116Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-07-28T18:55:49.799374588Z ==> Running build command 'npm install pnpm && ./node_modules/.bin/pnpm install --no-frozen-lockfile && ./node_modules/.bin/pnpm --filter @workspace/api-server run build'...
+2026-07-28T18:55:51.283004179Z 
+2026-07-28T18:55:51.283024365Z added 2 packages, and audited 3 packages in 1s
+2026-07-28T18:55:51.283026561Z 
+2026-07-28T18:55:51.283077349Z 1 package is looking for funding
+2026-07-28T18:55:51.283123926Z   run `npm fund` for details
+2026-07-28T18:55:51.283712737Z 
+2026-07-28T18:55:51.283719076Z found 0 vulnerabilities
+2026-07-28T18:55:51.784922085Z Scope: all 9 workspace projects
+2026-07-28T18:55:51.834786107Z ? Verifying lockfile against supply-chain policies (478 entries)...
+2026-07-28T18:55:51.902517996Z [WARN] Moving @replit/connectors-sdk that was installed by a different package manager to "node_modules/.ignored"
+2026-07-28T18:55:51.902834671Z [WARN] Moving pnpm that was installed by a different package manager to "node_modules/.ignored"
+2026-07-28T18:55:52.137628253Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-07-28T18:55:52.176611647Z artifacts/api-server                     | [WARN] deprecated @types/bcryptjs@3.0.0
+2026-07-28T18:55:53.139778272Z Progress: resolved 38, reused 0, downloaded 35, added 0
+2026-07-28T18:55:53.286178948Z artifacts/mockup-sandbox                 | [WARN] deprecated recharts@2.15.4
+2026-07-28T18:55:54.140708639Z Progress: resolved 73, reused 0, downloaded 42, added 0
+2026-07-28T18:55:55.141391548Z Progress: resolved 86, reused 0, downloaded 74, added 0
+2026-07-28T18:55:56.152821585Z Progress: resolved 87, reused 0, downloaded 86, added 0
+2026-07-28T18:55:57.153632333Z Progress: resolved 159, reused 0, downloaded 90, added 0
+2026-07-28T18:55:57.448365211Z ✓ Lockfile passes supply-chain policies (478 entries in 5.6s)
+2026-07-28T18:55:58.184741933Z Progress: resolved 257, reused 0, downloaded 175, added 0
+2026-07-28T18:55:59.143749259Z Packages: +477
+2026-07-28T18:55:59.143762858Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2026-07-28T18:55:59.18541504Z Progress: resolved 479, reused 0, downloaded 237, added 0
+2026-07-28T18:56:00.186487928Z Progress: resolved 479, reused 0, downloaded 477, added 156
+2026-07-28T18:56:01.18660454Z Progress: resolved 479, reused 0, downloaded 477, added 321
+2026-07-28T18:56:01.40034743Z Progress: resolved 479, reused 0, downloaded 477, added 477, done
+2026-07-28T18:56:01.732790285Z . preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-07-28T18:56:01.759099653Z . preinstall: Done
+2026-07-28T18:56:01.799221278Z 
+2026-07-28T18:56:01.799233344Z dependencies:
+2026-07-28T18:56:01.799236107Z + @replit/connectors-sdk 0.4.1
+2026-07-28T18:56:01.799252472Z + pnpm 11.17.0
+2026-07-28T18:56:01.79925587Z 
+2026-07-28T18:56:01.799263599Z devDependencies:
+2026-07-28T18:56:01.799265066Z + prettier 3.9.5 (3.9.6 is available)
+2026-07-28T18:56:01.79926592Z + typescript 5.9.3 (7.0.2 is available)
+2026-07-28T18:56:01.799266786Z 
+2026-07-28T18:56:01.823868105Z [ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.27.3
+2026-07-28T18:56:01.823878901Z 
+2026-07-28T18:56:01.823880478Z Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+2026-07-28T18:56:01.940179849Z ==> Build failed 😞
+2026-07-28T18:56:01.940195238Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
