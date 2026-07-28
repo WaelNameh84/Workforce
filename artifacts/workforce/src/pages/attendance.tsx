@@ -732,13 +732,22 @@ export default function Attendance() {
       {/* ── Stats Row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s, i) => (
-          <div key={i} className="relative rounded-2xl card-3d overflow-hidden p-6 flex flex-col justify-between gap-4">
-            <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-[0.07] pointer-events-none`} />
+          <div key={i} className={`relative rounded-2xl overflow-hidden p-6 flex flex-col justify-between gap-4 animate-fadeIn stagger-${i + 1}`}
+               style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--card) 70%, transparent), var(--card))`, border: '1px solid var(--border)' }}>
+            {/* Full gradient overlay */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-[0.09] pointer-events-none`} />
+            {/* Wave shimmer */}
+            <div className="nav-card-wave" style={{ animationDelay: `${i * 1.2}s` }} />
+            {/* Top accent bar */}
             <div className={`absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r ${s.gradient}`} />
-            <div className={`relative w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-lg`}>
+            {/* Floating orb */}
+            <div className="card-orb w-16 h-16 absolute -right-3 -bottom-3 opacity-30"
+                 style={{ background: `var(--gradient-${i})` }} />
+            <div className={`relative z-10 w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-lg card-icon-float`}
+                 style={{ animationDelay: `${i * 0.7}s` }}>
               <s.icon className="w-6 h-6 text-white" />
             </div>
-            <div className="relative">
+            <div className="relative z-10">
               <div className="text-4xl font-bold font-data leading-none">{s.value}</div>
               <div className="text-xs mt-2 font-semibold tracking-widest uppercase" style={{ color: 'var(--muted)' }}>{s.label}</div>
             </div>

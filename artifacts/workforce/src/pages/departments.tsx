@@ -6,7 +6,7 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -236,50 +236,63 @@ export default function Departments() {
         </div>
       )}
 
-      {/* Add Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) { setName(''); setDescription(''); } }}>
-        <DialogContent className="rounded-3xl border-0 card-3d max-w-md">
-          <DialogHeader>
-           <DialogTitle className="font-display text-xl flex items-center gap-2">
+      {/* Add Drawer */}
+      <Drawer open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) { setName(''); setDescription(''); } }}>
+        <DrawerContent className="max-h-[92dvh] flex flex-col">
+          <DrawerHeader className="flex-shrink-0 pb-3 border-b border-border/50">
+            <DrawerTitle className="font-display text-xl flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                 <Plus className="h-4 w-4 text-white" />
               </div>
-               {t('addDepartment')}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAdd} className="space-y-4 mt-2">
-            {/* Live image preview */}
-             <PreviewBanner name={name} emptyLabel={t('exampleDepartment')} />
+              {t('addDepartment')}
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <form id="add-dept-form" onSubmit={handleAdd} className="space-y-4">
+              {/* Live image preview */}
+              <PreviewBanner name={name} emptyLabel={t('exampleDepartment')} />
 
-            <div className="space-y-1.5">
-               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('departmentNameRequired')}</Label>
-              <Input
-                value={name}
-                onChange={e => { setName(e.target.value); }}
-                 placeholder={t('exampleDepartment')}
-                required
-                className="rounded-xl h-11"
-              />
-            </div>
-            <div className="space-y-1.5">
-               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('departmentDescriptionOptional')}</Label>
-              <Input
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                 placeholder={t('shortDepartmentDescription')}
-                className="rounded-xl h-11"
-              />
-            </div>
+              {/* Fields card */}
+              <div
+                className="living-card p-4 space-y-4"
+                style={{ '--card-accent': '#6366f1' } as React.CSSProperties}
+              >
+                <span className="living-card-orb" style={{ top: '-1.5rem', right: '-1rem' }} />
+                <span className="living-card-orb living-card-orb--small" style={{ bottom: '0.5rem', left: '1rem' }} />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('departmentNameRequired')}</Label>
+                  <Input
+                    value={name}
+                    onChange={e => { setName(e.target.value); }}
+                    placeholder={t('exampleDepartment')}
+                    required
+                    className="rounded-xl h-11"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('departmentDescriptionOptional')}</Label>
+                  <Input
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder={t('shortDepartmentDescription')}
+                    className="rounded-xl h-11"
+                  />
+                </div>
+              </div>
+            </form>
+          </div>
+          <div className="flex-shrink-0 px-4 py-3 border-t border-border/50" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}>
             <Button
               type="submit"
+              form="add-dept-form"
               className="w-full rounded-xl h-11 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white border-0 font-bold"
               disabled={createMutation.isPending || !name.trim()}
             >
-               {createMutation.isPending ? t('saving') : t('save')}
+              {createMutation.isPending ? t('saving') : t('save')}
             </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Delete Confirm */}
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>

@@ -182,11 +182,16 @@ export default function Locations() {
         open={isAddOpen}
         onClose={() => { setIsAddOpen(false); setLocName(''); setLocAddress(''); setLocCity(''); }}
         title={
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Plus className="h-4 w-4 text-white" />
+          <div className="relative -mx-5 -mt-4 h-20 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-t-3xl overflow-hidden flex items-center px-5 gap-3 mb-4">
+            <div className="nav-card-wave" />
+            <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
+            <div className="relative z-10 w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg card-icon-pulse">
+              <Plus className="h-5 w-5 text-white" />
             </div>
-            {t('addLocation')}
+            <div className="relative z-10">
+              <span className="font-display text-lg font-bold text-white">{t('addLocation')}</span>
+              <p className="text-white/65 text-xs">{t('locationNameRequired')}</p>
+            </div>
           </div>
         }
         footer={

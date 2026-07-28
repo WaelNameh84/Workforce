@@ -332,16 +332,22 @@ export default function Documentation() {
 
       {/* Upload Dialog */}
       <Dialog open={isAddOpen} onOpenChange={(open) => { if (!open) resetAddForm(); }}>
-        <DialogContent className="rounded-3xl border-0 card-3d max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-                <Upload className="h-4 w-4 text-white" />
-              </div>
-               {t('uploadFileNew')}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAdd} className="space-y-4 mt-2">
+        <DialogContent className="rounded-3xl border-0 card-3d max-w-md max-h-[85dvh] overflow-y-auto p-0">
+          {/* Colorful wave header */}
+          <div className="relative h-20 bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 rounded-t-3xl overflow-hidden flex items-center px-5 gap-3 flex-shrink-0">
+            <div className="nav-card-wave" />
+            <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
+            <div className="relative z-10 w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg card-icon-pulse">
+              <Upload className="h-5 w-5 text-white" />
+            </div>
+            <div className="relative z-10">
+              <DialogHeader>
+                <DialogTitle className="font-display text-lg text-white">{t('uploadFileNew')}</DialogTitle>
+              </DialogHeader>
+              <p className="text-white/65 text-xs mt-0.5">{t('employee')} · {t('file')}</p>
+            </div>
+          </div>
+          <form onSubmit={handleAdd} className="space-y-4 p-5">
             <div className="space-y-1.5">
                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('employee')} *</Label>
               <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId} required>
@@ -410,6 +416,7 @@ export default function Documentation() {
           </form>
         </DialogContent>
       </Dialog>
+
 
       {/* Preview Dialog */}
       {previewDoc && (

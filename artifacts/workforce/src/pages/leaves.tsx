@@ -315,9 +315,20 @@ export default function Leaves() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={resetForm}>
-          <div className="rounded-3xl p-8 w-full max-w-md shadow-2xl card-3d max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
-            <h2 className="font-display text-2xl font-bold mb-6">{t('newLeaveRequest')}</h2>
-            <form onSubmit={handleCreate} className="space-y-5">
+          <div className="rounded-3xl w-full max-w-md shadow-2xl card-3d max-h-[90dvh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
+            {/* Colorful wave header */}
+            <div className="relative h-20 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-t-3xl overflow-hidden flex items-center px-5 gap-3 flex-shrink-0">
+              <div className="nav-card-wave" />
+              <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
+              <div className="relative z-10 w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg card-icon-pulse">
+                <CalendarHeart className="h-5 w-5 text-white" />
+              </div>
+              <div className="relative z-10">
+                <h2 className="font-display text-lg font-bold text-white">{t('newLeaveRequest')}</h2>
+                <p className="text-white/65 text-xs">{t('leaveType')} · {t('startDate')}</p>
+              </div>
+            </div>
+            <form onSubmit={handleCreate} className="space-y-5 p-6">
               {employeesData?.employees?.length ? (
                 <label className="block text-sm font-bold">{t('employee')}
                   <select name="employeeId" defaultValue={String(user?.id || employeesData.employees[0].id || '')} className="mt-2 w-full rounded-xl px-4 py-3 text-sm bg-background border border-border">

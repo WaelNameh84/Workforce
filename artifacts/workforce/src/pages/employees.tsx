@@ -287,8 +287,14 @@ export default function Employees() {
       </TabsList>
 
       {/* Personal Data Tab */}
-      <TabsContent value="personal" forceMount className="space-y-4 mt-0 data-[state=inactive]:hidden">
-        <div className="grid grid-cols-2 gap-4">
+      <TabsContent value="personal" forceMount className="mt-0 data-[state=inactive]:hidden">
+        <div
+          className="living-card p-4"
+          style={{ '--card-accent': '#8b5cf6' } as React.CSSProperties}
+        >
+          <span className="living-card-orb" style={{ top: '-1.5rem', right: '-1rem' }} />
+          <span className="living-card-orb living-card-orb--small" style={{ bottom: '0.5rem', left: '1rem' }} />
+          <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5 col-span-2">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fullName')}</Label>
             <Input name="fullName" defaultValue={defaultValues?.fullName} required className="rounded-xl h-10" />
@@ -326,12 +332,19 @@ export default function Employees() {
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('address')}</Label>
             <Input name="address" defaultValue={defaultValues?.address || ''} className="rounded-xl h-10" />
           </div>
-        </div>
+          </div>{/* end grid */}
+        </div>{/* end living-card */}
       </TabsContent>
 
       {/* Work Data Tab */}
-      <TabsContent value="work" forceMount className="space-y-4 mt-0 data-[state=inactive]:hidden">
-        <div className="grid grid-cols-2 gap-4">
+      <TabsContent value="work" forceMount className="mt-0 data-[state=inactive]:hidden">
+        <div
+          className="living-card p-4"
+          style={{ '--card-accent': '#6366f1' } as React.CSSProperties}
+        >
+          <span className="living-card-orb" style={{ top: '-1.5rem', left: '-1rem' }} />
+          <span className="living-card-orb living-card-orb--small" style={{ bottom: '0.5rem', right: '1rem' }} />
+          <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('department')}</Label>
             <Select name="departmentId" defaultValue={defaultValues?.departmentId ? String(defaultValues.departmentId) : undefined}>
@@ -383,12 +396,19 @@ export default function Employees() {
               </Select>
             </div>
           )}
-        </div>
+          </div>{/* end grid */}
+        </div>{/* end living-card */}
       </TabsContent>
 
       {/* Schedule Tab */}
-      <TabsContent value="schedule" forceMount className="space-y-4 mt-0 data-[state=inactive]:hidden">
-        <div className="grid grid-cols-2 gap-4">
+      <TabsContent value="schedule" forceMount className="mt-0 data-[state=inactive]:hidden">
+        <div
+          className="living-card p-4"
+          style={{ '--card-accent': '#10b981' } as React.CSSProperties}
+        >
+          <span className="living-card-orb" style={{ top: '-1rem', right: '-0.5rem' }} />
+          <span className="living-card-orb living-card-orb--small" style={{ bottom: '1rem', left: '0.5rem' }} />
+          <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'بداية الدوام' : locale === 'sv' ? 'Arbetstid start' : 'Work Start'}</Label>
             <Input type="time" name="workStart" defaultValue={defaultValues?.workStart || '09:00'} className="rounded-xl h-10 font-data" />
@@ -436,7 +456,8 @@ export default function Employees() {
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'ملاحظات' : locale === 'sv' ? 'Anteckningar' : 'Notes'}</Label>
             <Textarea name="notes" defaultValue={defaultValues?.notes || ''} className="rounded-xl resize-none" rows={3} />
           </div>
-        </div>
+          </div>{/* end grid */}
+        </div>{/* end living-card */}
       </TabsContent>
     </Tabs>
   );

@@ -266,9 +266,21 @@ export default function PayrollPage() {
           <p className="text-muted-foreground mt-1">إدارة رواتب الموظفين، البدلات، الخصومات واعتماد المسيرات الشهرية</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Button variant="outline" onClick={() => setPeriod(format(subMonths(today, 1), 'yyyy-MM'))}>الشهر الماضي</Button>
-          <Button variant="outline" onClick={() => setPeriod(format(today, 'yyyy-MM'))} className={period === format(today, 'yyyy-MM') ? 'border-primary text-primary' : ''}>هذا الشهر</Button>
-          <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className="w-40 text-left" dir="ltr" />
+          <button
+            onClick={() => setPeriod(format(subMonths(today, 1), 'yyyy-MM'))}
+            className={`relative overflow-hidden h-10 px-4 rounded-xl text-sm font-bold transition-all pressable ${period === format(subMonths(today, 1), 'yyyy-MM') ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-gradient-to-r from-indigo-500/10 to-violet-600/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 hover:from-indigo-500 hover:to-violet-600 hover:text-white'}`}
+          >
+            <span className="nav-card-wave opacity-60" />
+            <span className="relative z-10">الشهر الماضي</span>
+          </button>
+          <button
+            onClick={() => setPeriod(format(today, 'yyyy-MM'))}
+            className={`relative overflow-hidden h-10 px-4 rounded-xl text-sm font-bold transition-all pressable ${period === format(today, 'yyyy-MM') ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30' : 'bg-gradient-to-r from-emerald-500/10 to-teal-600/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:from-emerald-500 hover:to-teal-600 hover:text-white'}`}
+          >
+            <span className="nav-card-wave opacity-60" />
+            <span className="relative z-10">هذا الشهر</span>
+          </button>
+          <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className="w-40 text-left border-indigo-500/30 focus:border-indigo-500" dir="ltr" />
           <Button variant="outline" onClick={handleExportExcel} className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
             <FileSpreadsheet className="w-4 h-4" /> Excel
           </Button>
@@ -279,47 +291,53 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 p-4 rounded-xl glass">
-        <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-          <SelectTrigger className="flex-1 min-w-[180px]"><SelectValue placeholder="كل الموظفين" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الموظفين</SelectItem>
-            {employeesData?.employees?.map(e => (
-              <SelectItem key={e.id} value={e.id!.toString()}>
-                {e.fullName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="القسم" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الأقسام</SelectItem>
-            {deptData?.departments?.map(d => (
-              <SelectItem key={d.id} value={d.id!.toString()}>{d.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={contractTypeFilter} onValueChange={setContractTypeFilter}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="نوع العقد" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل العقود</SelectItem>
-            <SelectItem value="monthly">شهري</SelectItem>
-            <SelectItem value="daily">يومي</SelectItem>
-            <SelectItem value="hourly">بالساعة</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="الحالة" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الحالات</SelectItem>
-            <SelectItem value="draft">مسودة</SelectItem>
-            <SelectItem value="pending">قيد المراجعة</SelectItem>
-            <SelectItem value="approved">معتمد</SelectItem>
-            <SelectItem value="paid">مدفوع</SelectItem>
-            <SelectItem value="locked">مقفل</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Colorful filter bar */}
+      <div className="relative rounded-2xl overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700" />
+        <div className="nav-card-wave" />
+        <div className="card-orb w-32 h-32 absolute -right-6 -top-6 opacity-40" />
+        <div className="relative z-10 flex flex-wrap gap-3 p-4">
+          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+            <SelectTrigger className="flex-1 min-w-[180px] bg-white/15 border-white/25 text-white rounded-xl h-10 backdrop-blur-sm [&>span]:text-white [&_svg]:text-white/70"><SelectValue placeholder="كل الموظفين" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الموظفين</SelectItem>
+              {employeesData?.employees?.map(e => (
+                <SelectItem key={e.id} value={e.id!.toString()}>
+                  {e.fullName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={deptFilter} onValueChange={setDeptFilter}>
+            <SelectTrigger className="w-[160px] bg-white/15 border-white/25 text-white rounded-xl h-10 backdrop-blur-sm [&>span]:text-white [&_svg]:text-white/70"><SelectValue placeholder="القسم" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الأقسام</SelectItem>
+              {deptData?.departments?.map(d => (
+                <SelectItem key={d.id} value={d.id!.toString()}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={contractTypeFilter} onValueChange={setContractTypeFilter}>
+            <SelectTrigger className="w-[140px] bg-white/15 border-white/25 text-white rounded-xl h-10 backdrop-blur-sm [&>span]:text-white [&_svg]:text-white/70"><SelectValue placeholder="نوع العقد" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل العقود</SelectItem>
+              <SelectItem value="monthly">شهري</SelectItem>
+              <SelectItem value="daily">يومي</SelectItem>
+              <SelectItem value="hourly">بالساعة</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[160px] bg-white/15 border-white/25 text-white rounded-xl h-10 backdrop-blur-sm [&>span]:text-white [&_svg]:text-white/70"><SelectValue placeholder="الحالة" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الحالات</SelectItem>
+              <SelectItem value="draft">مسودة</SelectItem>
+              <SelectItem value="pending">قيد المراجعة</SelectItem>
+              <SelectItem value="approved">معتمد</SelectItem>
+              <SelectItem value="paid">مدفوع</SelectItem>
+              <SelectItem value="locked">مقفل</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* STATS ROW */}

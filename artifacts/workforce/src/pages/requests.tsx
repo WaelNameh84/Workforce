@@ -187,9 +187,20 @@ export default function Requests() {
 
       {showNew && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowNew(false)}>
-          <div className="rounded-3xl p-8 w-full max-w-md shadow-2xl card-3d" onClick={(event) => event.stopPropagation()}>
-            <h2 className="font-display text-2xl font-bold mb-6">{t('newRequest')}</h2>
-            <form onSubmit={create} className="space-y-5">
+          <div className="rounded-3xl w-full max-w-md shadow-2xl card-3d overflow-hidden" onClick={(event) => event.stopPropagation()}>
+            {/* Colorful wave header */}
+            <div className="relative h-20 bg-gradient-to-br from-indigo-500 via-purple-600 to-violet-700 overflow-hidden flex items-center px-5 gap-3">
+              <div className="nav-card-wave" />
+              <div className="card-orb w-24 h-24 absolute -right-5 -top-5" />
+              <div className="relative z-10 w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg card-icon-pulse">
+                <Plus className="h-5 w-5 text-white" />
+              </div>
+              <div className="relative z-10">
+                <h2 className="font-display text-lg font-bold text-white">{t('newRequest')}</h2>
+                <p className="text-white/65 text-xs">{t('requestType')} · {t('title')}</p>
+              </div>
+            </div>
+            <form onSubmit={create} className="space-y-5 p-6">
               <label className="block text-sm font-bold">{t('requestType')}
                 <select name="type" defaultValue="leave" className="mt-2 w-full rounded-xl px-4 py-3 text-sm bg-background border border-border">
                   <option value="leave">{t('leaveRequest')}</option>
