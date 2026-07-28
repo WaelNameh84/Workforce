@@ -396,7 +396,7 @@ function StatCard({ title, value, icon, color }: { title: string, value: string,
           {icon}
         </div>
       </div>
-      <div className="text-muted-foreground text-sm mb-1 relative z-10">{title}</div>
+      <div className="text-white/75 text-sm font-medium mb-1 relative z-10">{title}</div>
       <div className="text-2xl font-bold font-data relative z-10 text-white">{value}</div>
     </div>
   );
