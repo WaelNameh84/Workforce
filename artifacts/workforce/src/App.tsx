@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/i18n/LanguageProvider';
 import { AuthContext, useAuthState, useAuth } from '@/hooks/use-auth';
 import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 // On Render the frontend and API are separate services — point the client at the API URL.
 const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
@@ -131,21 +132,25 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="workforce-theme">
-        <LanguageProvider>
-          <TooltipProvider>
-            <SplashScreen />
-            <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, '') || ''}>
-              <AuthProvider>
-                <Router />
-              </AuthProvider>
-            </WouterRouter>
-            <Toaster />
-          </TooltipProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="system" storageKey="workforce-theme">
+          <LanguageProvider>
+            <TooltipProvider>
+              <SplashScreen />
+              <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, '') || ''}>
+                <AuthProvider>
+                  <ErrorBoundary>
+                    <Router />
+                  </ErrorBoundary>
+                </AuthProvider>
+              </WouterRouter>
+              <Toaster />
+            </TooltipProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
