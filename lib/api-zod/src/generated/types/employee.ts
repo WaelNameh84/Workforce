@@ -36,6 +36,8 @@ export interface Employee {
   /** @nullable */
   workEnd?: string | null;
   /** @nullable */
+  breakMin?: number | null;
+  /** @nullable */
   workDays?: string | null;
   status?: EmployeeStatus;
   /** @nullable */

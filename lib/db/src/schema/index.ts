@@ -54,6 +54,7 @@ export const employees = pgTable('employees', {
   managerName: varchar('manager_name', { length: 255 }),
   workStart: varchar('work_start', { length: 10 }).default('09:00'),
   workEnd: varchar('work_end', { length: 10 }).default('17:00'),
+  breakMin: integer('break_min').default(60),
   workDays: varchar('work_days', { length: 255 }).default('الأحد - الخميس'),
   status: varchar('status', { length: 20 }).default('active').notNull(),
   avatar: text('avatar'),

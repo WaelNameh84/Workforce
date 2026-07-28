@@ -161,6 +161,7 @@ export default function Employees() {
       salary: fd.get('salary') as string || undefined,
       workStart: fd.get('workStart') as string || '09:00',
       workEnd: fd.get('workEnd') as string || '17:00',
+      breakMin: fd.get('breakMin') ? Number(fd.get('breakMin')) : undefined,
       workDays: workDaysAdd || undefined,
       notes: fd.get('notes') as string || undefined,
       status: 'active',
@@ -195,6 +196,7 @@ export default function Employees() {
       salary: fd.get('salary') as string || undefined,
       workStart: fd.get('workStart') as string || '09:00',
       workEnd: fd.get('workEnd') as string || '17:00',
+      breakMin: fd.get('breakMin') ? Number(fd.get('breakMin')) : undefined,
       workDays: workDaysEdit || undefined,
       notes: fd.get('notes') as string || undefined,
       status: fd.get('status') as EmployeeInput['status'] || 'active',
@@ -394,6 +396,33 @@ export default function Employees() {
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'نهاية الدوام' : locale === 'sv' ? 'Arbetstid slut' : 'Work End'}</Label>
             <Input type="time" name="workEnd" defaultValue={defaultValues?.workEnd || '17:00'} className="rounded-xl h-10 font-data" />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              {locale === 'ar' ? 'وقت الاستراحة (دقيقة — غير مدفوع)' : locale === 'sv' ? 'Rast (minuter — obetald)' : 'Break (minutes — unpaid)'}
+            </Label>
+            <div className="relative">
+              <Input
+                type="number"
+                name="breakMin"
+                min={0}
+                max={240}
+                step={5}
+                defaultValue={(defaultValues as any)?.breakMin ?? 60}
+                className="rounded-xl h-10 font-data pl-16"
+                dir="ltr"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                {locale === 'ar' ? 'دقيقة' : locale === 'sv' ? 'min' : 'min'}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {locale === 'ar'
+                ? 'تُخصم من إجمالي ساعات العمل اليومية عند احتساب الراتب'
+                : locale === 'sv'
+                ? 'Dras av från dagliga arbetstimmar vid löneberäkning'
+                : 'Deducted from daily worked hours in payroll calculation'}
+            </p>
           </div>
           <div className="space-y-2 col-span-2">
             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{locale === 'ar' ? 'أيام العمل' : locale === 'sv' ? 'Arbetsdagar' : 'Work Days'}</Label>

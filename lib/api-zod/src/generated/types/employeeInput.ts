@@ -20,6 +20,7 @@ export interface EmployeeInput {
   managerName?: string;
   workStart?: string;
   workEnd?: string;
+  breakMin?: number;
   workDays?: string;
   departmentId?: number;
   status?: EmployeeInputStatus;

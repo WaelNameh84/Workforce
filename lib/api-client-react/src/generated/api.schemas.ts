@@ -91,6 +91,8 @@ export interface Employee {
   /** @nullable */
   workEnd?: string | null;
   /** @nullable */
+  breakMin?: number | null;
+  /** @nullable */
   workDays?: string | null;
   status?: EmployeeStatus;
   /** @nullable */
@@ -124,6 +126,7 @@ export interface EmployeeInput {
   managerName?: string;
   workStart?: string;
   workEnd?: string;
+  breakMin?: number;
   workDays?: string;
   departmentId?: number;
   status?: EmployeeInputStatus;

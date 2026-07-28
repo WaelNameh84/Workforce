@@ -252,7 +252,7 @@ export function buildPayrollSummary(
     attendanceRows,
     employee.workStart || cfg.workStart,
     employee.workEnd || cfg.workEnd,
-    cfg.breakMin,
+    (employee as any).breakMin ?? cfg.breakMin,
     cfg.lateGrace,
     cfg.otThreshold,
     cfg.weekendDays,
