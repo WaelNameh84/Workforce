@@ -10,10 +10,14 @@ export interface RateResult {
 export function calcRates(
   basicSalary: number,
   workDaysPerMonth: number,
-  dailyHoursScheduled: number
+  dailyHoursScheduled: number,
+  /** Break duration in minutes — deducted from scheduled hours before computing hourly rate */
+  breakMin: number = 0
 ): RateResult {
   const dailyRate = workDaysPerMonth > 0 ? basicSalary / workDaysPerMonth : 0;
-  const hourlyRate = dailyHoursScheduled > 0 ? dailyRate / dailyHoursScheduled : 0;
+  // Net working hours per day = scheduled shift hours minus break time
+  const netDailyHours = Math.max(0.01, dailyHoursScheduled - breakMin / 60);
+  const hourlyRate = netDailyHours > 0 ? dailyRate / netDailyHours : 0;
   const minuteRate = hourlyRate / 60;
   const secondRate = minuteRate / 60;
   return { dailyRate, hourlyRate, minuteRate, secondRate };
@@ -76,7 +80,8 @@ export function calcWorkedTime(
 
   const startMin = parseTimeToMinutes(workStart);
   const endMin = parseTimeToMinutes(workEnd);
-  const scheduledSeconds = dailyHoursScheduled * 3600;
+  // Net scheduled seconds per day = shift hours minus break time
+  const scheduledSeconds = Math.max(1, (dailyHoursScheduled * 60 - breakMin) * 60);
 
   attendanceRows.forEach((row) => {
     if (row.status === 'absent') {
@@ -246,7 +251,8 @@ export function buildPayrollSummary(
   const contractType = (employee.contractType || 'monthly') as any;
   const basicSalary = parseFloat(employee.salary || '0') || 0;
 
-  const rates = calcRates(basicSalary, cfg.workDaysPerMonth, cfg.dailyHoursScheduled);
+  const employeeBreakMin = (employee as any).breakMin ?? cfg.breakMin;
+  const rates = calcRates(basicSalary, cfg.workDaysPerMonth, cfg.dailyHoursScheduled, employeeBreakMin);
 
   const time = calcWorkedTime(
     attendanceRows,
