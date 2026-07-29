@@ -3,6 +3,7 @@ import { setAuthTokenGetter } from '@workspace/api-client-react';
 
 import App from './App';
 import { SettingsProvider } from '@/contexts/settings-context';
+import { UpdatePrompt } from '@/components/update-prompt';
 
 import './index.css';
 
@@ -15,5 +16,6 @@ document.addEventListener('dragstart', (e) => e.preventDefault(), { passive: fal
 createRoot(document.getElementById('root')!).render(
   <SettingsProvider>
     <App />
+    <UpdatePrompt />
   </SettingsProvider>
 );
