@@ -10,33 +10,39 @@ import { Link, useLocation } from 'wouter';
 import { Globe, Moon, Sun, Loader2 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 
-// Ping the server as soon as the page loads so Render wakes up before the
-// user finishes filling the form (free-tier services sleep after 15 min).
+// Ping the server repeatedly until it wakes up (Render free-tier cold starts
+// can take 30-60 s). Keeps retrying every 4 s for up to 90 s.
 function useServerWarmup() {
   const [ready, setReady] = useState(false);
   const [warming, setWarming] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 22; // ~90 s at 4 s intervals
+
     const ping = async () => {
+      if (cancelled) return;
+      attempts++;
       try {
         const res = await fetch('/api/healthz', { method: 'GET' });
-        if (!cancelled && res.ok) { setReady(true); setWarming(false); }
-      } catch {
-        // Server still sleeping — retry once after 5 s
-        if (!cancelled) {
-          setTimeout(async () => {
-            try {
-              const res = await fetch('/api/healthz', { method: 'GET' });
-              if (!cancelled && res.ok) { setReady(true); setWarming(false); }
-            } catch { if (!cancelled) setReady(true); } // allow submit even if ping keeps failing
-          }, 5000);
+        if (!cancelled && res.ok) {
+          setReady(true);
+          setWarming(false);
+          return;
         }
+      } catch { /* still sleeping */ }
+
+      if (!cancelled && attempts < MAX_ATTEMPTS) {
+        setTimeout(ping, 4000);
+      } else if (!cancelled) {
+        // Give up waiting — let the user try anyway
+        setReady(true);
+        setWarming(false);
       }
     };
 
-    // Short delay lets the page paint first
-    const t = setTimeout(() => { setWarming(true); ping(); }, 300);
+    const t = setTimeout(() => { setWarming(true); ping(); }, 200);
     return () => { cancelled = true; clearTimeout(t); };
   }, []);
 
@@ -61,13 +67,18 @@ export default function Register() {
     e.preventDefault();
     setError('');
 
-    // If the server hasn't responded to the warmup ping yet, wait briefly
+    // Wait for server to wake up (up to 60 s) before submitting
     if (!ready) {
-      try {
-        await fetch('/api/healthz');
-      } catch { /* proceed anyway */ }
+      setError('');
+      for (let i = 0; i < 15; i++) {
+        try {
+          const res = await fetch('/api/healthz');
+          if (res.ok) break;
+        } catch { /* still sleeping */ }
+        await new Promise(r => setTimeout(r, 4000));
+      }
     }
-    
+
     try {
       const result = await registerMutation.mutateAsync({ 
         data: { email, password, fullName, company } 
@@ -78,9 +89,8 @@ export default function Register() {
       }
     } catch (err: any) {
       const msg = err?.data?.error || err?.message || 'Failed to register';
-      // If still a network error, give a friendlier hint
       setError(msg === 'Load failed' || msg === 'Failed to fetch'
-        ? 'Server is starting up, please try again in a moment.'
+        ? 'Server is starting up, please wait a moment and try again.'
         : msg);
     }
   };
