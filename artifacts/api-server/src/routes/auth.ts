@@ -6,12 +6,6 @@ import { users, companies, employees } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 
-/** Generate a random uppercase alphanumeric join code */
-function generateJoinCode(len = 8): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
-
 const router = Router();
 
 const getSecret = () =>
@@ -155,110 +149,17 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
-// POST /api/auth/register
-router.post("/auth/register", async (req, res) => {
-  const { email, password, fullName, company: companyName } = req.body;
-  if (!email || !password || !fullName || !companyName) {
-    res.status(400).json({ error: "All fields required" });
-    return;
-  }
-
-  // Run the entire registration inside a transaction so no orphaned rows are
-  // left behind if any step fails (e.g. employee insert constraint violation).
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    // Check for existing email
-    const [existing] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
-    if (existing) {
-      await client.query("ROLLBACK");
-      res.status(400).json({ error: "Email already registered" });
-      return;
-    }
-
-    const [company] = await db
-      .insert(companies)
-      .values({ name: companyName, country: "Global", currency: "USD", language: "en", joinCode: generateJoinCode() })
-      .returning();
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const [user] = await db
-      .insert(users)
-      .values({
-        email,
-        password: hashedPassword,
-        fullName,
-        role: "admin",
-        companyId: company.id,
-        isActive: true,
-      })
-      .returning();
-
-    const [employeeProfile] = await db
-      .insert(employees)
-      .values({
-        companyId: company.id,
-        employeeCode: `ADMIN-${user.id}`,
-        fullName,
-        email,
-        position: "Administrator",
-        status: "active",
-        userId: user.id,
-      })
-      .returning({ id: employees.id });
-
-    if (employeeProfile?.id) {
-      await db
-        .update(users)
-        .set({ employeeId: employeeProfile.id })
-        .where(eq(users.id, user.id));
-    }
-
-    await client.query("COMMIT");
-
-    const token = await signToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      companyId: company.id,
-      employeeId: employeeProfile?.id ?? null,
-    });
-
-    res.status(201).json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        companyId: user.companyId,
-        employeeId: employeeProfile?.id ?? null,
-      },
-    });
-  } catch (err: any) {
-    await client.query("ROLLBACK").catch(() => {});
-    req.log.error({ err, message: err?.message, code: err?.code, detail: err?.detail }, "Register error");
-    // Surface a specific message for known constraint violations
-    if (err?.code === "23505") {
-      res.status(400).json({ error: "Email already registered" });
-    } else {
-      res.status(500).json({ error: err?.message ?? "Internal server error" });
-    }
-  } finally {
-    client.release();
-  }
+// POST /api/auth/register — disabled (single-company private system; admin created via seed only)
+router.post("/auth/register", (_req, res) => {
+  res.status(403).json({ error: "Company registration is disabled. Contact your administrator." });
 });
 
 // POST /api/auth/register-employee
 // Employee self-registration: creates an inactive user pending manager approval.
+// No join code required — this is a private single-company system.
 router.post("/auth/register-employee", async (req, res) => {
-  const { email, password, fullName, joinCode } = req.body;
-  if (!email || !password || !fullName || !joinCode) {
+  const { email, password, fullName } = req.body;
+  if (!email || !password || !fullName) {
     res.status(400).json({ error: "All fields required" });
     return;
   }
@@ -267,16 +168,15 @@ router.post("/auth/register-employee", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    // Find the company by join code (case-insensitive)
+    // Auto-find the single company in this private system
     const [company] = await db
       .select()
       .from(companies)
-      .where(eq(companies.joinCode, joinCode.trim().toUpperCase()))
       .limit(1);
 
     if (!company) {
       await client.query("ROLLBACK");
-      res.status(400).json({ error: "invalid_join_code" });
+      res.status(400).json({ error: "no_company_found" });
       return;
     }
 
@@ -338,7 +238,79 @@ router.post("/auth/register-employee", async (req, res) => {
   }
 });
 
-// GET /api/auth/company  — returns basic company info incl. join code (admin/manager only)
+// GET /api/auth/pending-users — list users pending approval (admin only)
+router.get("/auth/pending-users", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "No company found" }); return; }
+
+    const pending = await db
+      .select({ id: users.id, email: users.email, fullName: users.fullName, role: users.role, createdAt: users.createdAt })
+      .from(users)
+      .where(and(eq(users.isActive, false), eq(users.companyId, companyId)));
+
+    res.json({ users: pending });
+  } catch (err) {
+    req.log.error({ err }, "Get pending users error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/auth/approve-user/:id — approve a pending user (admin only)
+router.post("/auth/approve-user/:id", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const userId = parseInt(req.params["id"] as string, 10);
+    if (isNaN(userId)) { res.status(400).json({ error: "Invalid user id" }); return; }
+
+    const [updated] = await db
+      .update(users)
+      .set({ isActive: true })
+      .where(and(eq(users.id, userId), eq(users.companyId, req.user.companyId!)))
+      .returning({ id: users.id, fullName: users.fullName, email: users.email });
+
+    if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+
+    // Also activate the employee profile
+    await db.update(employees).set({ status: "active" }).where(eq(employees.userId, userId));
+
+    res.json({ message: "approved", user: updated });
+  } catch (err) {
+    req.log.error({ err }, "Approve user error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/auth/reject-user/:id — reject and delete a pending user (admin only)
+router.post("/auth/reject-user/:id", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const userId = parseInt(req.params["id"] as string, 10);
+    if (isNaN(userId)) { res.status(400).json({ error: "Invalid user id" }); return; }
+
+    // Delete employee profile first
+    await db.delete(employees).where(eq(employees.userId, userId));
+    // Delete the user
+    await db.delete(users).where(and(eq(users.id, userId), eq(users.companyId, req.user.companyId!)));
+
+    res.json({ message: "rejected" });
+  } catch (err) {
+    req.log.error({ err }, "Reject user error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/auth/company  — returns basic company info (admin/manager only)
 router.get("/auth/company", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (req.user?.role !== "admin" && req.user?.role !== "manager") {
@@ -351,14 +323,7 @@ router.get("/auth/company", authMiddleware, async (req: AuthRequest, res) => {
     const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!company) { res.status(404).json({ error: "Company not found" }); return; }
 
-    // Generate a join code if one doesn't exist yet (migration path for older companies)
-    if (!company.joinCode) {
-      const newCode = generateJoinCode();
-      await db.update(companies).set({ joinCode: newCode }).where(eq(companies.id, companyId));
-      company.joinCode = newCode;
-    }
-
-    res.json({ id: company.id, name: company.name, joinCode: company.joinCode });
+    res.json({ id: company.id, name: company.name });
   } catch (err) {
     req.log.error({ err }, "Get company error");
     res.status(500).json({ error: "Internal server error" });

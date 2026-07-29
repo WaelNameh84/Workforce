@@ -604,12 +604,20 @@ export default function ActionCenterPage() {
     setPendingUsersLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/employees/pending', {
+      const res = await fetch('/api/auth/pending-users', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
         const data = await res.json();
-        setPendingUsers(data.pending || []);
+        // Map from auth endpoint shape { id, fullName, email, role, createdAt }
+        setPendingUsers((data.users || []).map((u: any) => ({
+          userId: u.id,
+          employeeId: null,
+          fullName: u.fullName,
+          email: u.email,
+          position: u.role || 'موظف',
+          createdAt: u.createdAt,
+        })));
       }
     } catch { /* ignore */ } finally {
       setPendingUsersLoading(false);
@@ -622,7 +630,7 @@ export default function ActionCenterPage() {
     setPendingUserActionId(userId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/employees/pending/${userId}/approve`, {
+      const res = await fetch(`/api/auth/approve-user/${userId}`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -644,8 +652,8 @@ export default function ActionCenterPage() {
     setPendingUserActionId(userId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/employees/pending/${userId}`, {
-        method: 'DELETE',
+      const res = await fetch(`/api/auth/reject-user/${userId}`, {
+        method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
