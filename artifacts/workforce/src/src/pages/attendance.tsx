@@ -255,10 +255,15 @@ export default function Attendance() {
     }
     haptic('medium');
     try {
+      // When GPS method is used and we have a reverse-geocoded address, store it
+      const locationValue = checkMethod === 'gps' && gpsAddress
+        ? gpsAddress
+        : (selectedLocation?.name || appSettings.locationAddress || 'غير محدد');
+
       const rec = await clockInMutation.mutateAsync({
         data: {
           employeeId: attendanceEmployeeId,
-          location: selectedLocation?.name || appSettings.locationAddress || 'غير محدد',
+          location: locationValue,
           method: checkMethod,
           ...(gpsCoords ? {
             gpsLatitude: gpsCoords.lat,
@@ -272,8 +277,8 @@ export default function Attendance() {
       toast({
         title: ar ? 'تم تسجيل الدخول بنجاح ✓' : 'Clock-in successful ✓',
         description: ar
-          ? `الموقع: ${selectedLocation?.name || appSettings.locationAddress || 'غير محدد'}`
-          : `Location: ${selectedLocation?.name || appSettings.locationAddress || 'Not specified'}`,
+          ? `الموقع: ${locationValue}`
+          : `Location: ${locationValue}`,
       });
       if (rec?.isLate) {
         const workStartTime = new Date(); workStartTime.setHours(WORK_START_HOUR, 0, 0, 0);
@@ -822,7 +827,7 @@ export default function Attendance() {
                              { label: ar ? 'إجمالي الساعات' : 'Total hours', value: rec.totalHours ? hoursLabel(rec.totalHours, locale) : '—' },
                              { label: ar ? 'الحالة' : 'Status', value: rec.status || '—' },
                              { label: ar ? 'الموقع' : 'Location', value: rec.location || '—' },
-                             { label: ar ? 'طريقة التسجيل' : 'Method', value: methodLabel(rec.method) },
+                             { label: ar ? 'طريقة التسجيل' : 'Method', value: rec.method === 'gps' && rec.location ? (methodLabel(rec.method) + ' — ' + rec.location.replace(/^(الموقع|Location):\s*/i, '')) : methodLabel(rec.method) },
                              { label: ar ? 'الملاحظات' : 'Notes', value: rec.notes || '—' },
                            ],
                          })}

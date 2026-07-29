@@ -2,12 +2,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { Route, Switch, Router as WouterRouter, Redirect } from 'wouter';
+import { Route, Switch, Router as WouterRouter, Redirect, useLocation } from 'wouter';
 import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/i18n/LanguageProvider';
 import { AuthContext, useAuthState, useAuth } from '@/hooks/use-auth';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { useEffect } from 'react';
 
 // API and frontend are on the same origin — relative URLs work, no base URL needed.
 
@@ -55,6 +56,18 @@ const queryClient = new QueryClient();
 // this getter live avoids stale auth headers after login/logout or a page reload.
 setAuthTokenGetter(() => localStorage.getItem('token'));
 
+/** Scroll to top of page whenever the route changes */
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    // Also reset any scrollable container with the page-shell class
+    const shell = document.querySelector('.page-shell');
+    if (shell) shell.scrollTop = 0;
+  }, [location]);
+  return null;
+}
+
 function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { component: React.ComponentType; adminOnly?: boolean; path?: string }) {
   const { user, isLoading } = useAuth();
 
@@ -78,6 +91,8 @@ function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { 
 
 function Router() {
   return (
+    <>
+      <ScrollToTop />
     <Switch>
       <Route path="/"><Redirect to="/dashboard" /></Route>
       <Route path="/login" component={Login} />
@@ -120,6 +135,7 @@ function Router() {
 
       <Route component={NotFound} />
     </Switch>
+    </>
   );
 }
 

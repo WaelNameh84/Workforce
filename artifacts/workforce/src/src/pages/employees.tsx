@@ -4,6 +4,7 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { useLocation } from 'wouter';
 import {
   useGetEmployees, useGetDepartments, useCreateEmployee, useUpdateEmployee, useDeleteEmployee,
+  useGetAttendance,
   getGetEmployeesQueryKey, getGetDepartmentsQueryKey,
   EmployeeInput, Employee
 } from '@workspace/api-client-react';
@@ -26,7 +27,7 @@ import {
   Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Copy, Share2, Clock3,
   Mail, Phone, MapPin, Calendar, Clock, Building2,
   User, Briefcase, DollarSign, FileText, Users, Shield,
-  ClipboardList, UserCheck, CalendarDays, CheckCircle2, XCircle, KeyRound, RefreshCw, Camera
+  ClipboardList, UserCheck, CalendarDays, CheckCircle2, XCircle, KeyRound, RefreshCw, Camera, AlertTriangle
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
@@ -231,15 +232,37 @@ export default function Employees() {
   const [workDaysAdd, setWorkDaysAdd] = useState('Sun, Mon, Tue, Wed, Thu');
   const [workDaysEdit, setWorkDaysEdit] = useState('Sun, Mon, Tue, Wed, Thu');
   const [longPressEmployee, setLongPressEmployee] = useState<Employee | null>(null);
+  const [lateMode, setLateMode] = useState(false);
   const longPressTimers = useRef(new Map<number, number>());
   const longPressFired = useRef(false);
-
+  const listRef = useRef<HTMLDivElement>(null);
 
   const cid = user?.companyId || 0;
 
+  // Today's date for late detection
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Fetch ALL employees (no status filter) for stats cards counts
+  const { data: allEmployeesData } = useGetEmployees(
+    { companyId: cid },
+    { query: { enabled: !!cid, queryKey: getGetEmployeesQueryKey({ companyId: cid }) } }
+  );
+
   const { data: employeesData, isLoading } = useGetEmployees(
-    { companyId: cid, ...(search && { search }), ...(departmentId !== 'all' && { departmentId: parseInt(departmentId) }), ...(status !== 'all' && { status }) },
-    { query: { enabled: !!cid, queryKey: getGetEmployeesQueryKey({ companyId: cid, search, departmentId: departmentId !== 'all' ? parseInt(departmentId) : undefined, status: status !== 'all' ? status : undefined }) } }
+    { companyId: cid, ...(search && { search }), ...(departmentId !== 'all' && { departmentId: parseInt(departmentId) }), ...(!lateMode && status !== 'all' && { status }) },
+    { query: { enabled: !!cid, queryKey: getGetEmployeesQueryKey({ companyId: cid, search, departmentId: departmentId !== 'all' ? parseInt(departmentId) : undefined, status: !lateMode && status !== 'all' ? status : undefined }) } }
+  );
+
+  // Fetch today's attendance to detect late employees
+  const { data: todayAttendanceData } = useGetAttendance(
+    { companyId: cid, startDate: todayStr, endDate: todayStr },
+    { query: { enabled: !!cid } }
+  );
+
+  const lateEmployeeIds = new Set(
+    (todayAttendanceData?.attendances || [])
+      .filter((a: any) => a.isLate)
+      .map((a: any) => a.employeeId)
   );
 
   const { data: deptsData } = useGetDepartments(
@@ -402,11 +425,15 @@ export default function Employees() {
     longPressTimers.current.delete(emp.id);
   };
 
-  const employees = employeesData?.employees || [];
-  const total = employeesData?.total || 0;
-  const activeCount = employees.filter(e => e.status === 'active').length;
-  const onLeaveCount = employees.filter(e => e.status === 'on-leave').length;
-  const inactiveCount = employees.filter(e => e.status === 'inactive').length;
+  const employees = (employeesData?.employees || []).filter(e =>
+    !lateMode || lateEmployeeIds.has(e.id as number)
+  );
+  const allEmployees = allEmployeesData?.employees || [];
+  const total = allEmployeesData?.total || employeesData?.total || 0;
+  const activeCount = allEmployees.filter(e => e.status === 'active').length;
+  const onLeaveCount = allEmployees.filter(e => e.status === 'on-leave').length;
+  const inactiveCount = allEmployees.filter(e => e.status === 'inactive').length;
+  const lateCount = lateEmployeeIds.size;
 
   // Employee Form Fields
   const employeeFormFields = (defaultValues?: Employee, isEdit = false) => (
@@ -610,25 +637,46 @@ export default function Employees() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: locale === 'ar' ? 'الكل' : locale === 'sv' ? 'Totalt' : 'Total', value: total,        color: 'from-violet-500 to-purple-600',  icon: Users,       delay: 0   },
-          { label: t('active'),        value: activeCount,   color: 'from-emerald-500 to-teal-600',    icon: UserCheck,   delay: 1.5 },
-          { label: t('onLeaveStatus'), value: onLeaveCount,  color: 'from-amber-500 to-orange-600',   icon: CalendarDays, delay: 3   },
-          { label: t('inactive'),      value: inactiveCount, color: 'from-slate-500 to-gray-600',     icon: Shield,      delay: 4.5 },
-        ].map(stat => (
-          <div key={stat.label} className="stat-card-dark p-4 flex items-center gap-3">
-            <span className="stat-wave" aria-hidden="true" style={{ animationDelay: `${-stat.delay}s` } as React.CSSProperties} />
-            <span className={`absolute -right-3 -top-3 h-14 w-14 rounded-full blur-2xl opacity-25 bg-gradient-to-br ${stat.color}`} aria-hidden="true" />
-            <div className={`relative z-10 w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
-              <stat.icon className="h-5 w-5 text-white" />
-            </div>
-            <div className="relative z-10">
-              <div className="text-2xl font-bold font-display text-white">{stat.value}</div>
-              <div className="text-xs text-slate-400 font-medium">{stat.label}</div>
-            </div>
-          </div>
-        ))}
+          { key: 'all',       label: locale === 'ar' ? 'الكل' : locale === 'sv' ? 'Totalt' : 'Total',           value: total,        color: 'from-violet-500 to-purple-600',  icon: Users,       delay: 0   },
+          { key: 'active',    label: t('active'),                                                                  value: activeCount,   color: 'from-emerald-500 to-teal-600',  icon: UserCheck,   delay: 1.5 },
+          { key: 'on-leave',  label: t('onLeaveStatus'),                                                          value: onLeaveCount,  color: 'from-amber-500 to-orange-600',  icon: CalendarDays, delay: 3  },
+          { key: 'inactive',  label: t('inactive'),                                                                value: inactiveCount, color: 'from-slate-500 to-gray-600',    icon: Shield,      delay: 4.5 },
+          { key: 'late',      label: locale === 'ar' ? 'المتأخرون' : locale === 'sv' ? 'Sena' : 'Late Today',   value: lateCount,     color: 'from-rose-500 to-red-600',      icon: Clock,       delay: 6   },
+        ].map(stat => {
+          const isActive = stat.key === 'late'
+            ? lateMode
+            : !lateMode && (status === stat.key || (stat.key === 'all' && status === 'all'));
+          return (
+            <button
+              key={stat.key}
+              type="button"
+              onClick={() => {
+                if (stat.key === 'late') {
+                  setLateMode(true);
+                  setStatus('all');
+                } else {
+                  setLateMode(false);
+                  setStatus(stat.key === 'all' ? 'all' : stat.key);
+                }
+              }}
+              className={`stat-card-dark p-4 flex items-center gap-3 text-left w-full transition-all ${
+                isActive ? 'ring-2 ring-white/30 scale-[1.03]' : 'hover:scale-[1.02]'
+              }`}
+            >
+              <span className="stat-wave" aria-hidden="true" style={{ animationDelay: `${-stat.delay}s` } as React.CSSProperties} />
+              <span className={`absolute -right-3 -top-3 h-14 w-14 rounded-full blur-2xl opacity-25 bg-gradient-to-br ${stat.color}`} aria-hidden="true" />
+              <div className={`relative z-10 w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                <stat.icon className="h-5 w-5 text-white" />
+              </div>
+              <div className="relative z-10">
+                <div className="text-2xl font-bold font-display text-white">{stat.value}</div>
+                <div className="text-xs text-slate-400 font-medium">{stat.label}</div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Pending Employee Registrations */}
@@ -724,7 +772,7 @@ export default function Employees() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={status} onValueChange={setStatus}>
+          <Select value={lateMode ? 'late' : status} onValueChange={v => { if (v === 'late') { setLateMode(true); setStatus('all'); } else { setLateMode(false); setStatus(v); } }}>
             <SelectTrigger className="w-full sm:w-[160px] rounded-xl border-border bg-background h-11">
               <SelectValue placeholder={t('allStatus')} />
             </SelectTrigger>
@@ -733,6 +781,7 @@ export default function Employees() {
               <SelectItem value="active">{t('active')}</SelectItem>
               <SelectItem value="on-leave">{t('onLeaveStatus')}</SelectItem>
               <SelectItem value="inactive">{t('inactive')}</SelectItem>
+              <SelectItem value="late">{locale === 'ar' ? 'المتأخرون اليوم' : locale === 'sv' ? 'Sena idag' : 'Late Today'}</SelectItem>
             </SelectContent>
           </Select>
         </div>

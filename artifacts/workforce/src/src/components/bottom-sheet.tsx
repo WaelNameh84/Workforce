@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface BottomSheetProps {
@@ -12,14 +13,32 @@ interface BottomSheetProps {
 export function BottomSheet({ open, onClose, title, children, footer }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  /* lock body scroll while open */
+  /* lock body scroll while open; also reset scroll position to top */
   useEffect(() => {
     if (open) {
+      // iOS-safe body scroll lock
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        if (sheetRef.current) sheetRef.current.scrollTop = 0;
+      });
     } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
       document.body.style.overflow = '';
+      if (scrollY) window.scrollTo(0, -parseInt(scrollY || '0', 10));
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+    };
   }, [open]);
 
   /* swipe-down to close */
@@ -49,10 +68,10 @@ export function BottomSheet({ open, onClose, title, children, footer }: BottomSh
 
   if (!open) return null;
 
-  return (
+  const content = (
     /* backdrop */
     <div
-      className="fixed inset-0 z-50 flex items-end"
+      className="fixed inset-0 z-[9999] flex items-end"
       style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
@@ -99,4 +118,6 @@ export function BottomSheet({ open, onClose, title, children, footer }: BottomSh
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
