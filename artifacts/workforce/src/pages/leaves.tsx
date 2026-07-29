@@ -294,14 +294,16 @@ export default function Leaves() {
                       </div>
                       
                       <div className="flex gap-2 justify-end" onClick={(event) => event.stopPropagation()}>
-                        {leave.status === 'pending' && (
+                        {user?.role !== 'employee' && leave.status === 'pending' && (
                           <>
                             <button data-testid={`button-approve-leave-paid-${leave.id}`} aria-label="موافقة مدفوعة" onClick={() => updateStatus(leave, 'approved', 'paid')} className="h-8 px-2 flex items-center justify-center gap-1 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white transition-colors text-[10px] font-bold"><CheckCircle2 className="w-4 h-4" /> مدفوعة</button>
                             <button data-testid={`button-approve-leave-unpaid-${leave.id}`} aria-label="موافقة غير مدفوعة" onClick={() => updateStatus(leave, 'approved', 'unpaid')} className="h-8 px-2 flex items-center justify-center gap-1 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500 hover:text-white transition-colors text-[10px] font-bold"><CheckCircle2 className="w-4 h-4" /> غير مدفوعة</button>
                             <button data-testid={`button-reject-leave-${leave.id}`} aria-label={t('rejected')} onClick={() => updateStatus(leave, 'rejected')} className="h-8 w-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors"><XCircle className="w-5 h-5" /></button>
                           </>
                         )}
-                        <button data-testid={`button-delete-leave-${leave.id}`} aria-label={t('delete')} onClick={() => setDeleteId(leave.id || null)} className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        {user?.role !== 'employee' && (
+                          <button data-testid={`button-delete-leave-${leave.id}`} aria-label={t('delete')} onClick={() => setDeleteId(leave.id || null)} className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        )}
                       </div>
                     </div>
                   </div>

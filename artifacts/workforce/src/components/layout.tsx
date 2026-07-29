@@ -357,8 +357,11 @@ function FloatingAIButton() {
   const s = useAppSettings();
   const [location, setLocation] = useLocation();
   const { locale } = useLanguage();
+  const { user } = useAuth();
   if (!s.assistantOn) return null;
   if (location === '/dashboard/ai') return null;
+  // AI assistant is an admin/manager-only page
+  if (user?.role === 'employee') return null;
   return (
     <button
       onClick={() => setLocation('/dashboard/ai')}
@@ -938,16 +941,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </div>
 
-              <div className="shrink-0 border-t border-white/10 p-3 bg-gradient-to-r from-rose-950/60 to-orange-950/60">
-                <button
-                  type="button"
-                  onClick={() => { setNotifOpen(false); setLocation('/dashboard/action-center'); }}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500/15 border border-rose-400/25 px-4 py-2.5 text-xs font-black text-rose-300 transition hover:bg-rose-500/25 active:scale-[.98]"
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  {locale === 'ar' ? 'فتح مركز إجراءات المدير' : 'Open Manager Action Center'}
-                </button>
-              </div>
+              {!isEmployee && (
+                <div className="shrink-0 border-t border-white/10 p-3 bg-gradient-to-r from-rose-950/60 to-orange-950/60">
+                  <button
+                    type="button"
+                    onClick={() => { setNotifOpen(false); setLocation('/dashboard/action-center'); }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500/15 border border-rose-400/25 px-4 py-2.5 text-xs font-black text-rose-300 transition hover:bg-rose-500/25 active:scale-[.98]"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    {locale === 'ar' ? 'فتح مركز إجراءات المدير' : 'Open Manager Action Center'}
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}

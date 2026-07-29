@@ -682,7 +682,15 @@ export default function Settings() {
   const { s: savedSettings, save }   = useSettings();
   const { user } = useAuth();
 
-  const [activeSection, setActiveSection] = useState('logo');
+  // Sections visible to employees (personal preferences only)
+  const EMPLOYEE_SECTION_IDS = ['background', 'language', 'clock', 'font', 'credentials', 'auth'];
+  const visibleSections = user?.role === 'employee'
+    ? SECTIONS.filter(sec => EMPLOYEE_SECTION_IDS.includes(sec.id))
+    : SECTIONS;
+
+  const [activeSection, setActiveSection] = useState(
+    user?.role === 'employee' ? 'background' : 'logo'
+  );
   const [draft, setDraft] = useState<AppSettings>(() => savedSettings);
   const [draftTheme, setDraftTheme] = useState(savedTheme);
   const [draftLocale, setDraftLocale] = useState(savedLocale);
@@ -717,7 +725,7 @@ export default function Settings() {
   };
 
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
-  const sec = SECTIONS.find(s => s.id === activeSection)!;
+  const sec = visibleSections.find(s => s.id === activeSection) ?? visibleSections[0]!;
 
   const handleSave = () => {
     save(draft);
@@ -847,7 +855,7 @@ export default function Settings() {
 
       {/* ── Mobile pill nav (above content, column layout) ── */}
       <div className="md:hidden flex gap-2 overflow-x-auto pb-2 scrollbar-none shrink-0">
-        {SECTIONS.map(sec => (
+        {visibleSections.map(sec => (
           <button key={sec.id} onClick={() => setActiveSection(sec.id)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
               activeSection === sec.id ? 'text-white border-transparent' : 'border-border text-muted-foreground'
@@ -862,7 +870,7 @@ export default function Settings() {
       <div className="flex gap-5 flex-1 min-h-0">
         {/* ── Desktop Sidebar ── */}
         <div className="w-52 shrink-0 flex-col gap-1 overflow-y-auto pb-4 scrollbar-none hidden md:flex">
-          {SECTIONS.map(sec => (
+          {visibleSections.map(sec => (
             <button key={sec.id} onClick={() => setActiveSection(sec.id)}
               className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-right text-sm transition-all ${
                 activeSection === sec.id

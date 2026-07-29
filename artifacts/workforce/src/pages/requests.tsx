@@ -164,7 +164,7 @@ export default function Requests() {
                   </span>
                   {request.status === 'approved' && <span className={`px-3 py-1.5 rounded-xl text-xs font-bold ${request.paymentStatus === 'unpaid' ? 'bg-orange-500/10 text-orange-600' : 'bg-green-500/10 text-green-600'}`}>{request.paymentStatus === 'unpaid' ? 'غير مدفوع' : 'مدفوع'}</span>}
                   
-                  {request.status === 'pending' && (
+                  {user?.role !== 'employee' && request.status === 'pending' && (
                     <div className="flex gap-2 ml-2">
                       <button aria-label="موافقة مدفوعة" onClick={() => updateStatus(request, 'approved', 'paid')} className="h-9 px-2 flex items-center gap-1 rounded-xl bg-card border border-green-500/30 shadow-sm text-green-500 hover:bg-green-500 hover:text-white transition-colors text-[10px] font-bold">
                         <CheckCircle2 className="w-4 h-4" /> مدفوع

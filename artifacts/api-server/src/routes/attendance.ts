@@ -273,16 +273,52 @@ router.patch("/attendance/:id", authMiddleware, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id), 10);
     const { notes, status, justificationType, justificationStatus, paymentStatus } = req.body;
+    const isAdminOrManager =
+      req.user?.role === "admin" || req.user?.role === "manager";
+
+    // Employees can only submit a justification (set justificationStatus to
+    // 'pending') or update notes on their own attendance record.
+    // Approving / rejecting and changing payment status are admin-only.
+    if (!isAdminOrManager) {
+      const account = await getAccount(req);
+      if (!account?.employeeId) {
+        res.status(403).json({ error: "Employee profile required" });
+        return;
+      }
+      // Make sure the record belongs to this employee
+      const [rec] = await db
+        .select({ employeeId: attendance.employeeId })
+        .from(attendance)
+        .where(eq(attendance.id, id))
+        .limit(1);
+      if (!rec || rec.employeeId !== account.employeeId) {
+        res.status(403).json({ error: "You can only update your own attendance records" });
+        return;
+      }
+      // Employees are not allowed to approve / reject their own justifications
+      if (
+        justificationStatus !== undefined &&
+        justificationStatus !== "pending"
+      ) {
+        res.status(403).json({ error: "Only managers can approve or reject justifications" });
+        return;
+      }
+      // Employees cannot change payment status or overall attendance status
+      if (paymentStatus !== undefined || status !== undefined) {
+        res.status(403).json({ error: "Administrator access required" });
+        return;
+      }
+    }
 
     const [updated] = await db
       .update(attendance)
       .set({
         ...(notes !== undefined ? { notes } : {}),
-        ...(status !== undefined ? { status } : {}),
+        ...(isAdminOrManager && status !== undefined ? { status } : {}),
         ...(justificationType !== undefined ? { justificationType } : {}),
         ...(justificationStatus !== undefined ? { justificationStatus } : {}),
-        ...(paymentStatus !== undefined ? { paymentStatus } : {}),
-        ...(justificationStatus === "approved" || justificationStatus === "rejected"
+        ...(isAdminOrManager && paymentStatus !== undefined ? { paymentStatus } : {}),
+        ...(isAdminOrManager && (justificationStatus === "approved" || justificationStatus === "rejected")
           ? {
               justificationApprovedBy: req.user?.userId,
               justificationApprovedAt: new Date(),

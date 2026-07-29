@@ -284,10 +284,12 @@ export default function PayrollPage() {
           <Button variant="outline" onClick={handleExportExcel} className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
             <FileSpreadsheet className="w-4 h-4" /> Excel
           </Button>
-          <Button onClick={handleCalculateAll} disabled={createPayroll.isPending || updatePayroll.isPending} className="gap-2">
-            <Calculator className="w-4 h-4" />
-            احتساب الكل
-          </Button>
+          {user?.role !== 'employee' && (
+            <Button onClick={handleCalculateAll} disabled={createPayroll.isPending || updatePayroll.isPending} className="gap-2">
+              <Calculator className="w-4 h-4" />
+              احتساب الكل
+            </Button>
+          )}
         </div>
       </div>
 
@@ -429,6 +431,7 @@ function PayrollCard({ summary, onClick, formatMoney, getStatusBadge, onRecalcul
   onRecalculate: () => void,
   isRecalculating: boolean
 }) {
+  const { user } = useAuth();
   const isLocked = summary.status === 'locked';
   return (
     <Card className="living-card" onClick={onClick} style={{ cursor: 'pointer' }}>
@@ -467,7 +470,7 @@ function PayrollCard({ summary, onClick, formatMoney, getStatusBadge, onRecalcul
             {(summary.weekendOvertimeHours ?? 0) > 0 && <Badge variant="outline" className="text-[10px] text-purple-500 border-purple-200">عطلة: {summary.weekendOvertimeHours}س</Badge>}
           </div>
 
-          {!isLocked && (
+          {!isLocked && user?.role !== 'employee' && (
             <Button
               variant="ghost"
               size="sm"
@@ -949,7 +952,7 @@ ${dialogEl.innerHTML}
         {/* ── Actions ── */}
         <div className="sticky bottom-0 p-3 bg-background/90 backdrop-blur-xl border-t border-border flex flex-wrap justify-end gap-2 print:hidden">
           <Button variant="outline" onClick={onClose}>إغلاق</Button>
-          {!isLocked && (
+          {!isLocked && user?.role !== 'employee' && (
             <>
               <Button variant="secondary" onClick={() => handleSave()} disabled={updatePayroll.isPending||createPayroll.isPending} className="gap-1.5 text-sm">
                 <Save className="w-3.5 h-3.5" /> حفظ التعديلات
