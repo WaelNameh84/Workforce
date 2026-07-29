@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
-import { db } from "@workspace/db";
+import { db, pool } from "@workspace/db";
 import { users, companies, employees } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
@@ -159,7 +159,7 @@ router.post("/auth/register", async (req, res) => {
 
   // Run the entire registration inside a transaction so no orphaned rows are
   // left behind if any step fails (e.g. employee insert constraint violation).
-  const client = await (await import("@workspace/db")).pool.connect();
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
