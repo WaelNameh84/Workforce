@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useSettings } from '@/contexts/settings-context';
 import { useGetDashboardStats, useGetAttendance, useGetEmployees, useGetLeaves, useGetPayroll, useGetRequests, getGetDashboardStatsQueryKey, getGetAttendanceQueryKey, getGetEmployeesQueryKey, getGetLeavesQueryKey, getGetPayrollQueryKey, getGetRequestsQueryKey } from '@workspace/api-client-react';
@@ -10,6 +10,7 @@ import {
   Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, AlertCircle,
   ChevronDown, UserRound, UserX, Stethoscope, Timer, ChevronLeft,
   BarChart3, Banknote, TimerReset, Calendar, Activity, ArrowUpRight, ImagePlus,
+  UserPlus, ArrowRight,
 } from 'lucide-react';
 import { saveDetailAndNavigate } from '@/pages/detail';
 
@@ -189,6 +190,29 @@ function AdminDashboard() {
     : Number(stats?.monthlyPayroll || 0);
   const pendingRequests = requests.filter((request: any) => request.status === 'pending');
   const recentAttendance = stats?.recentAttendance || [];
+
+  // ── Pending employee registrations banner ─────────────────────────────────
+  const [pendingRegs, setPendingRegs] = useState<Array<{ id: number; fullName: string; email: string; createdAt: string }>>([]);
+  const [dismissedPendingBanner, setDismissedPendingBanner] = useState(false);
+  const fetchPendingRegs = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/auth/pending-users', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPendingRegs(data.users || []);
+      }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    fetchPendingRegs();
+    const interval = setInterval(fetchPendingRegs, 20000);
+    return () => clearInterval(interval);
+  }, [fetchPendingRegs]);
+  // Reset dismiss when new regs arrive
+  useEffect(() => { if (pendingRegs.length > 0) setDismissedPendingBanner(false); }, [pendingRegs.length]);
   const maxChartValue = Math.max(
     1,
     ...recentAttendance.flatMap((entry: any) => [Number(entry.present) || 0, Number(entry.absent) || 0])
@@ -423,6 +447,52 @@ function AdminDashboard() {
           <span className="text-white font-bold text-base">{user?.fullName?.charAt(0) || 'U'}</span>
         </button>
       </div>
+
+      {/* ── Pending registrations urgent banner ─────────────────────────── */}
+      {pendingRegs.length > 0 && !dismissedPendingBanner && (
+        <div className="relative overflow-hidden rounded-2xl border-2 border-rose-400/50 bg-gradient-to-br from-rose-950/90 via-slate-950/95 to-rose-950/80 p-4 shadow-2xl shadow-rose-950/50 animate-fadeIn">
+          {/* animated glow border */}
+          <span className="pointer-events-none absolute inset-0 rounded-2xl" style={{ boxShadow: '0 0 0 2px rgba(244,63,94,0.3), 0 0 24px rgba(244,63,94,0.15)' }} />
+          <div className="flex items-start gap-3">
+            {/* pulsing icon */}
+            <span className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 border border-rose-400/30">
+              <span className="absolute inset-0 rounded-xl animate-ping bg-rose-500/20" />
+              <UserPlus className="h-5 w-5 text-rose-300 relative" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black uppercase tracking-widest text-rose-400">
+                {locale === 'ar' ? '⚠ بانتظار الموافقة' : locale === 'sv' ? '⚠ Väntar på godkännande' : '⚠ Pending Approval'}
+              </p>
+              <p className="mt-0.5 text-base font-black text-white">
+                {pendingRegs.length === 1
+                  ? (locale === 'ar' ? `${pendingRegs[0].fullName} — طلب انضمام جديد` : `${pendingRegs[0].fullName} — New registration`)
+                  : (locale === 'ar' ? `${pendingRegs.length} موظفون بانتظار موافقتك` : `${pendingRegs.length} employees awaiting your approval`)}
+              </p>
+              <p className="mt-0.5 text-xs text-rose-300/80 font-medium">
+                {locale === 'ar' ? 'اضغط للمراجعة والموافقة أو الرفض' : 'Tap to review, approve or reject'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDismissedPendingBanner(true)}
+              className="shrink-0 rounded-lg p-1 text-rose-400/60 hover:text-rose-300 transition"
+              aria-label="إخفاء مؤقت"
+            >
+              <span className="block h-4 w-4 leading-none text-lg font-black">×</span>
+            </button>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setLocation('/dashboard/employees')}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-400 active:scale-95"
+            >
+              {locale === 'ar' ? 'مراجعة الطلبات' : 'Review requests'}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Live Clock Widget */}
       <div className="rounded-3xl border border-indigo-400/25 bg-gradient-to-br from-indigo-950/80 via-slate-950/95 to-purple-950/80 p-6 shadow-2xl shadow-indigo-950/40">
