@@ -75,9 +75,15 @@ export default function Register() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || (locale === 'ar' ? 'فشل في التسجيل' : 'Registration failed'));
+        // Show friendly message for known error codes
+        if (data.error === 'Email already registered') {
+          setError(locale === 'ar' ? 'هذا البريد الإلكتروني مسجل بالفعل. إذا كنت قد سجلت مسبقاً حاول تسجيل الدخول.' : 'This email is already registered. If you already signed up, try logging in.');
+        } else {
+          setError(data.error || (locale === 'ar' ? 'فشل في التسجيل' : 'Registration failed'));
+        }
         return;
       }
+      // Both 201 (new registration) and 202 (already pending) show the pending screen
       setPendingApproval(true);
     } catch {
       setError(locale === 'ar' ? 'خطأ في الاتصال، حاول مرة أخرى' : 'Server error, please try again.');

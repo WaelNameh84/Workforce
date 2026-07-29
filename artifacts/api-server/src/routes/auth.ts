@@ -182,15 +182,20 @@ router.post("/auth/register-employee", async (req, res) => {
 
     // Check for existing email
     const [existing] = await db
-      .select({ id: users.id, employeeId: users.employeeId })
+      .select({ id: users.id, employeeId: users.employeeId, isActive: users.isActive })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
     if (existing) {
-      // If the existing user has no linked employee (orphaned from a previous delete),
-      // clean it up automatically so the email can be reused.
+      // Orphaned user (no linked employee) — clean up so the email can be reused
       if (!existing.employeeId) {
         await db.delete(users).where(eq(users.id, existing.id));
+      } else if (!existing.isActive) {
+        // Account already exists but is still pending approval — tell the user instead
+        // of blocking with a generic "already registered" error.
+        await client.query("ROLLBACK");
+        res.status(202).json({ message: "pending_approval", companyName: company.name });
+        return;
       } else {
         await client.query("ROLLBACK");
         res.status(400).json({ error: "Email already registered" });
