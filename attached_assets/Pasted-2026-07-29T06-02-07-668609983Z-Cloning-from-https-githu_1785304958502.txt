@@ -1,0 +1,42 @@
+2026-07-29T06:02:07.668609983Z ==> Cloning from https://github.com/WaelNameh84/Workforce
+2026-07-29T06:02:15.180276997Z ==> Checking out commit 5aef02be840f8f8f3bc65a2152fb74d0e040bccd in branch main
+2026-07-29T06:02:16.303665177Z ==> Using Node.js version 24.14.1 (default)
+2026-07-29T06:02:16.303667492Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-07-29T06:02:16.331828811Z ==> Running build command 'pnpm install --frozen-lockfile && pnpm run build:render'...
+2026-07-29T06:02:23.52191201Z 
+2026-07-29T06:02:23.521931962Z > workspace@0.0.0 build:render /opt/render/project/src
+2026-07-29T06:02:23.521935077Z > pnpm --filter @workspace/workforce run build && pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/db run push --force
+2026-07-29T06:02:23.521937865Z 
+2026-07-29T06:02:23.76091478Z 
+2026-07-29T06:02:23.760933086Z > @workspace/workforce@0.0.0 build /opt/render/project/src/artifacts/workforce
+2026-07-29T06:02:23.760934913Z > vite build --config vite.config.ts
+2026-07-29T06:02:23.760935679Z 
+2026-07-29T06:02:23.976620924Z vite v7.3.6 building client environment for production...
+2026-07-29T06:02:24.027600974Z transforming...
+2026-07-29T06:02:24.410815515Z ✓ 27 modules transformed.
+2026-07-29T06:02:24.41438949Z ✗ Build failed in 419ms
+2026-07-29T06:02:24.414417741Z error during build:
+2026-07-29T06:02:24.414420095Z [vite-plugin-pwa:build] [plugin vite-plugin-pwa:build] There was an error during the build:
+2026-07-29T06:02:24.414421727Z   [vite]: Rollup failed to resolve import "workbox-window" from "/@vite-plugin-pwa/virtual:pwa-register/react".
+2026-07-29T06:02:24.414422942Z This is most likely unintended because it can break your application at runtime.
+2026-07-29T06:02:24.414424542Z If you do want to externalize this module explicitly add it to
+2026-07-29T06:02:24.414425383Z `build.rollupOptions.external`
+2026-07-29T06:02:24.414426216Z Additionally, handling the error in the 'buildEnd' hook caused the following error:
+2026-07-29T06:02:24.414427046Z   [vite]: Rollup failed to resolve import "workbox-window" from "/@vite-plugin-pwa/virtual:pwa-register/react".
+2026-07-29T06:02:24.414427839Z This is most likely unintended because it can break your application at runtime.
+2026-07-29T06:02:24.41442864Z If you do want to externalize this module explicitly add it to
+2026-07-29T06:02:24.414429456Z `build.rollupOptions.external`
+2026-07-29T06:02:24.414430722Z     at getRollupError (file:///opt/render/project/src/node_modules/.pnpm/rollup@4.62.2/node_modules/rollup/dist/es/shared/parseAst.js:317:41)
+2026-07-29T06:02:24.414432292Z     at file:///opt/render/project/src/node_modules/.pnpm/rollup@4.62.2/node_modules/rollup/dist/es/shared/node-entry.js:23924:39
+2026-07-29T06:02:24.414433843Z     at async catchUnfinishedHookActions (file:///opt/render/project/src/node_modules/.pnpm/rollup@4.62.2/node_modules/rollup/dist/es/shared/node-entry.js:23380:16)
+2026-07-29T06:02:24.414435104Z     at async rollupInternal (file:///opt/render/project/src/node_modules/.pnpm/rollup@4.62.2/node_modules/rollup/dist/es/shared/node-entry.js:23907:5)
+2026-07-29T06:02:24.414438177Z     at async buildEnvironment (file:///opt/render/project/src/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.5_jiti@2.7.0_lightningcss@1.32.0_terser@5.49.0_tsx@4.23.1_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:33621:12)
+2026-07-29T06:02:24.414448675Z     at async Object.build (file:///opt/render/project/src/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.5_jiti@2.7.0_lightningcss@1.32.0_terser@5.49.0_tsx@4.23.1_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:33980:19)
+2026-07-29T06:02:24.414449862Z     at async Object.buildApp (file:///opt/render/project/src/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.5_jiti@2.7.0_lightningcss@1.32.0_terser@5.49.0_tsx@4.23.1_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:33977:153)
+2026-07-29T06:02:24.414451103Z     at async CAC.<anonymous> (file:///opt/render/project/src/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.5_jiti@2.7.0_lightningcss@1.32.0_terser@5.49.0_tsx@4.23.1_yaml@2.9.0/node_modules/vite/dist/node/cli.js:629:3)
+2026-07-29T06:02:24.445337544Z /opt/render/project/src/artifacts/workforce:
+2026-07-29T06:02:24.44534942Z  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/workforce@0.0.0 build: `vite build --config vite.config.ts`
+2026-07-29T06:02:24.445350591Z Exit status 1
+2026-07-29T06:02:24.471483159Z  ELIFECYCLE  Command failed with exit code 1.
+2026-07-29T06:02:24.50819925Z ==> Build failed 😞
+2026-07-29T06:02:24.508210953Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
