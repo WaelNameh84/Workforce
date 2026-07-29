@@ -6,6 +6,12 @@ import { users, companies, employees } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 
+/** Generate a random uppercase alphanumeric join code */
+function generateJoinCode(len = 8): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
 const router = Router();
 
 const getSecret = () =>
@@ -112,7 +118,7 @@ router.post("/auth/login", async (req, res) => {
     }
 
     if (!user.isActive) {
-      res.status(403).json({ error: "This account is inactive" });
+      res.status(403).json({ error: "pending_approval" });
       return;
     }
 
@@ -177,7 +183,7 @@ router.post("/auth/register", async (req, res) => {
 
     const [company] = await db
       .insert(companies)
-      .values({ name: companyName, country: "Global", currency: "USD", language: "en" })
+      .values({ name: companyName, country: "Global", currency: "USD", language: "en", joinCode: generateJoinCode() })
       .returning();
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -245,6 +251,117 @@ router.post("/auth/register", async (req, res) => {
     }
   } finally {
     client.release();
+  }
+});
+
+// POST /api/auth/register-employee
+// Employee self-registration: creates an inactive user pending manager approval.
+router.post("/auth/register-employee", async (req, res) => {
+  const { email, password, fullName, joinCode } = req.body;
+  if (!email || !password || !fullName || !joinCode) {
+    res.status(400).json({ error: "All fields required" });
+    return;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Find the company by join code (case-insensitive)
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(eq(companies.joinCode, joinCode.trim().toUpperCase()))
+      .limit(1);
+
+    if (!company) {
+      await client.query("ROLLBACK");
+      res.status(400).json({ error: "invalid_join_code" });
+      return;
+    }
+
+    // Check for existing email
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    if (existing) {
+      await client.query("ROLLBACK");
+      res.status(400).json({ error: "Email already registered" });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [user] = await db
+      .insert(users)
+      .values({
+        email,
+        password: hashedPassword,
+        fullName,
+        role: "employee",
+        companyId: company.id,
+        isActive: false, // pending approval
+      })
+      .returning();
+
+    const empCode = `EMP-${Date.now().toString(36).toUpperCase()}`;
+    const [employeeProfile] = await db
+      .insert(employees)
+      .values({
+        companyId: company.id,
+        employeeCode: empCode,
+        fullName,
+        email,
+        position: "Employee",
+        status: "pending",
+        userId: user.id,
+      })
+      .returning({ id: employees.id });
+
+    if (employeeProfile?.id) {
+      await db.update(users).set({ employeeId: employeeProfile.id }).where(eq(users.id, user.id));
+    }
+
+    await client.query("COMMIT");
+    res.status(201).json({ message: "pending_approval", companyName: company.name });
+  } catch (err: any) {
+    await client.query("ROLLBACK").catch(() => {});
+    req.log.error({ err }, "Register employee error");
+    if (err?.code === "23505") {
+      res.status(400).json({ error: "Email already registered" });
+    } else {
+      res.status(500).json({ error: err?.message ?? "Internal server error" });
+    }
+  } finally {
+    client.release();
+  }
+});
+
+// GET /api/auth/company  — returns basic company info incl. join code (admin/manager only)
+router.get("/auth/company", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "No company found" }); return; }
+
+    const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+    if (!company) { res.status(404).json({ error: "Company not found" }); return; }
+
+    // Generate a join code if one doesn't exist yet (migration path for older companies)
+    if (!company.joinCode) {
+      const newCode = generateJoinCode();
+      await db.update(companies).set({ joinCode: newCode }).where(eq(companies.id, companyId));
+      company.joinCode = newCode;
+    }
+
+    res.json({ id: company.id, name: company.name, joinCode: company.joinCode });
+  } catch (err) {
+    req.log.error({ err }, "Get company error");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

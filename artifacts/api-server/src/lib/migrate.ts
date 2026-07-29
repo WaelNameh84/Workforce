@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS companies (
   language VARCHAR(10) DEFAULT 'en',
   work_start VARCHAR(10) DEFAULT '09:00',
   work_end VARCHAR(10) DEFAULT '17:00',
+  join_code VARCHAR(20) UNIQUE,
   created_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
 

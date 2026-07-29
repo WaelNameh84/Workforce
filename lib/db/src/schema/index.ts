@@ -26,6 +26,7 @@ export const companies = pgTable('companies', {
   language: varchar('language', { length: 10 }).default('en'),
   workStartHour: varchar('work_start', { length: 10 }).default('09:00'),
   workEndHour: varchar('work_end', { length: 10 }).default('17:00'),
+  joinCode: varchar('join_code', { length: 20 }).unique(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

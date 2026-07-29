@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useLocation } from 'wouter';
@@ -26,10 +26,19 @@ import {
   Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Copy, Share2, Clock3,
   Mail, Phone, MapPin, Calendar, Clock, Building2,
   User, Briefcase, DollarSign, FileText, Users, Shield,
-  ClipboardList, UserCheck, CalendarDays
+  ClipboardList, UserCheck, CalendarDays, CheckCircle2, XCircle, KeyRound, RefreshCw
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
+
+interface PendingUser {
+  userId: number;
+  employeeId: number | null;
+  fullName: string;
+  email: string;
+  position: string | null;
+  createdAt: string | null;
+}
 
 const deptGradients = [
   { from: 'from-violet-500', to: 'to-purple-600', light: 'bg-violet-50 dark:bg-violet-950/30', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-200 dark:border-violet-800' },
@@ -109,6 +118,67 @@ export default function Employees() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [pendingActionId, setPendingActionId] = useState<number | null>(null);
+
+  const fetchPendingUsers = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/employees/pending', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPendingUsers(data.pending || []);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchPendingUsers(); }, [fetchPendingUsers]);
+
+  const handleApproveUser = async (userId: number) => {
+    setPendingActionId(userId);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/employees/pending/${userId}/approve`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        toast({ title: locale === 'ar' ? 'تم تفعيل الحساب وقبول الموظف' : 'Employee approved and activated' });
+        setPendingUsers(prev => prev.filter(u => u.userId !== userId));
+        invalidate();
+      } else {
+        toast({ variant: 'destructive', title: locale === 'ar' ? 'فشلت العملية' : 'Operation failed' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error' });
+    } finally {
+      setPendingActionId(null);
+    }
+  };
+
+  const handleRejectUser = async (userId: number) => {
+    setPendingActionId(userId);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/employees/pending/${userId}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        toast({ title: locale === 'ar' ? 'تم رفض طلب الانضمام وحذف الحساب' : 'Registration request rejected' });
+        setPendingUsers(prev => prev.filter(u => u.userId !== userId));
+      } else {
+        toast({ variant: 'destructive', title: locale === 'ar' ? 'فشلت العملية' : 'Operation failed' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error' });
+    } finally {
+      setPendingActionId(null);
+    }
+  };
 
   const [search, setSearch] = useState('');
   const [departmentId, setDepartmentId] = useState<string>('all');
@@ -499,6 +569,76 @@ export default function Employees() {
           </div>
         ))}
       </div>
+
+      {/* Pending Employee Registrations */}
+      {pendingUsers.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/30 overflow-hidden bg-card">
+          <div className="flex items-center justify-between p-4 border-b border-amber-500/20 bg-amber-500/5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                <Clock3 className="w-4 h-4 text-amber-400" />
+              </div>
+              <span className="font-bold text-sm">{locale === 'ar' ? 'طلبات انضمام تنتظر موافقتك' : 'Pending Registration Requests'}</span>
+              <span className="min-w-[22px] h-5 flex items-center justify-center rounded-full bg-amber-500/20 text-amber-400 text-xs font-black border border-amber-500/30 px-1.5 animate-pulse">
+                {pendingUsers.length}
+              </span>
+            </div>
+            <Button size="sm" variant="ghost" onClick={fetchPendingUsers} className="h-8 text-xs">
+              <RefreshCw className="w-3.5 h-3.5 mr-1" /> {locale === 'ar' ? 'تحديث' : 'Refresh'}
+            </Button>
+          </div>
+          <div className="p-4 space-y-3">
+            {pendingUsers.map(row => {
+              const initials = row.fullName?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'EMP';
+              const since = row.createdAt
+                ? new Date(row.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+                : '—';
+              return (
+                <div key={row.userId} className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center font-bold text-amber-400 text-sm shrink-0">
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-sm">{row.fullName}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25 font-black">
+                          {locale === 'ar' ? 'قيد المعالجة' : 'Pending'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{row.email}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {row.position || (locale === 'ar' ? 'موظف' : 'Employee')} · {locale === 'ar' ? 'طلب الانضمام:' : 'Joined:'} {since}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-amber-500/15 flex items-center gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pendingActionId === row.userId}
+                      onClick={() => handleRejectUser(row.userId)}
+                      className="h-8 text-xs border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                    >
+                      <XCircle className="w-3.5 h-3.5 mr-1" />
+                      {locale === 'ar' ? 'رفض' : 'Reject'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={pendingActionId === row.userId}
+                      onClick={() => handleApproveUser(row.userId)}
+                      className="h-8 text-xs bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                      {locale === 'ar' ? 'قبول وتفعيل' : 'Approve'}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card-3d p-4">

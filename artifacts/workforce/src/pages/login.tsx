@@ -147,7 +147,12 @@ export default function Login() {
       await doLogin(email, password);
       if (biometricAvailable && !biometricSaved) await registerBiometric(email);
     } catch (err: any) {
-      setError(err?.data?.error || err?.message || 'فشل تسجيل الدخول');
+      const code = err?.data?.error || err?.message || '';
+      if (code === 'pending_approval') {
+        setError('حسابك قيد المراجعة. يرجى انتظار موافقة المدير لتفعيل حسابك.');
+      } else {
+        setError(code || 'فشل تسجيل الدخول');
+      }
     }
   };
 
@@ -467,13 +472,13 @@ export default function Login() {
 
             {/* Create account */}
             <div className="mt-6 pt-6 border-t border-border/50">
-              <Link href="/register">
+              <Link href="/register?mode=employee">
                 <button
                   type="button"
                   className="w-full h-12 rounded-xl border border-border/80 bg-card/50 hover:bg-card flex items-center justify-center gap-2.5 font-bold text-sm text-foreground hover:-translate-y-0.5 transition-all"
                 >
                   <UserPlus className="w-4 h-4 text-indigo-400" />
-                  إنشاء حساب جديد
+                  إنشاء حساب موظف
                 </button>
               </Link>
             </div>

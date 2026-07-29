@@ -6,6 +6,109 @@ import { authMiddleware } from "../middlewares/auth";
 
 const router = Router();
 
+// GET /api/employees/pending  — list employees awaiting manager approval
+router.get("/employees/pending", authMiddleware, async (req, res) => {
+  try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+
+    const rows = await db
+      .select({
+        userId: users.id,
+        employeeId: employees.id,
+        fullName: users.fullName,
+        email: users.email,
+        position: employees.position,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .leftJoin(employees, eq(employees.userId, users.id))
+      .where(
+        and(
+          eq(users.companyId, companyId),
+          eq(users.isActive, false),
+        ),
+      )
+      .orderBy(users.createdAt);
+
+    res.json({ pending: rows });
+  } catch (err) {
+    req.log.error({ err }, "Get pending employees error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/employees/pending/:userId/approve
+router.post("/employees/pending/:userId/approve", authMiddleware, async (req, res) => {
+  try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const userId = parseInt(String(req.params.userId), 10);
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+
+    // Verify the user belongs to this company
+    const [target] = await db
+      .select({ id: users.id, employeeId: users.employeeId })
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.companyId, companyId), eq(users.isActive, false)))
+      .limit(1);
+
+    if (!target) { res.status(404).json({ error: "Pending user not found" }); return; }
+
+    // Activate the user account
+    await db.update(users).set({ isActive: true }).where(eq(users.id, userId));
+
+    // Activate the employee profile
+    if (target.employeeId) {
+      await db.update(employees).set({ status: "active" }).where(eq(employees.id, target.employeeId));
+    }
+
+    res.json({ message: "approved" });
+  } catch (err) {
+    req.log.error({ err }, "Approve employee error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /api/employees/pending/:userId  — reject / remove pending request
+router.delete("/employees/pending/:userId", authMiddleware, async (req, res) => {
+  try {
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const userId = parseInt(String(req.params.userId), 10);
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+
+    const [target] = await db
+      .select({ id: users.id, employeeId: users.employeeId })
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.companyId, companyId), eq(users.isActive, false)))
+      .limit(1);
+
+    if (!target) { res.status(404).json({ error: "Pending user not found" }); return; }
+
+    // Delete employee profile first (FK dependency)
+    if (target.employeeId) {
+      await db.delete(employees).where(eq(employees.id, target.employeeId));
+    }
+    await db.delete(users).where(eq(users.id, userId));
+
+    res.json({ message: "rejected" });
+  } catch (err) {
+    req.log.error({ err }, "Reject employee error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/employees
 router.get("/employees", authMiddleware, async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ import {
   Filter, RefreshCw, Eye, UserX, Zap, TrendingDown,
   CalendarCheck, BadgeCheck, AlertTriangle, Activity,
   ArrowRight, User, CalendarDays, MessageSquare, X, ExternalLink,
+  UserPlus, UserCheck,
 } from 'lucide-react';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ const kindMeta: Record<ActionKind, { icon: typeof Bell; iconColor: string; label
   payroll: { icon: CreditCard,    iconColor: 'text-green-400 bg-green-500/15',   label: 'راتب معلق' },
 };
 
-type StatKey = 'leaves' | 'requests' | 'attendance' | 'absent' | 'payroll' | 'employees';
+type StatKey = 'leaves' | 'requests' | 'attendance' | 'absent' | 'payroll' | 'newregs' | 'employees';
 
 const detailValue = (value: unknown) =>
   value === undefined || value === null || value === '' ? '—' : String(value);
@@ -238,6 +239,7 @@ function StatDetailsModal({
     attendance: 'تفاصيل تبريرات الحضور',
     absent: 'الموظفون الذين لم يسجلوا الحضور',
     payroll: 'تفاصيل الرواتب المعلقة',
+    newregs: 'طلبات انضمام موظفين جديدة',
     employees: 'قائمة الموظفين',
   };
   const sectionRoute: Record<StatKey, string> = {
@@ -246,6 +248,7 @@ function StatDetailsModal({
     attendance: '/dashboard/attendance',
     absent: '/dashboard/attendance',
     payroll: '/dashboard/payroll',
+    newregs: '/dashboard/action-center',
     employees: '/dashboard/employees',
   };
   const sectionLabel: Record<StatKey, string> = {
@@ -254,6 +257,7 @@ function StatDetailsModal({
     attendance: 'فتح الحضور',
     absent: 'فتح الحضور',
     payroll: 'فتح الرواتب',
+    newregs: 'مركز الإجراءات',
     employees: 'فتح الموظفين',
   };
 
@@ -499,6 +503,70 @@ function Section({ title, icon: Icon, color, count, children }: {
   );
 }
 
+// ─── Pending Employee Row ──────────────────────────────────────────────────────
+interface PendingUser {
+  userId: number;
+  employeeId: number | null;
+  fullName: string;
+  email: string;
+  position: string | null;
+  createdAt: string | null;
+}
+
+function PendingEmployeeRow({
+  row,
+  onApprove,
+  onReject,
+  loading,
+}: {
+  row: PendingUser;
+  onApprove: () => void;
+  onReject: () => void;
+  loading: boolean;
+}) {
+  const initials = row.fullName?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'EMP';
+  const since = row.createdAt
+    ? new Date(row.createdAt).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+  return (
+    <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 animate-fadeIn">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center font-bold text-amber-400 text-sm shrink-0">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-sm">{row.fullName}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25 font-black">
+              انتظار موافقة
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">{row.email}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            {row.position || 'موظف'} · طلب الانضمام: {since}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 pt-3 border-t border-amber-500/15 flex items-center gap-2 justify-end">
+        <button
+          disabled={loading}
+          onClick={onReject}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition disabled:opacity-50"
+        >
+          <XCircle className="w-3.5 h-3.5" /> رفض
+        </button>
+        <button
+          disabled={loading}
+          onClick={onApprove}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-green-500 text-white shadow-md shadow-green-500/20 hover:bg-green-600 transition disabled:opacity-50"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" /> موافقة وتفعيل
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ActionCenterPage() {
   const { user } = useAuth();
@@ -525,6 +593,73 @@ export default function ActionCenterPage() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ActionItem | null>(null);
   const [selectedStat, setSelectedStat] = useState<StatKey | null>(null);
+
+  // ── Pending employee registrations ────────────────────────────────────────
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [pendingUsersLoading, setPendingUsersLoading] = useState(false);
+  const [pendingUserActionId, setPendingUserActionId] = useState<number | null>(null);
+
+  const fetchPendingUsers = useCallback(async () => {
+    if (!user?.companyId) return;
+    setPendingUsersLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/employees/pending', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPendingUsers(data.pending || []);
+      }
+    } catch { /* ignore */ } finally {
+      setPendingUsersLoading(false);
+    }
+  }, [user?.companyId]);
+
+  useEffect(() => { fetchPendingUsers(); }, [fetchPendingUsers]);
+
+  const handleApproveUser = async (userId: number) => {
+    setPendingUserActionId(userId);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/employees/pending/${userId}/approve`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        toast({ title: 'تم تفعيل الحساب وقبول الموظف' });
+        setPendingUsers(prev => prev.filter(u => u.userId !== userId));
+        queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
+      } else {
+        toast({ variant: 'destructive', title: 'فشلت العملية' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'خطأ في الاتصال' });
+    } finally {
+      setPendingUserActionId(null);
+    }
+  };
+
+  const handleRejectUser = async (userId: number) => {
+    setPendingUserActionId(userId);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/employees/pending/${userId}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        toast({ title: 'تم رفض طلب الانضمام وحذف الحساب' });
+        setPendingUsers(prev => prev.filter(u => u.userId !== userId));
+      } else {
+        toast({ variant: 'destructive', title: 'فشلت العملية' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'خطأ في الاتصال' });
+    } finally {
+      setPendingUserActionId(null);
+    }
+  };
 
   const cid = user?.companyId || 0;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -575,7 +710,7 @@ export default function ActionCenterPage() {
   });
   const pendingPayroll = payroll.filter((p: any) => p.status === 'pending' || p.status === 'draft');
 
-  const totalPending = pendingLeaves.length + pendingReqs.length + pendingAttendance.length + pendingPayroll.length;
+  const totalPending = pendingLeaves.length + pendingReqs.length + pendingAttendance.length + pendingPayroll.length + pendingUsers.length;
 
   // ── Build unified action items ────────────────────────────────────────────
   const allItems: ActionItem[] = useMemo(() => {
@@ -693,17 +828,19 @@ export default function ActionCenterPage() {
 
   const refetchAll = () => {
     rLeave(); rReq(); rAtt();
+    fetchPendingUsers();
     toast({ title: t('acRefreshing') });
   };
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const stats = [
-    { key: 'leaves' as StatKey, icon: CalendarX,  label: 'إجازات معلقة',     value: pendingLeaves.length,   sub: 'تنتظر قرارك',      color: 'text-teal-400 bg-teal-500/10 border border-teal-500/20' },
-    { key: 'requests' as StatKey, icon: Inbox,      label: 'طلبات عمل معلقة',  value: pendingReqs.length,    sub: 'تحتاج مراجعة',     color: 'text-amber-400 bg-amber-500/10 border border-amber-500/20' },
-    { key: 'attendance' as StatKey, icon: Timer,      label: 'تبريرات معلقة',   value: pendingAttendance.length, sub: 'تحتاج قراراً',      color: 'text-violet-400 bg-violet-500/10 border border-violet-500/20' },
-    { key: 'absent' as StatKey, icon: UserX,      label: 'لم يسجلوا بعد',   value: notClockedIn.length,    sub: 'من المتوقع حضورهم', color: 'text-red-400 bg-red-500/10 border border-red-500/20' },
-    { key: 'payroll' as StatKey, icon: CreditCard, label: 'رواتب معلقة',      value: pendingPayroll.length,  sub: 'هذا الشهر',         color: 'text-green-400 bg-green-500/10 border border-green-500/20' },
-    { key: 'employees' as StatKey, icon: Users,      label: 'إجمالي الموظفين',  value: employees.length,       sub: 'موظف مسجّل',        color: 'text-blue-400 bg-blue-500/10 border border-blue-500/20' },
+    { key: 'leaves' as StatKey, icon: CalendarX,  label: 'إجازات معلقة',         value: pendingLeaves.length,    sub: 'تنتظر قرارك',       color: 'text-teal-400 bg-teal-500/10 border border-teal-500/20' },
+    { key: 'requests' as StatKey, icon: Inbox,     label: 'طلبات عمل معلقة',      value: pendingReqs.length,      sub: 'تحتاج مراجعة',      color: 'text-amber-400 bg-amber-500/10 border border-amber-500/20' },
+    { key: 'attendance' as StatKey, icon: Timer,   label: 'تبريرات معلقة',        value: pendingAttendance.length,sub: 'تحتاج قراراً',       color: 'text-violet-400 bg-violet-500/10 border border-violet-500/20' },
+    { key: 'absent' as StatKey, icon: UserX,       label: 'لم يسجلوا بعد',       value: notClockedIn.length,     sub: 'من المتوقع حضورهم', color: 'text-red-400 bg-red-500/10 border border-red-500/20' },
+    { key: 'payroll' as StatKey, icon: CreditCard, label: 'رواتب معلقة',          value: pendingPayroll.length,   sub: 'هذا الشهر',          color: 'text-green-400 bg-green-500/10 border border-green-500/20' },
+    { key: 'newregs' as StatKey, icon: UserPlus,   label: 'طلبات انضمام جديدة',   value: pendingUsers.length,     sub: 'تنتظر موافقتك',     color: 'text-amber-400 bg-amber-500/10 border border-amber-500/20' },
+    { key: 'employees' as StatKey, icon: Users,    label: 'إجمالي الموظفين',      value: employees.length,        sub: 'موظف مسجّل',         color: 'text-blue-400 bg-blue-500/10 border border-blue-500/20' },
   ];
 
   const statItems: Record<StatKey, { title: string; subtitle: string; meta: string }[]> = {
@@ -731,6 +868,11 @@ export default function ActionCenterPage() {
       title: employees.find((employee: any) => employee.id === entry.employeeId)?.fullName || `موظف #${entry.employeeId}`,
       subtitle: `راتب ${entry.period || todayStr.slice(0, 7)}`,
       meta: `الصافي: ${Number(entry.netSalary || entry.basicSalary || 0).toLocaleString('ar-SA')} ريال`,
+    })),
+    newregs: pendingUsers.map((u) => ({
+      title: u.fullName || 'موظف',
+      subtitle: u.position || 'موظف',
+      meta: `${u.email} · طلب انضمام معلق`,
     })),
     employees: employees.map((employee: any) => ({
       title: employee.fullName || 'موظف',
@@ -878,6 +1020,32 @@ export default function ActionCenterPage() {
                 );
               })
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Pending Employee Registrations ─────────────────────────── */}
+      {pendingUsers.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/30 overflow-hidden" style={{ background: 'var(--card)' }}>
+          <div className="flex items-center gap-3 p-4 border-b border-amber-500/20 bg-amber-500/5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl text-amber-400 bg-amber-500/15">
+              <UserPlus className="w-4 h-4" />
+            </div>
+            <span className="font-bold text-sm flex-1">طلبات انضمام موظفين جديدة</span>
+            <span className="min-w-[24px] h-6 flex items-center justify-center rounded-full bg-amber-500/20 text-amber-400 text-xs font-black border border-amber-500/30 px-1.5 animate-pulse">
+              {pendingUsers.length}
+            </span>
+          </div>
+          <div className="p-4 space-y-3">
+            {pendingUsers.map(row => (
+              <PendingEmployeeRow
+                key={row.userId}
+                row={row}
+                onApprove={() => handleApproveUser(row.userId)}
+                onReject={() => handleRejectUser(row.userId)}
+                loading={pendingUserActionId === row.userId}
+              />
+            ))}
           </div>
         </div>
       )}
