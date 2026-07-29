@@ -151,19 +151,26 @@ router.post("/auth/login", async (req, res) => {
 
 // POST /api/auth/register
 router.post("/auth/register", async (req, res) => {
-  try {
-    const { email, password, fullName, company: companyName } = req.body;
-    if (!email || !password || !fullName || !companyName) {
-      res.status(400).json({ error: "All fields required" });
-      return;
-    }
+  const { email, password, fullName, company: companyName } = req.body;
+  if (!email || !password || !fullName || !companyName) {
+    res.status(400).json({ error: "All fields required" });
+    return;
+  }
 
+  // Run the entire registration inside a transaction so no orphaned rows are
+  // left behind if any step fails (e.g. employee insert constraint violation).
+  const client = await (await import("@workspace/db")).pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Check for existing email
     const [existing] = await db
-      .select()
+      .select({ id: users.id })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
     if (existing) {
+      await client.query("ROLLBACK");
       res.status(400).json({ error: "Email already registered" });
       return;
     }
@@ -206,6 +213,8 @@ router.post("/auth/register", async (req, res) => {
         .where(eq(users.id, user.id));
     }
 
+    await client.query("COMMIT");
+
     const token = await signToken({
       userId: user.id,
       email: user.email,
@@ -225,39 +234,17 @@ router.post("/auth/register", async (req, res) => {
         employeeId: employeeProfile?.id ?? null,
       },
     });
-  } catch (err) {
-    req.log.error({ err }, "Register error");
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// TEMPORARY - one-off cleanup for a diagnostic test account, safe to remove after use.
-// Only ever matches the exact hardcoded probe email/company - cannot touch any other data.
-router.post("/auth/_cleanup-probe-test", async (req, res) => {
-  try {
-    const probeEmail = "probe-test@example.com";
-    const probeCompanyName = "Probe Co";
-
-    const [user] = await db.select().from(users).where(eq(users.email, probeEmail)).limit(1);
-    if (!user || !user.companyId) {
-      res.json({ deleted: false, reason: "not found" });
-      return;
+  } catch (err: any) {
+    await client.query("ROLLBACK").catch(() => {});
+    req.log.error({ err, message: err?.message, code: err?.code, detail: err?.detail }, "Register error");
+    // Surface a specific message for known constraint violations
+    if (err?.code === "23505") {
+      res.status(400).json({ error: "Email already registered" });
+    } else {
+      res.status(500).json({ error: err?.message ?? "Internal server error" });
     }
-
-    const [company] = await db.select().from(companies).where(eq(companies.id, user.companyId)).limit(1);
-    if (!company || company.name !== probeCompanyName) {
-      res.json({ deleted: false, reason: "company name mismatch, refusing to delete" });
-      return;
-    }
-
-    await db.delete(employees).where(eq(employees.companyId, company.id));
-    await db.delete(users).where(eq(users.id, user.id));
-    await db.delete(companies).where(eq(companies.id, company.id));
-
-    res.json({ deleted: true });
-  } catch (err) {
-    req.log.error({ err }, "Cleanup error");
-    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    client.release();
   }
 });
 
