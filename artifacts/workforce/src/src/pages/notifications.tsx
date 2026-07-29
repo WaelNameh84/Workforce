@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useGetAttendance, useGetLeaves, useGetRequests, getGetAttendanceQueryKey, getGetLeavesQueryKey, getGetRequestsQueryKey } from '@workspace/api-client-react';
 import { useLocation } from 'wouter';
-import { AlertCircle, ArrowLeft, ArrowRight, Bell, CalendarX, CheckCircle2, Timer } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, Bell, CalendarX, CheckCircle2, Timer, UserPlus, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { saveDetailAndNavigate } from '@/pages/detail';
@@ -22,6 +22,7 @@ export default function Notifications() {
   const cid = user?.companyId || 0;
   const todayStr = new Date().toISOString().split('T')[0];
   const intlLocale = locale === 'ar' ? 'ar-SA' : locale === 'sv' ? 'sv-SE' : 'en-US';
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
   const { data: attendanceData } = useGetAttendance(
     { companyId: cid, date: todayStr },
@@ -35,6 +36,23 @@ export default function Notifications() {
     { companyId: cid },
     { query: { enabled: !!cid, queryKey: getGetLeavesQueryKey({ companyId: cid }) } },
   );
+
+  // Pending employee registrations (admin/manager only)
+  const [pendingRegs, setPendingRegs] = useState<Array<{ userId: number; fullName: string; email: string; createdAt: string }>>([]);
+  const fetchPending = useCallback(async () => {
+    if (!isAdminOrManager || !cid) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/auth/pending-users', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPendingRegs(data.users || []);
+      }
+    } catch { /* ignore */ }
+  }, [isAdminOrManager, cid]);
+  useEffect(() => { fetchPending(); }, [fetchPending]);
 
   const notifications = useMemo<NotificationItem[]>(() => {
     const attendance = (attendanceData as any)?.attendance || [];
@@ -94,6 +112,9 @@ export default function Notifications() {
     ];
   }, [attendanceData, requestsData, leavesData, intlLocale, isArabic, locale]);
 
+  // Pending registration items — separate from detail-navigable ones
+  const pendingRegItems = pendingRegs;
+
   const openNotification = (item: NotificationItem) => {
     saveDetailAndNavigate(setLocation, '/dashboard/detail', {
       title: item.title,
@@ -130,14 +151,14 @@ export default function Notifications() {
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
             <h2 className="text-sm font-black text-white">{isArabic ? 'آخر التنبيهات' : 'Recent alerts'}</h2>
-            <p className="mt-1 text-[11px] font-bold text-slate-500">{notifications.length} {isArabic ? 'تنبيه' : 'alerts'}</p>
+            <p className="mt-1 text-[11px] font-bold text-slate-500">{notifications.length + pendingRegItems.length} {isArabic ? 'تنبيه' : 'alerts'}</p>
           </div>
           <span className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-2 text-amber-300">
             <Bell className="h-4 w-4" />
           </span>
         </div>
 
-        {notifications.length === 0 ? (
+        {notifications.length === 0 && pendingRegItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
               <CheckCircle2 className="h-7 w-7" />
@@ -171,6 +192,30 @@ export default function Notifications() {
                 </button>
               );
             })}
+            {pendingRegItems.map((reg, i) => (
+              <button
+                key={`reg-${i}`}
+                type="button"
+                onClick={() => setLocation('/dashboard/action-center')}
+                className="group flex w-full items-start gap-3 px-5 py-4 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+              >
+                <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-emerald-300 bg-emerald-500/15 border-emerald-400/20">
+                  <UserPlus className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-extrabold leading-6 text-white">
+                    {reg.fullName} — {isArabic ? 'طلب انضمام جديد' : 'New registration request'}
+                  </span>
+                  <span className="mt-1 block text-xs font-bold text-slate-500">
+                    {reg.email} · {isArabic ? 'بانتظار الموافقة' : 'Pending approval'}
+                  </span>
+                </span>
+                <span className="mt-2 flex items-center gap-1 text-xs font-bold text-emerald-400 opacity-0 transition group-hover:opacity-100">
+                  <ExternalLink className="h-3 w-3" />
+                  {isArabic ? 'راجع' : 'Review'}
+                </span>
+              </button>
+            ))}
           </div>
         )}
       </section>

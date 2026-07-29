@@ -947,7 +947,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     ))}
                     {nPendingEmps.map((item: any, i: number) => (
                       <button key={`emp-${i}`} type="button"
-                        onClick={() => { setNotifOpen(false); setLocation('/dashboard/employees'); }}
+                        onClick={() => { setNotifOpen(false); setLocation('/dashboard/action-center'); }}
                         className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
                       >
                         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-emerald-300 bg-emerald-500/15 border-emerald-400/20">
