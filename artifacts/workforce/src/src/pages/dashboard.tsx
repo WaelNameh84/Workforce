@@ -35,10 +35,10 @@ function LiveClockWidget({ now, locale }: { now: Date; locale: string }) {
   const dateStr = now.toLocaleDateString(intlLocale, { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex items-center gap-4">
       {/* Analog face */}
-      <div className="relative">
-        <svg viewBox="0 0 100 100" className="w-40 h-40 drop-shadow-2xl">
+      <div className="relative shrink-0">
+        <svg viewBox="0 0 100 100" className="w-24 h-24 drop-shadow-2xl">
           {/* Outer ring */}
           <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(99,102,241,0.3)" strokeWidth="1.5" />
           {/* Face gradient */}
@@ -83,8 +83,8 @@ function LiveClockWidget({ now, locale }: { now: Date; locale: string }) {
         </span>
       </div>
       {/* Digital time */}
-      <div className="text-center">
-        <div className="font-mono text-3xl font-black text-white tracking-widest" style={{ fontVariantNumeric: 'tabular-nums' }}>
+      <div>
+        <div className="font-mono text-2xl font-black text-white tracking-widest" style={{ fontVariantNumeric: 'tabular-nums' }}>
           {timeStr}
         </div>
         <div className="text-xs font-bold text-indigo-300 mt-1">{dateStr}</div>
@@ -391,7 +391,7 @@ function AdminDashboard() {
   };
 
   return (
-    <div className="mobile-dashboard max-w-xl mx-auto space-y-4 animate-fadeIn pb-8">
+    <div className="mobile-dashboard max-w-xl mx-auto space-y-3 animate-fadeIn pb-8">
       {/* Header: Logo + Greeting + Avatar */}
       <div className="flex items-center justify-between px-1">
         {/* Logo area */}
@@ -495,11 +495,11 @@ function AdminDashboard() {
       )}
 
       {/* Live Clock Widget */}
-      <div className="rounded-3xl border border-indigo-400/25 bg-gradient-to-br from-indigo-950/80 via-slate-950/95 to-purple-950/80 p-6 shadow-2xl shadow-indigo-950/40">
+      <div className="rounded-2xl border border-indigo-400/25 bg-gradient-to-br from-indigo-950/80 via-slate-950/95 to-purple-950/80 p-3 shadow-xl shadow-indigo-950/40">
         <LiveClockWidget now={now} locale={locale} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         {cardDetails.map((card) => {
           const Icon = card.icon;
           return (
@@ -507,19 +507,17 @@ function AdminDashboard() {
               key={card.id}
               type="button"
               onClick={() => openCardDetails(card)}
-              className={`mobile-dashboard-card group relative overflow-hidden rounded-3xl border bg-gradient-to-br ${card.tone} p-4 text-right shadow-lg`}
+              className={`mobile-dashboard-card group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${card.tone} p-3 text-right shadow-md`}
             >
               <span className="absolute -left-5 -top-6 h-20 w-20 rounded-full bg-white/5 blur-2xl" />
-              <span className={`relative flex h-10 w-10 items-center justify-center rounded-2xl ${card.iconTone} shadow-lg transition-transform group-hover:scale-110`}>
-                <Icon className="h-5 w-5" />
-              </span>
-              <span className="relative mt-4 block text-3xl font-black font-data text-white">{card.value}</span>
-              <span className="relative mt-1 block text-sm font-extrabold text-white">{card.title}</span>
-              <span className="relative mt-1 block text-[10px] font-bold text-slate-300">{card.subtitle}</span>
-              <span className="relative mt-3 flex items-center justify-between text-[10px] font-bold text-white/60">
-                 <span>{translateText('اضغط للتفاصيل')}</span>
-                <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              </span>
+              <div className="relative flex items-center justify-between mb-1">
+                <span className="text-2xl font-black font-data text-white">{card.value}</span>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${card.iconTone} shadow-md`}>
+                  <Icon className="h-4 w-4" />
+                </span>
+              </div>
+              <span className="relative block text-xs font-extrabold text-white">{card.title}</span>
+              <span className="relative block text-[10px] font-bold text-slate-300 mt-0.5 truncate">{card.subtitle}</span>
             </button>
           );
         })}

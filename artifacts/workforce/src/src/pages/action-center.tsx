@@ -352,7 +352,7 @@ function ActionRow({
   onOpenDetails: () => void;
   loading?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const km = kindMeta[item.kind];
   const pm = priorityMeta[item.priority];
   const canAct = !!onApprovePaid || !!onApproveUnpaid || !!onReject;

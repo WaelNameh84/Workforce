@@ -90,8 +90,24 @@ export default function PayrollPage() {
   const approvePayroll = useApprovePayroll();
   const lockPayroll = useLockPayroll();
 
-  const buildCfg = () => ({
-    workDaysPerMonth: parseInt(settings.workDays || '22', 10),
+  const calcWorkingDaysInMonth = (p: string, wkendDays: number[]): number => {
+    const [y, m] = p.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    let count = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dow = new Date(y, m - 1, d).getDay();
+      if (!wkendDays.includes(dow)) count++;
+    }
+    return count;
+  };
+
+  const buildCfg = () => {
+    const wkendDays = (settings.weekendDays || '5,6').split(',').map(Number).filter(n => !isNaN(n));
+    const workDaysPerMonth = settings.workDays
+      ? parseInt(settings.workDays, 10)
+      : calcWorkingDaysInMonth(period, wkendDays);
+    return {
+    workDaysPerMonth,
     dailyHoursScheduled: parseInt(settings.workEnd) - parseInt(settings.workStart) || 8,
     workStart: settings.workStart || '09:00',
     workEnd: settings.workEnd || '17:00',
@@ -102,11 +118,12 @@ export default function PayrollPage() {
     overtimeWeekendMultiplier: parseFloat(settings.otWeekendMultiplier || '2.0'),
     nightDifferential: parseFloat(settings.nightDifferential || '0.25'),
     lateDeductMultiplier: parseFloat(settings.lateDeductMultiplier || '1.0'),
-    weekendDays: (settings.weekendDays || '5,6').split(',').map(Number).filter(n => !isNaN(n)),
+    weekendDays: wkendDays,
     nightStartHour: parseInt(settings.nightStartHour || '22', 10),
     nightEndHour: parseInt(settings.nightEndHour || '6', 10),
     installmentAmount: 0,
-  });
+    };
+  };
 
   // Process data into summaries
   const summaries = useMemo(() => {
@@ -356,13 +373,13 @@ export default function PayrollPage() {
         <CardContent className="p-4 flex flex-wrap items-center gap-6 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground"><Briefcase className="w-4 h-4" /> سياسة العمل الحالية:</div>
           <div><strong>الدوام:</strong> {settings.workStart} - {settings.workEnd}</div>
-          <div><strong>أيام العمل:</strong> {settings.workDays || '22'} يوم / الشهر</div>
+          <div><strong>أيام العمل:</strong> {settings.workDays ? settings.workDays : calcWorkingDaysInMonth(period, (settings.weekendDays || '5,6').split(',').map(Number).filter(n => !isNaN(n)))} يوم / الشهر{!settings.workDays ? ' (تلقائي)' : ''}</div>
           <div><strong>فترة راحة:</strong> {settings.breakMin} دقيقة</div>
           <div><strong>سماحية التأخير:</strong> {settings.lateGrace} دقيقة</div>
           <div><strong>حساب الإضافي بعد:</strong> {settings.otThreshold} دقيقة</div>
-          <div className="flex items-center gap-1"><Sun className="w-3.5 h-3.5 text-amber-500" /><strong>إضافي عادي:</strong> 150%</div>
-          <div className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-purple-500" /><strong>إضافي عطلة:</strong> 200%</div>
-          <div className="flex items-center gap-1"><Moon className="w-3.5 h-3.5 text-blue-400" /><strong>بدل ليلي:</strong> 25%</div>
+          <div className="flex items-center gap-1"><Sun className="w-3.5 h-3.5 text-amber-500" /><strong>إضافي عادي:</strong> {(parseFloat(settings.otMultiplier || '1.5') * 100).toFixed(0)}%</div>
+          <div className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-purple-500" /><strong>إضافي عطلة:</strong> {(parseFloat(settings.otWeekendMultiplier || '2.0') * 100).toFixed(0)}%</div>
+          <div className="flex items-center gap-1"><Moon className="w-3.5 h-3.5 text-blue-400" /><strong>بدل ليلي:</strong> {(parseFloat(settings.nightDifferential || '0.25') * 100).toFixed(0)}%</div>
         </CardContent>
       </Card>
 
