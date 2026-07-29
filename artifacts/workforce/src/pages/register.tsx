@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRegister } from '@workspace/api-client-react';
 import { useAuth, type ExtendedAuthUser } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -7,8 +7,41 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link, useLocation } from 'wouter';
-import { Globe, Moon, Sun } from 'lucide-react';
+import { Globe, Moon, Sun, Loader2 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
+
+// Ping the server as soon as the page loads so Render wakes up before the
+// user finishes filling the form (free-tier services sleep after 15 min).
+function useServerWarmup() {
+  const [ready, setReady] = useState(false);
+  const [warming, setWarming] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ping = async () => {
+      try {
+        const res = await fetch('/api/healthz', { method: 'GET' });
+        if (!cancelled && res.ok) { setReady(true); setWarming(false); }
+      } catch {
+        // Server still sleeping — retry once after 5 s
+        if (!cancelled) {
+          setTimeout(async () => {
+            try {
+              const res = await fetch('/api/healthz', { method: 'GET' });
+              if (!cancelled && res.ok) { setReady(true); setWarming(false); }
+            } catch { if (!cancelled) setReady(true); } // allow submit even if ping keeps failing
+          }, 5000);
+        }
+      }
+    };
+
+    // Short delay lets the page paint first
+    const t = setTimeout(() => { setWarming(true); ping(); }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, []);
+
+  return { ready, warming };
+}
 
 export default function Register() {
   const { t, locale, setLocale, dir } = useLanguage();
@@ -16,6 +49,7 @@ export default function Register() {
   const registerMutation = useRegister();
   const { login } = useAuth();
   const [, setLocation] = useLocation();
+  const { ready, warming } = useServerWarmup();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +60,13 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // If the server hasn't responded to the warmup ping yet, wait briefly
+    if (!ready) {
+      try {
+        await fetch('/api/healthz');
+      } catch { /* proceed anyway */ }
+    }
     
     try {
       const result = await registerMutation.mutateAsync({ 
@@ -36,7 +77,11 @@ export default function Register() {
         setLocation('/dashboard');
       }
     } catch (err: any) {
-      setError(err?.data?.error || err?.message || 'Failed to register');
+      const msg = err?.data?.error || err?.message || 'Failed to register';
+      // If still a network error, give a friendlier hint
+      setError(msg === 'Load failed' || msg === 'Failed to fetch'
+        ? 'Server is starting up, please try again in a moment.'
+        : msg);
     }
   };
 
@@ -119,8 +164,12 @@ export default function Register() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" size="lg" disabled={registerMutation.isPending}>
-                  {registerMutation.isPending ? '...' : t('register')}
+                <Button type="submit" className="w-full" size="lg" disabled={registerMutation.isPending || warming}>
+                  {registerMutation.isPending ? (
+                    <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> {t('register')}...</span>
+                  ) : warming ? (
+                    <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Connecting...</span>
+                  ) : t('register')}
                 </Button>
               </form>
 
