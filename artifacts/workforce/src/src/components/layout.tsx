@@ -437,14 +437,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { companyId: cid, status: 'pending' },
     { query: { enabled: !!cid && (user?.role === 'admin' || user?.role === 'manager'), queryKey: getGetEmployeesQueryKey({ companyId: cid, status: 'pending' }) } }
   );
+  // Also fetch pending user registrations directly (users table, isActive=false)
+  // This ensures the badge is accurate even if the employee record is out of sync.
+  const [nPendingRegs, setNPendingRegs] = useState<Array<{ id: number; fullName: string; email: string; createdAt: string }>>([]);
+  useEffect(() => {
+    if (!cid || (user?.role !== 'admin' && user?.role !== 'manager')) return;
+    let cancelled = false;
+    const fetchPendingRegs = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/auth/pending-users', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setNPendingRegs(data.users || []);
+        }
+      } catch { /* ignore */ }
+    };
+    void fetchPendingRegs();
+    // Refresh every 30 seconds while the layout is mounted
+    const interval = setInterval(() => { void fetchPendingRegs(); }, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cid, user?.role]);
+
   const nAtt: any[] = (nAttData as any)?.attendance || [];
   const nReqs: any[] = (nReqData as any)?.requests || [];
   const nLeaves: any[] = nLeaveData?.leaves || [];
   const nPendingEmps: any[] = (nPendingEmpData as any)?.employees || [];
+  // Merge pending regs with pending emps (deduplicate by email to avoid double-counting)
+  const pendingEmpEmails = new Set(nPendingEmps.map((e: any) => e.email));
+  const extraPendingRegs = nPendingRegs.filter(r => !pendingEmpEmails.has(r.email));
   const totalNotifs = nAtt.filter((item: any) => item.isLate).length
     + nReqs.filter((item: any) => item.status === 'pending').length
     + nLeaves.filter((item: any) => item.status === 'pending').length
-    + nPendingEmps.length;
+    + nPendingEmps.length
+    + extraPendingRegs.length;
 
   const isEmployee = user?.role === 'employee';
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
@@ -959,6 +988,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           </span>
                           <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
                             {locale === 'ar' ? 'بانتظار الموافقة' : 'Pending approval'}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                    {extraPendingRegs.map((item, i) => (
+                      <button key={`reg-${i}`} type="button"
+                        onClick={() => { setNotifOpen(false); setLocation('/dashboard/action-center'); }}
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                      >
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-emerald-300 bg-emerald-500/15 border-emerald-400/20">
+                          <UserPlus className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-extrabold text-white leading-5">
+                            {item.fullName || (locale === 'ar' ? 'موظف جديد' : 'New employee')}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                            {item.email} · {locale === 'ar' ? 'بانتظار الموافقة' : 'Pending approval'}
                           </span>
                         </span>
                       </button>
