@@ -879,8 +879,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <>
             <div className="fixed inset-0 z-[9998]" onClick={() => setNotifOpen(false)} />
             <div
-              className="fixed top-[3.5rem] right-2 z-[9999] w-[min(22rem,calc(100vw-1rem))] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
-              style={{ background: 'var(--card)', maxHeight: '75vh' }}
+              className="fixed right-2 z-[9999] w-[min(22rem,calc(100vw-1rem))] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+              style={{ background: 'var(--card)', maxHeight: '75vh', top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
               dir={dir}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-gradient-to-r from-indigo-950/80 to-purple-950/80 shrink-0">
@@ -923,16 +923,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {nAtt.filter((item: any) => item.isLate).map((item: any, i: number) => (
                       <button key={`late-${i}`} type="button"
                         onClick={() => { setNotifOpen(false); setLocation('/dashboard/attendance'); }}
-                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-black/[.04] dark:hover:bg-white/[.045] active:bg-black/[.07] dark:active:bg-white/[.08]"
                       >
-                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-violet-300 bg-violet-500/15 border-violet-400/20">
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-violet-600 dark:text-violet-300 bg-violet-500/15 border-violet-400/30">
                           <Timer className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-extrabold text-white leading-5">
+                          <span className="block text-xs font-extrabold text-foreground leading-5">
                             {item.employeeName || (locale === 'ar' ? 'موظف' : 'Employee')} — {locale === 'ar' ? 'حضور متأخر' : 'Late arrival'}
                           </span>
-                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                          <span className="mt-0.5 block text-[10px] font-bold text-muted-foreground">
                             {item.clockIn ? new Date(item.clockIn).toLocaleTimeString(locale === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}
                           </span>
                         </span>
@@ -941,16 +941,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {nReqs.filter((item: any) => item.status === 'pending').map((item: any, i: number) => (
                       <button key={`req-${i}`} type="button"
                         onClick={() => { setNotifOpen(false); setLocation('/dashboard/requests'); }}
-                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-black/[.04] dark:hover:bg-white/[.045] active:bg-black/[.07] dark:active:bg-white/[.08]"
                       >
-                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-amber-300 bg-amber-500/15 border-amber-400/20">
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-amber-600 dark:text-amber-300 bg-amber-500/15 border-amber-400/30">
                           <AlertCircle className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-extrabold text-white leading-5">
+                          <span className="block text-xs font-extrabold text-foreground leading-5">
                             {item.title || (locale === 'ar' ? 'طلب جديد بانتظار المراجعة' : 'New request pending review')}
                           </span>
-                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                          <span className="mt-0.5 block text-[10px] font-bold text-muted-foreground">
                             {item.employeeName || '—'}
                           </span>
                         </span>
@@ -959,16 +959,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {nLeaves.filter((item: any) => item.status === 'pending').map((item: any, i: number) => (
                       <button key={`leave-${i}`} type="button"
                         onClick={() => { setNotifOpen(false); setLocation('/dashboard/leaves'); }}
-                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-black/[.04] dark:hover:bg-white/[.045] active:bg-black/[.07] dark:active:bg-white/[.08]"
                       >
-                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-blue-300 bg-blue-500/15 border-blue-400/20">
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-blue-600 dark:text-blue-300 bg-blue-500/15 border-blue-400/30">
                           <CalendarX className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-extrabold text-white leading-5">
+                          <span className="block text-xs font-extrabold text-foreground leading-5">
                             {locale === 'ar' ? 'طلب إجازة' : 'Leave request'} — {item.employeeName || (locale === 'ar' ? 'موظف' : 'Employee')}
                           </span>
-                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                          <span className="mt-0.5 block text-[10px] font-bold text-muted-foreground">
                             {item.startDate ? new Date(item.startDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US') : '—'}
                           </span>
                         </span>
@@ -977,16 +977,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {nPendingEmps.map((item: any, i: number) => (
                       <button key={`emp-${i}`} type="button"
                         onClick={() => { setNotifOpen(false); setLocation('/dashboard/action-center'); }}
-                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-black/[.04] dark:hover:bg-white/[.045] active:bg-black/[.07] dark:active:bg-white/[.08]"
                       >
-                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-emerald-300 bg-emerald-500/15 border-emerald-400/20">
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-emerald-600 dark:text-emerald-300 bg-emerald-500/15 border-emerald-400/30">
                           <UserPlus className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-extrabold text-white leading-5">
+                          <span className="block text-xs font-extrabold text-foreground leading-5">
                             {item.fullName || (locale === 'ar' ? 'موظف جديد' : 'New employee')}
                           </span>
-                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                          <span className="mt-0.5 block text-[10px] font-bold text-muted-foreground">
                             {locale === 'ar' ? 'بانتظار الموافقة' : 'Pending approval'}
                           </span>
                         </span>
@@ -995,16 +995,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {extraPendingRegs.map((item, i) => (
                       <button key={`reg-${i}`} type="button"
                         onClick={() => { setNotifOpen(false); setLocation('/dashboard/action-center'); }}
-                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-black/[.04] dark:hover:bg-white/[.045] active:bg-black/[.07] dark:active:bg-white/[.08]"
                       >
-                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-emerald-300 bg-emerald-500/15 border-emerald-400/20">
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-emerald-600 dark:text-emerald-300 bg-emerald-500/15 border-emerald-400/30">
                           <UserPlus className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-extrabold text-white leading-5">
+                          <span className="block text-xs font-extrabold text-foreground leading-5">
                             {item.fullName || (locale === 'ar' ? 'موظف جديد' : 'New employee')}
                           </span>
-                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                          <span className="mt-0.5 block text-[10px] font-bold text-muted-foreground">
                             {item.email} · {locale === 'ar' ? 'بانتظار الموافقة' : 'Pending approval'}
                           </span>
                         </span>
