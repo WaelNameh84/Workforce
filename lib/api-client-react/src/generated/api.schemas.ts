@@ -132,6 +132,8 @@ export interface EmployeeInput {
   status?: EmployeeInputStatus;
   address?: string;
   notes?: string;
+  /** @nullable */
+  avatar?: string | null;
 }
 
 export interface Department {

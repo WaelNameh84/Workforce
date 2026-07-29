@@ -26,7 +26,7 @@ import {
   Search, Plus, MoreHorizontal, Edit, Trash2, Eye, Copy, Share2, Clock3,
   Mail, Phone, MapPin, Calendar, Clock, Building2,
   User, Briefcase, DollarSign, FileText, Users, Shield,
-  ClipboardList, UserCheck, CalendarDays, CheckCircle2, XCircle, KeyRound, RefreshCw
+  ClipboardList, UserCheck, CalendarDays, CheckCircle2, XCircle, KeyRound, RefreshCw, Camera
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
@@ -90,12 +90,52 @@ function WorkDaysPicker({ value, onChange, locale }: { value: string; onChange: 
   );
 }
 
-function AvatarCircle({ name, color, size = 'md' }: { name: string; color: typeof deptGradients[0]; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
-  const sizes = { sm: 'w-10 h-10 text-sm', md: 'w-14 h-14 text-lg', lg: 'w-20 h-20 text-2xl', xl: 'w-28 h-28 text-4xl' };
+function AvatarCircle({ name, color, size = 'md', avatarUrl, onUpload }: {
+  name: string;
+  color: typeof deptGradients[0];
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  avatarUrl?: string | null;
+  onUpload?: (file: File) => void;
+}) {
+  const sizes = {
+    sm:  'w-10 h-10 text-sm',
+    md:  'w-14 h-14 text-lg',
+    lg:  'w-20 h-20 text-2xl',
+    xl:  'w-28 h-28 text-4xl',
+    '2xl': 'w-36 h-36 text-5xl',
+  };
+  const radii = {
+    sm: 'rounded-2xl', md: 'rounded-2xl', lg: 'rounded-2xl', xl: 'rounded-3xl', '2xl': 'rounded-3xl',
+  };
   const initials = name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'EMP';
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onUpload) onUpload(file);
+    e.target.value = '';
+  };
+
   return (
-    <div className={`${sizes[size]} rounded-2xl bg-gradient-to-br ${color.from} ${color.to} flex items-center justify-center font-bold font-display text-white shadow-lg select-none flex-shrink-0`}>
-      {initials}
+    <div className="relative inline-block flex-shrink-0">
+      <div className={`${sizes[size]} ${radii[size]} bg-gradient-to-br ${color.from} ${color.to} flex items-center justify-center font-bold font-display text-white shadow-lg select-none overflow-hidden`}>
+        {avatarUrl
+          ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+          : initials}
+      </div>
+      {onUpload && (
+        <>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 border-2 border-white/20"
+            title="تغيير الصورة"
+          >
+            <Camera className="w-3.5 h-3.5" />
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+        </>
+      )}
     </div>
   );
 }
@@ -186,6 +226,7 @@ export default function Employees() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [profileEmployee, setProfileEmployee] = useState<Employee | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [workDaysAdd, setWorkDaysAdd] = useState('Sun, Mon, Tue, Wed, Thu');
   const [workDaysEdit, setWorkDaysEdit] = useState('Sun, Mon, Tue, Wed, Thu');
@@ -211,6 +252,26 @@ export default function Employees() {
   const deleteMutation = useDeleteEmployee();
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetEmployeesQueryKey() });
+
+  const handleAvatarUpload = async (emp: Employee, file: File) => {
+    setAvatarUploading(true);
+    try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      await updateMutation.mutateAsync({ id: emp.id!, data: { avatar: dataUrl } as any });
+      await invalidate();
+      setProfileEmployee(prev => prev?.id === emp.id ? { ...prev, avatar: dataUrl } : prev);
+      toast({ title: 'تم تحديث الصورة الشخصية' });
+    } catch {
+      toast({ variant: 'destructive', title: 'فشل رفع الصورة' });
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
 
   const handleAddSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -758,7 +819,7 @@ export default function Employees() {
               <div className="p-4 flex-1 flex flex-col -mt-7">
                 {/* Avatar */}
                 <div className="mb-3">
-                  <AvatarCircle name={emp.fullName || ''} color={color} size="md" />
+                  <AvatarCircle name={emp.fullName || ''} color={color} size="md" avatarUrl={emp.avatar} />
                 </div>
 
                 {/* Name & Position */}
@@ -940,23 +1001,30 @@ export default function Employees() {
             return (
               <>
                 {/* Profile Header Banner */}
-                <div className={`h-32 w-full bg-gradient-to-br ${color.from} ${color.to} relative overflow-hidden flex-shrink-0`}>
+                <div className={`h-44 w-full bg-gradient-to-br ${color.from} ${color.to} relative overflow-hidden flex-shrink-0`}>
                   <div className="absolute inset-0">
-                    <div className="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-white/10" />
-                    <div className="absolute -left-4 bottom-0 w-24 h-24 rounded-full bg-white/5" />
+                    <div className="absolute -right-10 -top-10 w-52 h-52 rounded-full bg-white/10" />
+                    <div className="absolute -left-6 bottom-0 w-36 h-36 rounded-full bg-white/5" />
+                    <div className="absolute right-1/3 top-1/4 w-20 h-20 rounded-full bg-white/5" />
                   </div>
                 </div>
 
                 <div className="px-6 pb-6">
                   {/* Avatar + Name */}
-                  <div className="flex items-end gap-4 -mt-10 mb-5">
-                    <div className="ring-4 ring-background rounded-2xl shadow-xl">
-                      <AvatarCircle name={profileEmployee.fullName || ''} color={color} size="lg" />
+                  <div className="flex items-end gap-5 -mt-16 mb-5">
+                    <div className={`ring-4 ring-background rounded-3xl shadow-2xl ${avatarUploading ? 'opacity-60' : ''}`}>
+                      <AvatarCircle
+                        name={profileEmployee.fullName || ''}
+                        color={color}
+                        size="2xl"
+                        avatarUrl={profileEmployee.avatar}
+                        onUpload={(file) => handleAvatarUpload(profileEmployee, file)}
+                      />
                     </div>
-                    <div className="pb-1">
-                      <h2 className="font-display font-bold text-xl leading-tight">{profileEmployee.fullName}</h2>
-                      <p className="text-sm text-muted-foreground">{profileEmployee.position || '—'}</p>
-                      <Badge variant={statusVariant} className="mt-1 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                    <div className="pb-2 min-w-0 flex-1">
+                      <h2 className="font-display font-bold text-2xl leading-tight">{profileEmployee.fullName}</h2>
+                      <p className="text-sm text-muted-foreground mt-0.5">{profileEmployee.position || '—'}</p>
+                      <Badge variant={statusVariant} className="mt-2 text-[10px] font-bold px-2 py-0.5 rounded-md">
                         {statusLabel}
                       </Badge>
                     </div>

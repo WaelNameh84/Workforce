@@ -159,7 +159,8 @@ export const CreateEmployeeBody = zod.object({
   "departmentId": zod.number().optional(),
   "status": zod.enum(['active', 'inactive', 'on-leave']).optional(),
   "address": zod.string().optional(),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "avatar": zod.string().nullish()
 })
 
 export const CreateEmployeeResponse = zod.object({
@@ -248,7 +249,8 @@ export const UpdateEmployeeBody = zod.object({
   "departmentId": zod.number().optional(),
   "status": zod.enum(['active', 'inactive', 'on-leave']).optional(),
   "address": zod.string().optional(),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "avatar": zod.string().nullish()
 })
 
 export const UpdateEmployeeResponse = zod.object({

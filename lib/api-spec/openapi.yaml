@@ -208,6 +208,9 @@ components:
           type: string
         notes:
           type: string
+        avatar:
+          type: string
+          nullable: true
 
     # Department
     Department:
