@@ -297,10 +297,68 @@ router.delete("/employees/:id", authMiddleware, async (req, res) => {
       .where(eq(users.id, req.user!.userId))
       .limit(1);
     if (!account?.companyId) { res.status(400).json({ error: "A company is required" }); return; }
+
+    // Fetch the employee to get the linked userId before deleting
+    const [emp] = await db
+      .select({ userId: employees.userId })
+      .from(employees)
+      .where(and(eq(employees.id, id), eq(employees.companyId, account.companyId)))
+      .limit(1);
+
+    // Delete employee record first (to avoid FK constraint issues)
     await db.delete(employees).where(and(eq(employees.id, id), eq(employees.companyId, account.companyId)));
+
+    // Also delete the linked user account so the email can be reused
+    if (emp?.userId) {
+      await db.delete(users).where(eq(users.id, emp.userId));
+    }
+
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Delete employee error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /api/employees/purge-user-by-email — admin only, cleans up orphaned user records
+router.delete("/employees/purge-user-by-email", authMiddleware, async (req, res) => {
+  try {
+    if (req.user?.role !== "admin") {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    const { email } = req.body;
+    if (!email) { res.status(400).json({ error: "email required" }); return; }
+
+    const [account] = await db
+      .select({ companyId: users.companyId })
+      .from(users)
+      .where(eq(users.id, req.user!.userId))
+      .limit(1);
+    if (!account?.companyId) { res.status(400).json({ error: "A company is required" }); return; }
+
+    // Find the user with this email in the same company
+    const [target] = await db
+      .select({ id: users.id, employeeId: users.employeeId })
+      .from(users)
+      .where(and(eq(users.email, email), eq(users.companyId, account.companyId)))
+      .limit(1);
+
+    if (!target) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    // Delete linked employee record if any
+    if (target.employeeId) {
+      await db.delete(employees).where(eq(employees.id, target.employeeId));
+    }
+    // Delete the user
+    await db.delete(users).where(eq(users.id, target.id));
+
+    res.json({ message: "User and linked employee record deleted", email });
+  } catch (err) {
+    req.log.error({ err }, "Purge user by email error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
