@@ -16,12 +16,13 @@ import {
   TrendingUp, ShoppingCart, Workflow, Link2, Shield, Code,
   LogOut, Menu, Bell, Search, Globe, Moon, Sun, X, ChevronDown, User, ArrowLeft, ArrowRight, Download,
   Building2, MapPin, AlertCircle, Timer, CalendarX, CheckCircle2, Zap, FolderOpen, GripVertical,
-  Gift, Banknote, FileX,
+  Gift, Banknote, FileX, UserPlus,
 } from 'lucide-react';
 import {
   useGetAttendance, getGetAttendanceQueryKey,
   useGetRequests,  getGetRequestsQueryKey,
   useGetLeaves,    getGetLeavesQueryKey,
+  useGetEmployees, getGetEmployeesQueryKey,
 } from '@workspace/api-client-react';
 
 const navVisuals: Record<string, {
@@ -431,12 +432,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { companyId: cid },
     { query: { enabled: !!cid, queryKey: getGetLeavesQueryKey({ companyId: cid }) } }
   );
+  // Pending employee registrations — only fetched for admins/managers
+  const { data: nPendingEmpData } = useGetEmployees(
+    { companyId: cid, status: 'pending' },
+    { query: { enabled: !!cid && (user?.role === 'admin' || user?.role === 'manager'), queryKey: getGetEmployeesQueryKey({ companyId: cid, status: 'pending' }) } }
+  );
   const nAtt: any[] = (nAttData as any)?.attendance || [];
   const nReqs: any[] = (nReqData as any)?.requests || [];
   const nLeaves: any[] = nLeaveData?.leaves || [];
+  const nPendingEmps: any[] = (nPendingEmpData as any)?.employees || [];
   const totalNotifs = nAtt.filter((item: any) => item.isLate).length
     + nReqs.filter((item: any) => item.status === 'pending').length
-    + nLeaves.filter((item: any) => item.status === 'pending').length;
+    + nLeaves.filter((item: any) => item.status === 'pending').length
+    + nPendingEmps.length;
 
   const isEmployee = user?.role === 'employee';
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
@@ -933,6 +941,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           </span>
                           <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
                             {item.startDate ? new Date(item.startDate).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US') : '—'}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                    {nPendingEmps.map((item: any, i: number) => (
+                      <button key={`emp-${i}`} type="button"
+                        onClick={() => { setNotifOpen(false); setLocation('/dashboard/employees'); }}
+                        className="group flex w-full items-start gap-3 px-4 py-3 text-start transition hover:bg-white/[.045] active:bg-white/[.08]"
+                      >
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-emerald-300 bg-emerald-500/15 border-emerald-400/20">
+                          <UserPlus className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-extrabold text-white leading-5">
+                            {item.fullName || (locale === 'ar' ? 'موظف جديد' : 'New employee')}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] font-bold text-slate-500">
+                            {locale === 'ar' ? 'بانتظار الموافقة' : 'Pending approval'}
                           </span>
                         </span>
                       </button>
