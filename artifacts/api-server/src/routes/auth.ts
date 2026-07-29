@@ -168,10 +168,11 @@ router.post("/auth/register-employee", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    // Auto-find the single company in this private system
+    // Auto-find the single company in this private system (order by id to always get the real one)
     const [company] = await db
       .select({ id: companies.id, name: companies.name })
       .from(companies)
+      .orderBy(companies.id)
       .limit(1);
 
     if (!company) {
