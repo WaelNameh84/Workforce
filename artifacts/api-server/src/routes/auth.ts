@@ -170,7 +170,7 @@ router.post("/auth/register-employee", async (req, res) => {
 
     // Auto-find the single company in this private system
     const [company] = await db
-      .select()
+      .select({ id: companies.id, name: companies.name })
       .from(companies)
       .limit(1);
 
@@ -320,7 +320,7 @@ router.get("/auth/company", authMiddleware, async (req: AuthRequest, res) => {
     const companyId = req.user?.companyId;
     if (!companyId) { res.status(400).json({ error: "No company found" }); return; }
 
-    const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+    const [company] = await db.select({ id: companies.id, name: companies.name }).from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!company) { res.status(404).json({ error: "Company not found" }); return; }
 
     res.json({ id: company.id, name: company.name });
