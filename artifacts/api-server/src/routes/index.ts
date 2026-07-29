@@ -14,11 +14,13 @@ import locationsRouter from "./locations";
 import workDocsRouter from "./work-docs";
 import imagesRouter from "./images";
 import maintenanceRouter from "./maintenance";
+import aiRouter from "./ai";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(maintenanceRouter);
+router.use(aiRouter);
 router.use(authRouter);
 router.use(dashboardRouter);
 router.use(employeesRouter);
