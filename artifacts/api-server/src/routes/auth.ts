@@ -182,14 +182,20 @@ router.post("/auth/register-employee", async (req, res) => {
 
     // Check for existing email
     const [existing] = await db
-      .select({ id: users.id })
+      .select({ id: users.id, employeeId: users.employeeId })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
     if (existing) {
-      await client.query("ROLLBACK");
-      res.status(400).json({ error: "Email already registered" });
-      return;
+      // If the existing user has no linked employee (orphaned from a previous delete),
+      // clean it up automatically so the email can be reused.
+      if (!existing.employeeId) {
+        await db.delete(users).where(eq(users.id, existing.id));
+      } else {
+        await client.query("ROLLBACK");
+        res.status(400).json({ error: "Email already registered" });
+        return;
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
