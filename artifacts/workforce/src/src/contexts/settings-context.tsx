@@ -299,6 +299,26 @@ function hexToRgb(hex: string) {
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
+
+/**
+ * Module-level timestamp of the last time `save()` was called locally.
+ * Stored in localStorage too so it survives page refreshes.
+ * Used to prevent server fetches from overwriting a recently-saved local state
+ * (race condition: user saves → visibility fires before push completes → server
+ * returns OLD settings → applyServerSettings overwrites the new local save).
+ */
+const LAST_SAVE_KEY = 'workforce-settings-saved-at';
+
+function getLastLocalSaveTime(): number {
+  try { return Number(localStorage.getItem(LAST_SAVE_KEY) ?? '0'); } catch { return 0; }
+}
+function setLastLocalSaveTime(): void {
+  try { localStorage.setItem(LAST_SAVE_KEY, String(Date.now())); } catch { /* ignore */ }
+}
+
+/** How long (ms) to protect local settings from server overwrites after a local save */
+const LOCAL_SAVE_GRACE_MS = 30_000; // 30 seconds
+
 interface SettingsCtx {
   s: AppSettings;
   update: (patch: Partial<AppSettings>) => void;
@@ -408,26 +428,56 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // Used by SplashScreen so it always shows the latest server settings.
   const [serverSynced, setServerSynced] = useState(false);
 
+  // Helper: apply server settings into state + localStorage.
+  // Skips the merge if the user saved locally within the grace period to avoid
+  // overwriting a fresh local save with stale server settings (race condition).
+  const applyServerSettings = useCallback((serverSettings: Partial<AppSettings>, force = false) => {
+    if (!force && Date.now() - getLastLocalSaveTime() < LOCAL_SAVE_GRACE_MS) {
+      // Local save is very recent — protect it from server overwrite
+      return;
+    }
+    setS(prev => {
+      const merged = { ...prev, ...serverSettings };
+      // Merge nested objects so server partial updates don't wipe local-only sub-keys
+      if (serverSettings.notif)    merged.notif    = { ...prev.notif,    ...serverSettings.notif };
+      if (serverSettings.apiKeys)  merged.apiKeys  = { ...prev.apiKeys,  ...serverSettings.apiKeys };
+      if (serverSettings.biometric) merged.biometric = { ...prev.biometric, ...serverSettings.biometric };
+      try { localStorage.setItem('workforce-settings', JSON.stringify(merged)); } catch { /* ignore */ }
+      return merged;
+    });
+  }, []);
+
   // On mount: fetch server settings and merge (server wins for shared keys
-  // like logoUrl and welcomeMsg so all devices stay in sync)
+  // like logoUrl and welcomeMsg so all devices stay in sync).
+  // Uses a short grace window so a page-refresh right after saving doesn't
+  // overwrite the just-saved local settings.
   useEffect(() => {
     fetchServerSettings().then((serverSettings) => {
-      if (serverSettings) {
-        setS(prev => {
-          const merged = { ...prev, ...serverSettings };
-          try {
-            localStorage.setItem('workforce-settings', JSON.stringify(merged));
-          } catch { /* ignore */ }
-          return merged;
-        });
-      }
-      // Mark synced regardless — even if fetch failed, we have the best data we can get
+      if (serverSettings) applyServerSettings(serverSettings);
       setServerSynced(true);
     }).catch(() => {
       setServerSynced(true);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-fetch settings from the server every time the tab/app becomes visible
+  // (covers PWA on mobile returning from background, tab switching, etc.)
+  // Respects the grace period so a quick background/foreground right after
+  // pressing save does not overwrite the new settings with stale server values.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        // Guard: skip if the user just saved locally (push might still be in-flight)
+        if (Date.now() - getLastLocalSaveTime() < LOCAL_SAVE_GRACE_MS) return;
+        fetchServerSettings().then((serverSettings) => {
+          if (serverSettings) applyServerSettings(serverSettings);
+        }).catch(() => { /* ignore */ });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [applyServerSettings]);
 
   // Apply CSS variables & body classes whenever settings change
   useEffect(() => {
@@ -460,47 +510,55 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const update = useCallback((patch: Partial<AppSettings>) => {
     setS(prev => {
       const next = { ...prev, ...patch };
-      // Merge nested objects
-      if (patch.notif) next.notif = { ...prev.notif, ...patch.notif };
-      if (patch.apiKeys) next.apiKeys = { ...prev.apiKeys, ...patch.apiKeys };
+      // Merge nested objects so partial patches don't wipe unrelated sub-keys
+      if (patch.notif)     next.notif     = { ...prev.notif,     ...patch.notif };
+      if (patch.apiKeys)   next.apiKeys   = { ...prev.apiKeys,   ...patch.apiKeys };
+      if (patch.biometric) next.biometric = { ...prev.biometric, ...patch.biometric };
       return next;
     });
   }, []);
 
   const save = useCallback((next?: AppSettings) => {
-    // Capture the final value synchronously so we can push it to the server
-    // outside the state updater (side effects must not live inside setS).
-    let finalValue: AppSettings | null = null;
+    // save() is always called with an explicit value at every call site.
+    // Use `next` directly so we never need to extract it from a state updater
+    // (which is unreliable in React 18 concurrent mode).
+
+    // Mark the local save time BEFORE updating state so any concurrent
+    // visibility-change fetch sees the timestamp and skips the overwrite.
+    setLastLocalSaveTime();
 
     setS(prev => {
       const value = next ?? prev;
-      finalValue = value;
       try {
         localStorage.setItem('workforce-settings', JSON.stringify(value));
       } catch (e) {
-        // localStorage quota exceeded — strip large base64 images and retry
         console.warn('[settings] localStorage quota exceeded, retrying without images', e);
         try {
-          const slim = stripImagesForServer(value);
-          localStorage.setItem('workforce-settings', JSON.stringify(slim));
-        } catch {
-          // still failing — ignore; settings are still live in memory until next reload
-        }
+          localStorage.setItem('workforce-settings', JSON.stringify(stripImagesForServer(value)));
+        } catch { /* ignore */ }
       }
       return value;
     });
 
-    // Push to server OUTSIDE the state updater so React batching can't
-    // invoke this side-effect more than once per save call.
-    if (finalValue) void pushServerSettings(finalValue);
+    // Push to server with the explicit value — safe to call outside setS.
+    // `next` is always defined at every call site; the ?? fallback is a safety net.
+    if (next !== undefined) {
+      void pushServerSettings(next);
+    }
   }, []);
 
-  // Can be called from outside (e.g. after login) to pull latest settings
+  // Can be called from outside (e.g. after login) to pull latest settings.
+  // Respects the grace period: if the user just saved locally we don't want
+  // a refetch triggered by login to stomp fresh settings with server ones.
   const refetchSettings = useCallback(async () => {
+    if (Date.now() - getLastLocalSaveTime() < LOCAL_SAVE_GRACE_MS) return;
     const serverSettings = await fetchServerSettings();
     if (serverSettings) {
       setS(prev => {
         const merged = { ...prev, ...serverSettings };
+        if (serverSettings.notif)     merged.notif     = { ...prev.notif,     ...serverSettings.notif };
+        if (serverSettings.apiKeys)   merged.apiKeys   = { ...prev.apiKeys,   ...serverSettings.apiKeys };
+        if (serverSettings.biometric) merged.biometric = { ...prev.biometric, ...serverSettings.biometric };
         try {
           localStorage.setItem('workforce-settings', JSON.stringify(merged));
         } catch { /* ignore */ }
