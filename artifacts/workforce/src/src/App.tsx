@@ -9,6 +9,7 @@ import { AuthContext, useAuthState, useAuth } from '@/hooks/use-auth';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useEffect } from 'react';
+import { useSwUpdate } from '@/hooks/use-sw-update';
 
 // API and frontend are on the same origin — relative URLs work, no base URL needed.
 
@@ -145,6 +146,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  useSwUpdate();
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
