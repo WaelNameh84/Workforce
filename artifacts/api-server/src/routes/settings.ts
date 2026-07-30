@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middlewares/auth";
+import { authMiddleware } from "../middlewares/auth";
 import { db } from "@workspace/db";
 import { companies } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
@@ -11,7 +11,7 @@ const router = Router();
  * Returns the company-wide AppSettings for the caller's companyId.
  * All roles can read settings (employees need logo/welcome too).
  */
-router.get("/settings", requireAuth, async (req, res) => {
+router.get("/settings", authMiddleware, async (req, res) => {
   const user = (req as any).user;
   const companyId = user?.companyId;
   if (!companyId) {
@@ -38,7 +38,7 @@ router.get("/settings", requireAuth, async (req, res) => {
  * Persists the full AppSettings JSON for the company.
  * Only admin/manager roles can update.
  */
-router.put("/settings", requireAuth, async (req, res) => {
+router.put("/settings", authMiddleware, async (req, res) => {
   const user = (req as any).user;
   const companyId = user?.companyId;
 
