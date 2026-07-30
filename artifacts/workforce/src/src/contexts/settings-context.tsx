@@ -152,6 +152,10 @@ export interface AppSettings {
   autoBackup: boolean;
   autoBackupInterval: 'hourly' | 'daily' | 'weekly' | 'monthly';
   autoBackupTime: string;
+
+  // Security / Session
+  sessionTimeout: string;   // minutes; '0' = never
+  maxLoginAttempts: string; // '3' | '5' | '10'
 }
 
 export const DEFAULTS: AppSettings = {
@@ -287,6 +291,10 @@ export const DEFAULTS: AppSettings = {
   autoBackup: false,
   autoBackupInterval: 'daily',
   autoBackupTime: '08:00',
+
+  // Security / Session
+  sessionTimeout: '30',
+  maxLoginAttempts: '5',
 };
 
 // ─── Helper: parse hex → rgb string ──────────────────────────────────────────

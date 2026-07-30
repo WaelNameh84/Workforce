@@ -376,4 +376,66 @@ router.get("/auth/me", authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
+/**
+ * PATCH /api/auth/credentials
+ * Change the current user's password (and optionally email).
+ * Requires the current password for verification.
+ */
+router.patch("/auth/credentials", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const { currentPassword, newPassword, newEmail } = req.body as {
+      currentPassword: string;
+      newPassword?: string;
+      newEmail?: string;
+    };
+
+    if (!currentPassword) {
+      res.status(400).json({ error: "currentPassword is required" });
+      return;
+    }
+    if (!newPassword && !newEmail) {
+      res.status(400).json({ error: "Provide newPassword or newEmail" });
+      return;
+    }
+
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) { res.status(401).json({ error: "incorrect_password" }); return; }
+
+    const updates: Partial<typeof users.$inferInsert> = {};
+
+    if (newPassword) {
+      if (newPassword.length < 8) {
+        res.status(400).json({ error: "Password must be at least 8 characters" });
+        return;
+      }
+      updates.password = await bcrypt.hash(newPassword, 10);
+    }
+
+    if (newEmail && newEmail !== user.email) {
+      const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, newEmail)).limit(1);
+      if (existing) { res.status(400).json({ error: "email_taken" }); return; }
+      updates.email = newEmail;
+      // Sync employee email too
+      if (user.employeeId) {
+        await db.update(employees).set({ email: newEmail }).where(eq(employees.id, user.employeeId));
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(users).set(updates).where(eq(users.id, userId));
+    }
+
+    res.json({ ok: true, emailChanged: !!updates.email, passwordChanged: !!updates.password });
+  } catch (err) {
+    req.log.error({ err }, "Update credentials error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

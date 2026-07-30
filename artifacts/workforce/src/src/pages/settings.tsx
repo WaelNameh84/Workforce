@@ -813,7 +813,7 @@ export default function Settings() {
   );
 
   const createBackup = (silent = false) => {
-    const data = JSON.stringify(savedSettings, null, 2);
+    const data = JSON.stringify(draft, null, 2);
     const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
     const ts = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
     Object.assign(document.createElement('a'), { href: url, download: `workforceos-backup-${ts}.json` }).click();
@@ -868,12 +868,75 @@ export default function Settings() {
     inp.click();
   };
 
-  const handleUpdateCredentials = () => {
+  const handleUpdateCredentials = async () => {
     if (!curPw) { toast({ title: 'أدخل كلمة المرور الحالية', variant: 'destructive' }); return; }
     if (newPw && newPw !== confirmPw) { toast({ title: 'كلمة المرور الجديدة غير متطابقة', variant: 'destructive' }); return; }
     if (newPw && newPw.length < 8) { toast({ title: 'كلمة المرور يجب أن تكون 8 أحرف أو أكثر', variant: 'destructive' }); return; }
-    toast({ title: 'تم تحديث بيانات الدخول بنجاح' });
-    setCurPw(''); setNewPw(''); setConfirmPw(''); setSecEmail('');
+
+    const token = localStorage.getItem('token');
+    if (!token) { toast({ title: 'يجب تسجيل الدخول أولاً', variant: 'destructive' }); return; }
+
+    try {
+      const body: Record<string, string> = { currentPassword: curPw };
+      if (newPw) body.newPassword = newPw;
+
+      const res = await fetch('/api/auth/credentials', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) {
+        const msg = data.error === 'incorrect_password' ? 'كلمة المرور الحالية غير صحيحة'
+          : data.error ?? 'فشل التحديث';
+        toast({ title: msg, variant: 'destructive' });
+        return;
+      }
+      toast({ title: '✅ تم تحديث كلمة المرور بنجاح. أعد تسجيل الدخول.' });
+      setCurPw(''); setNewPw(''); setConfirmPw('');
+      // Force re-login so the new password is required
+      setTimeout(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }, 2000);
+    } catch {
+      toast({ title: 'تعذّر الاتصال بالسيرفر', variant: 'destructive' });
+    }
+  };
+
+  const handleUpdateEmail = async () => {
+    if (!secEmail || !curPw) { toast({ title: 'الرجاء ملء جميع الحقول', variant: 'destructive' }); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(secEmail)) { toast({ title: 'البريد الإلكتروني غير صالح', variant: 'destructive' }); return; }
+
+    const token = localStorage.getItem('token');
+    if (!token) { toast({ title: 'يجب تسجيل الدخول أولاً', variant: 'destructive' }); return; }
+
+    try {
+      const res = await fetch('/api/auth/credentials', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: curPw, newEmail: secEmail }),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) {
+        const msg = data.error === 'incorrect_password' ? 'كلمة المرور الحالية غير صحيحة'
+          : data.error === 'email_taken' ? 'هذا البريد مستخدم من حساب آخر'
+          : data.error ?? 'فشل التحديث';
+        toast({ title: msg, variant: 'destructive' });
+        return;
+      }
+      toast({ title: '✅ تم تحديث البريد الإلكتروني. أعد تسجيل الدخول.' });
+      setSecEmail(''); setCurPw('');
+      setTimeout(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }, 2000);
+    } catch {
+      toast({ title: 'تعذّر الاتصال بالسيرفر', variant: 'destructive' });
+    }
   };
 
   const handlePinSave = () => {
@@ -2134,10 +2197,18 @@ export default function Settings() {
                 <div>
                   <TRow label="Face ID" sub="الدخول بالتعرف على الوجه"
                     on={s.biometric.faceId}
-                    onToggle={() => { toggleBiometric('faceId'); toast({ title: s.biometric.faceId ? 'تم إيقاف Face ID' : 'تم تفعيل Face ID' }); }} />
+                    onToggle={() => {
+                      const next = { ...draft, biometric: { ...draft.biometric, faceId: !draft.biometric.faceId } };
+                      setDraft(next); save(next);
+                      toast({ title: draft.biometric.faceId ? 'تم إيقاف Face ID' : 'تم تفعيل Face ID' });
+                    }} />
                   <TRow label="بصمة الإصبع" sub="Touch ID أو مستشعر البصمة"
                     on={s.biometric.fingerprint}
-                    onToggle={() => { toggleBiometric('fingerprint'); toast({ title: s.biometric.fingerprint ? 'تم إيقاف البصمة' : 'تم تفعيل البصمة' }); }} />
+                    onToggle={() => {
+                      const next = { ...draft, biometric: { ...draft.biometric, fingerprint: !draft.biometric.fingerprint } };
+                      setDraft(next); save(next);
+                      toast({ title: draft.biometric.fingerprint ? 'تم إيقاف البصمة' : 'تم تفعيل البصمة' });
+                    }} />
 
                   <div className="flex items-center justify-between gap-4 py-3">
                     <div className="min-w-0">
@@ -2153,7 +2224,11 @@ export default function Settings() {
                       )}
                       <Toggle on={s.biometric.pin} onToggle={() => {
                         if (!s.biometric.pin) { setPinValue(''); setPinDialog(true); }
-                        else { toggleBiometric('pin'); toast({ title: 'تم إلغاء رمز PIN' }); }
+                        else {
+                          const next = { ...draft, biometric: { ...draft.biometric, pin: false } };
+                          setDraft(next); save(next);
+                          toast({ title: 'تم إلغاء رمز PIN' });
+                        }
                       }} />
                     </div>
                   </div>
@@ -2177,7 +2252,7 @@ export default function Settings() {
                 <CardHead icon={Shield} color="bg-slate-500" title="أمان الجلسة" sub="إعدادات الأمان المتقدمة" />
                 <div className="space-y-4">
                   <Field label="مهلة الجلسة التلقائية">
-                    <Sel defaultValue="30">
+                    <Sel value={s.sessionTimeout} onChange={e => update({ sessionTimeout: e.target.value })}>
                       <option value="15">15 دقيقة</option>
                       <option value="30">30 دقيقة</option>
                       <option value="60">ساعة واحدة</option>
@@ -2190,8 +2265,8 @@ export default function Settings() {
                   <Field label="عدد محاولات الدخول قبل القفل">
                     <BtnPicker
                       options={[{ v: '3', label: '3' }, { v: '5', label: '5' }, { v: '10', label: '10' }]}
-                      value="5"
-                      onChange={() => {}}
+                      value={s.maxLoginAttempts}
+                      onChange={v => update({ maxLoginAttempts: v })}
                       color="slate"
                     />
                   </Field>
@@ -2212,9 +2287,14 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <button onClick={() => { toast({ title: 'تم تسجيل الخروج من جميع الأجهزة' }); }}
+                  <button onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    toast({ title: 'تم تسجيل الخروج من هذا الجهاز' });
+                    setTimeout(() => { window.location.href = '/login'; }, 1200);
+                  }}
                     className="w-full py-2.5 rounded-xl border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/5 transition flex items-center justify-center gap-2">
-                    <LogOut className="w-4 h-4" /> تسجيل خروج من جميع الأجهزة
+                    <LogOut className="w-4 h-4" /> تسجيل خروج وإلغاء الجلسة
                   </button>
 
                   <SaveBtn onClick={handleSave} label="حفظ إعدادات الأمان" color="violet" icon={Shield} />
@@ -2405,7 +2485,7 @@ export default function Settings() {
                   <Field label="البريد الإلكتروني الحالي">
                     <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-white/5 text-sm text-muted-foreground">
                       <Mail className="w-4 h-4 shrink-0" />
-                      <span>admin@company.com</span>
+                      <span>{user?.email ?? '—'}</span>
                       <CheckCircle2 className="w-3.5 h-3.5 text-green-400 mr-auto" />
                     </div>
                   </Field>
@@ -2429,11 +2509,7 @@ export default function Settings() {
                     </div>
                   </Field>
 
-                  <button onClick={() => {
-                    if (!secEmail || !curPw) { toast({ title: 'الرجاء ملء جميع الحقول', variant: 'destructive' }); return; }
-                    toast({ title: 'تم إرسال رابط التأكيد إلى البريد الجديد' });
-                    setSecEmail(''); setCurPw('');
-                  }}
+                  <button onClick={() => void handleUpdateEmail()}
                     className="w-full py-2.5 rounded-xl bg-slate-600 hover:bg-slate-500 text-white font-bold text-sm transition flex items-center justify-center gap-2">
                     <Mail className="w-4 h-4" /> تحديث البريد الإلكتروني
                   </button>
@@ -2475,7 +2551,7 @@ export default function Settings() {
                     </Field>
                   ))}
 
-                  <button onClick={handleUpdateCredentials}
+                  <button onClick={() => void handleUpdateCredentials()}
                     className="w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm transition flex items-center justify-center gap-2">
                     <Lock className="w-4 h-4" /> تحديث كلمة المرور
                   </button>
@@ -2708,7 +2784,10 @@ export default function Settings() {
                       <button key={id} onClick={() => toggleWidget(id)}
                         className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm font-bold transition ${active ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300' : 'border-border text-muted-foreground hover:border-indigo-500/30'}`}>
                         {label}
-                        <Toggle on={active} onToggle={() => toggleWidget(id)} />
+                        {/* Toggle is purely visual here — the outer button handles the click */}
+                        <span onClick={e => e.stopPropagation()}>
+                          <Toggle on={active} onToggle={() => toggleWidget(id)} />
+                        </span>
                       </button>
                     );
                   })}
