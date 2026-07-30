@@ -52,10 +52,9 @@ const frontendDist = path.resolve(__dirname, "../../../artifacts/workforce/dist/
 
 if (existsSync(frontendDist)) {
   /**
-   * A PWA can only discover a new version when the browser is allowed to fetch
-   * a fresh service-worker entry point and app shell. Do not cache these
-   * version-control files at the HTTP layer; fingerprinted build assets can
-   * still be cached safely by the browser and the service worker.
+   * WorkforceOS is installed as a home-screen web app but intentionally does
+   * not cache the application shell. These files must always be fresh so a
+   * deploy cannot leave an iOS installation on an older interface.
    */
   app.use((req: Request, res: Response, next) => {
     const isPwaControlFile =
@@ -63,7 +62,8 @@ if (existsSync(frontendDist)) {
       req.path === "/index.html" ||
       req.path === "/manifest.json" ||
       req.path === "/sw.js" ||
-      /^\/workbox-[^/]+\.js$/.test(req.path);
+      /^\/workbox-[^/]+\.js$/.test(req.path) ||
+      req.path === "/registerSW.js";
 
     if (isPwaControlFile) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
