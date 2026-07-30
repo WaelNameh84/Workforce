@@ -303,6 +303,8 @@ interface SettingsCtx {
   s: AppSettings;
   update: (patch: Partial<AppSettings>) => void;
   save: (next?: AppSettings) => void;
+  /** True once the initial server-settings fetch has resolved (success or fail) */
+  serverSynced: boolean;
 }
 
 const Ctx = createContext<SettingsCtx | null>(null);
@@ -351,18 +353,27 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return DEFAULTS;
   });
 
+  // True once the initial server fetch has resolved (success or fail).
+  // Used by SplashScreen so it always shows the latest server settings.
+  const [serverSynced, setServerSynced] = useState(false);
+
   // On mount: fetch server settings and merge (server wins for shared keys
   // like logoUrl and welcomeMsg so all devices stay in sync)
   useEffect(() => {
     fetchServerSettings().then((serverSettings) => {
-      if (!serverSettings) return;
-      setS(prev => {
-        const merged = { ...prev, ...serverSettings };
-        try {
-          localStorage.setItem('workforce-settings', JSON.stringify(merged));
-        } catch { /* ignore */ }
-        return merged;
-      });
+      if (serverSettings) {
+        setS(prev => {
+          const merged = { ...prev, ...serverSettings };
+          try {
+            localStorage.setItem('workforce-settings', JSON.stringify(merged));
+          } catch { /* ignore */ }
+          return merged;
+        });
+      }
+      // Mark synced regardless — even if fetch failed, we have the best data we can get
+      setServerSynced(true);
+    }).catch(() => {
+      setServerSynced(true);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -432,7 +443,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  return <Ctx.Provider value={{ s, update, save }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ s, update, save, serverSynced }}>{children}</Ctx.Provider>;
 }
 
 export function useSettings() {

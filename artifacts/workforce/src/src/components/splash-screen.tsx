@@ -17,7 +17,7 @@ function toRgb(hex: string) {
 }
 
 export default function SplashScreen() {
-  const { s }     = useSettings();
+  const { s, serverSynced } = useSettings();
   const [visible, setVisible] = useState(true);
 
   const duration = Math.max(1800, parseInt(s.splashDuration || '2500', 10));
@@ -36,10 +36,13 @@ export default function SplashScreen() {
     fillSec,
   };
 
+  // Wait for server settings to arrive (or 1.5 s max) before starting the
+  // dismiss countdown — ensures the latest logo / welcome message is shown.
   useEffect(() => {
+    if (!serverSynced) return;
     const t = setTimeout(() => setVisible(false), duration);
     return () => clearTimeout(t);
-  }, [duration]);
+  }, [serverSynced, duration]);
 
   const ThemeMap = {
     cosmic:    ThemeCosmic,
