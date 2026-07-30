@@ -149,15 +149,20 @@ function DetailsModal({ item, onClose }: { item: ActionItem | null; onClose: () 
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      style={{
+        padding: '1rem',
+        paddingTop:    'max(1rem, env(safe-area-inset-top,    1rem))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))',
+      }}
       role="dialog"
       aria-modal="true"
       aria-label={`تفاصيل ${item.title}`}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
-        style={{ background: 'var(--card)' }}
+        className="w-full max-w-xl overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
+        style={{ maxHeight: 'min(85dvh, calc(100vh - 6rem))', background: 'var(--card)' }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start gap-3 border-b border-border p-5">
@@ -263,15 +268,20 @@ function StatDetailsModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      style={{
+        padding: '1rem',
+        paddingTop:    'max(1rem, env(safe-area-inset-top,    1rem))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))',
+      }}
       role="dialog"
       aria-modal="true"
       aria-label={titles[statKey]}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
-        style={{ background: 'var(--card)' }}
+        className="w-full max-w-xl overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
+        style={{ maxHeight: 'min(85dvh, calc(100vh - 6rem))', background: 'var(--card)' }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border p-5">
