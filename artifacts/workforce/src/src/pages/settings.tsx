@@ -781,6 +781,17 @@ export default function Settings() {
     });
   };
 
+  /** Like update() but also saves to localStorage + server immediately (for delete/reset actions) */
+  const updateAndSave = (patch: Partial<AppSettings>) => {
+    setDraft(prev => {
+      const next = { ...prev, ...patch };
+      if (patch.notif) next.notif = { ...prev.notif, ...patch.notif };
+      if (patch.apiKeys) next.apiKeys = { ...prev.apiKeys, ...patch.apiKeys };
+      save(next);
+      return next;
+    });
+  };
+
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
   const sec = visibleSections.find(s => s.id === activeSection) ?? visibleSections[0]!;
 
@@ -880,14 +891,50 @@ export default function Settings() {
     update({ dashboardWidgets: curr.includes(id) ? curr.filter(w => w !== id) : [...curr, id] });
   };
 
-  const clearLogs = (type: string) => {
-    const key = clearEmployeeId !== 'all' 
-      ? `workforce-cleared-${type}-emp-${clearEmployeeId}` 
-      : `workforce-cleared-${type}`;
-    localStorage.setItem(key, new Date().toISOString());
+  const clearLogs = async (type: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({ title: 'يجب تسجيل الدخول أولاً', variant: 'destructive' });
+      setClearDialog(null);
+      return;
+    }
+
     const typeLabel = type === 'attendance' ? 'سجلات الحضور' : type === 'payroll' ? 'سجلات الرواتب' : type === 'leaves' ? 'سجلات الإجازات' : type === 'all' ? 'جميع السجلات' : 'السجلات';
     const empLabel = clearEmployeeId !== 'all' ? ` — ${clearEmployeeName}` : '';
-    toast({ title: `تم مسح ${typeLabel}${empLabel} بنجاح` });
+    const empQuery = clearEmployeeId !== 'all' ? `?employeeId=${clearEmployeeId}` : '';
+
+    const headers = { Authorization: `Bearer ${token}` };
+
+    try {
+      const endpoints: string[] = [];
+      if (type === 'attendance' || type === 'all') endpoints.push(`/api/attendance/bulk${empQuery}`);
+      if (type === 'payroll'    || type === 'all') endpoints.push(`/api/payroll/bulk${empQuery}`);
+      if (type === 'leaves'     || type === 'all') endpoints.push(`/api/leaves/bulk${empQuery}`);
+
+      if (endpoints.length === 0) {
+        // notifications / activity — local only (no server table)
+        toast({ title: `تم مسح ${typeLabel}${empLabel}` });
+        setClearDialog(null);
+        return;
+      }
+
+      const results = await Promise.all(
+        endpoints.map(url =>
+          fetch(url, { method: 'DELETE', headers }).then(r => r.json())
+        )
+      );
+
+      const anyFailed = results.some(r => r && r.error);
+      if (anyFailed) {
+        const errMsg = results.find(r => r?.error)?.error ?? 'خطأ غير معروف';
+        toast({ title: `فشل الحذف: ${errMsg}`, variant: 'destructive' });
+      } else {
+        toast({ title: `✅ تم مسح ${typeLabel}${empLabel} بنجاح من قاعدة البيانات` });
+      }
+    } catch {
+      toast({ title: 'تعذّر الاتصال بالسيرفر', variant: 'destructive' });
+    }
+
     setClearDialog(null);
   };
 
@@ -978,7 +1025,7 @@ export default function Settings() {
                 <div className="space-y-4">
                   <ImgZone label="الشعار الرئيسي" sub="PNG أو SVG — 512×512 موصى به" icon={Image} value={s.logoUrl} onUpload={b => update({ logoUrl: b })} size="lg" />
                   {s.logoUrl && (
-                    <button onClick={() => update({ logoUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
+                    <button onClick={() => updateAndSave({ logoUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
                       <Trash2 className="w-3.5 h-3.5" /> إزالة الشعار
                     </button>
                   )}
@@ -1684,7 +1731,7 @@ export default function Settings() {
                 <div className="space-y-4">
                   <ImgZone label="صورة خلفية الشاشة" sub="تظهر خلف الشعار أثناء التحميل" icon={Layers} value={s.splashUrl} onUpload={b => update({ splashUrl: b })} size="lg" />
                   {s.splashUrl && (
-                    <button onClick={() => update({ splashUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
+                    <button onClick={() => updateAndSave({ splashUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
                       <Trash2 className="w-3.5 h-3.5" /> إزالة الصورة
                     </button>
                   )}
@@ -1726,7 +1773,7 @@ export default function Settings() {
                   {/* Logo upload directly in splash section */}
                   <ImgZone label="شعار الشاشة" sub="PNG أو SVG — يظهر في وسط شاشة الترحيب" icon={Image} value={s.logoUrl} onUpload={b => update({ logoUrl: b })} size="lg" />
                   {s.logoUrl && (
-                    <button onClick={() => update({ logoUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
+                    <button onClick={() => updateAndSave({ logoUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
                       <Trash2 className="w-3.5 h-3.5" /> إزالة الشعار
                     </button>
                   )}
@@ -2947,7 +2994,7 @@ export default function Settings() {
                 className="flex-1 py-2.5 rounded-xl border border-border font-bold text-sm hover:bg-white/5 transition">
                 إلغاء
               </button>
-              <button onClick={() => clearLogs(clearDialog)}
+              <button onClick={() => void clearLogs(clearDialog)}
                 className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition">
                 حذف
               </button>

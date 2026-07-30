@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { attendance, employees, users } from "@workspace/db";
-import { eq, and, gte, lte, isNull, desc } from "drizzle-orm";
+import { eq, and, gte, lte, isNull, desc, inArray } from "drizzle-orm";
 import { authMiddleware } from "../middlewares/auth";
 
 const router = Router();
@@ -373,6 +373,51 @@ router.get("/attendance/today", authMiddleware, async (req, res) => {
     res.json(latestRecord || null);
   } catch (err) {
     req.log.error({ err }, "Today attendance error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * DELETE /api/attendance/bulk
+ * Delete all attendance records for the company (or a specific employee).
+ * Only admin/manager roles allowed.
+ * Query params: employeeId (optional) — if omitted, deletes all company records.
+ */
+router.delete("/attendance/bulk", authMiddleware, async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Only admin or manager can delete records" }); return;
+    }
+
+    const rawEmpId = req.query.employeeId;
+    const employeeId = rawEmpId ? parseInt(rawEmpId as string, 10) : undefined;
+
+    if (employeeId && !isNaN(employeeId)) {
+      // Verify employee belongs to the company
+      const [emp] = await db
+        .select({ id: employees.id })
+        .from(employees)
+        .where(and(eq(employees.id, employeeId), eq(employees.companyId, companyId)))
+        .limit(1);
+      if (!emp) { res.status(404).json({ error: "Employee not found" }); return; }
+      await db.delete(attendance).where(and(eq(attendance.employeeId, employeeId)));
+    } else {
+      // Delete all attendance for every employee in the company
+      const companyEmployees = await db
+        .select({ id: employees.id })
+        .from(employees)
+        .where(eq(employees.companyId, companyId));
+      if (companyEmployees.length > 0) {
+        const ids = companyEmployees.map(e => e.id);
+        await db.delete(attendance).where(inArray(attendance.employeeId, ids));
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Bulk delete attendance error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
