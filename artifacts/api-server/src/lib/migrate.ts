@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS companies (
   created_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
 
+-- Add app_settings column if it doesn't exist yet (idempotent migration)
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS app_settings JSONB;
+
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,

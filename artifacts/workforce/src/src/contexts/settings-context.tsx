@@ -309,23 +309,27 @@ function hexToRgb(hex: string) {
 // ─── Context ──────────────────────────────────────────────────────────────────
 
 /**
- * Module-level timestamp of the last time `save()` was called locally.
- * Stored in localStorage too so it survives page refreshes.
- * Used to prevent server fetches from overwriting a recently-saved local state
- * (race condition: user saves → visibility fires before push completes → server
- * returns OLD settings → applyServerSettings overwrites the new local save).
+ * Per-session timestamp of the last time `save()` was called locally.
+ * Uses sessionStorage (not localStorage) so the grace period is isolated
+ * to this browser tab/session and does NOT bleed into the PWA session or
+ * vice-versa (iOS keeps PWA and Safari storage partitions separate).
  */
 const LAST_SAVE_KEY = 'workforce-settings-saved-at';
 
 function getLastLocalSaveTime(): number {
-  try { return Number(localStorage.getItem(LAST_SAVE_KEY) ?? '0'); } catch { return 0; }
+  try { return Number(sessionStorage.getItem(LAST_SAVE_KEY) ?? '0'); } catch { return 0; }
 }
 function setLastLocalSaveTime(): void {
-  try { localStorage.setItem(LAST_SAVE_KEY, String(Date.now())); } catch { /* ignore */ }
+  try { sessionStorage.setItem(LAST_SAVE_KEY, String(Date.now())); } catch { /* ignore */ }
 }
 
 /** How long (ms) to protect local settings from server overwrites after a local save */
 const LOCAL_SAVE_GRACE_MS = 30_000; // 30 seconds
+
+/** Image field keys that should never be overwritten with empty-string server values */
+const IMAGE_FIELDS: ReadonlyArray<keyof AppSettings> = [
+  'logoUrl', 'iconUrl', 'splashUrl', 'assistantAvatarUrl',
+];
 
 interface SettingsCtx {
   s: AppSettings;
@@ -389,23 +393,30 @@ async function fetchServerSettings(): Promise<Partial<AppSettings> | null> {
 /** Max base64 length we'll send to the server (~200 KB decoded ≈ ~267 KB base64) */
 const SERVER_IMAGE_LIMIT = 270_000;
 
-function stripImagesForServer(settings: AppSettings): AppSettings {
-  const strip = (v: string | undefined) =>
-    v?.startsWith('data:') && v.length > SERVER_IMAGE_LIMIT ? '' : v;
-  return {
-    ...settings,
-    logoUrl:            strip(settings.logoUrl)            ?? settings.logoUrl,
-    iconUrl:            strip(settings.iconUrl)            ?? settings.iconUrl,
-    splashUrl:          strip(settings.splashUrl)          ?? settings.splashUrl,
-    assistantAvatarUrl: strip(settings.assistantAvatarUrl) ?? settings.assistantAvatarUrl,
-  };
+function stripImagesForServer(settings: AppSettings): Partial<AppSettings> & Omit<AppSettings, 'logoUrl' | 'iconUrl' | 'splashUrl' | 'assistantAvatarUrl'> {
+  // Images that exceed the limit are OMITTED entirely (not set to '') so the
+  // server DB never stores an empty string that would later overwrite a good
+  // local copy on another device.
+  const maybeImage = (v: string): string | undefined =>
+    v.startsWith('data:') && v.length > SERVER_IMAGE_LIMIT ? undefined : v;
+
+  const result: Record<string, unknown> = { ...settings };
+  for (const key of IMAGE_FIELDS) {
+    const val = settings[key] as string;
+    const stripped = maybeImage(val);
+    if (stripped === undefined) {
+      delete result[key]; // omit — don't send to server at all
+    }
+  }
+  return result as Partial<AppSettings> & Omit<AppSettings, 'logoUrl' | 'iconUrl' | 'splashUrl' | 'assistantAvatarUrl'>;
 }
 
 async function pushServerSettings(settings: AppSettings): Promise<void> {
   try {
     const token = localStorage.getItem('token');
     if (!token) return;
-    // Strip large base64 images so the payload stays well under 10 MB
+    // Large base64 images are omitted (not sent as empty strings) so the
+    // server DB never stores a blank value that would overwrite a good copy.
     const payload = stripImagesForServer(settings);
     const res = await fetch('/api/settings', {
       method: 'PUT',
