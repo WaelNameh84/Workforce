@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 import {
   Clock, MapPin, Wifi, Bluetooth, Loader2, CheckCircle2, AlertCircle, Camera,
   Navigation, X, AlertTriangle, Timer, TrendingUp, QrCode,
-  CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass, ExternalLink, Download
+  CalendarDays, LogIn, LogOut, ImagePlus, Send, FileImage, Hourglass, ExternalLink, Download, Trash2
 } from 'lucide-react';
 import { format, differenceInMinutes } from 'date-fns';
 import { BottomSheet } from '@/components/bottom-sheet';
@@ -25,7 +25,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-} from '@/components/ui/dialog';
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 /* ─── helpers ─────────────────────────────────────────────── */
 function parseHour(t?: string | null): number {
@@ -213,6 +215,30 @@ export default function Attendance() {
   useEffect(() => {
     if (checkMethod !== 'gps') setGpsCoords(null);
   }, [checkMethod]);
+
+  /* ── clear records ── */
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const handleClearRecords = async () => {
+    if (!user?.companyId) return;
+    setClearing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/attendance/bulk', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('failed');
+      invalidate();
+      toast({ title: ar ? 'تم مسح جميع سجلات الحضور ✓' : 'All attendance records cleared ✓' });
+    } catch {
+      toast({ variant: 'destructive', title: ar ? 'فشل مسح السجلات' : 'Failed to clear records' });
+    } finally {
+      setClearing(false);
+      setShowClearConfirm(false);
+    }
+  };
 
   /* ── justification dialogs ── */
   const [showLateIn,    setShowLateIn]    = useState(false);
@@ -772,6 +798,16 @@ export default function Attendance() {
             <h3 className="font-display font-bold text-white">{ar ? 'سجل الحضور' : 'Attendance Log'}</h3>
             <p className="text-white/50 text-xs">{rows.length} {ar ? 'سجل' : 'records'}</p>
           </div>
+          {/* Clear button */}
+          {rows.length > 0 && (user?.role === 'admin' || user?.role === 'manager') && (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/35 border border-red-500/30 text-red-300 text-xs font-bold transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {ar ? 'مسح السجل' : 'Clear'}
+            </button>
+          )}
           {/* Legend */}
           <div className="relative z-10 hidden sm:flex items-center gap-3 text-[10px]">
             {[
@@ -1046,6 +1082,37 @@ export default function Attendance() {
           )}
         </div>
       </BottomSheet>
+
+      {/* ════ CLEAR RECORDS CONFIRM ════ */}
+      <AlertDialog open={showClearConfirm} onOpenChange={open => !open && setShowClearConfirm(false)}>
+        <AlertDialogContent className="rounded-3xl border-0 card-3d">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-400" />
+              {ar ? 'مسح جميع سجلات الحضور' : 'Clear All Attendance Records'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {ar
+                ? 'سيتم حذف جميع سجلات الحضور للشركة بشكل نهائي. هذا الإجراء لا يمكن التراجع عنه.'
+                : 'All attendance records for the company will be permanently deleted. This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="rounded-xl h-11">
+              {ar ? 'إلغاء' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearRecords}
+              disabled={clearing}
+              className="rounded-xl h-11 bg-red-500 hover:bg-red-600 text-white border-0"
+            >
+              {clearing
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : (ar ? 'مسح الآن' : 'Clear Now')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

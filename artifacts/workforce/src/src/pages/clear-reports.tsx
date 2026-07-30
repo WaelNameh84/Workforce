@@ -177,15 +177,35 @@ export default function ClearReports() {
     if (!confirmType) return;
     setClearing(true);
     try {
-      // Store clear record in localStorage (in production: call delete API)
-      const key = selEmployee !== 'all'
-        ? `workforce-cleared-${confirmType}-emp-${selEmployee}-${Date.now()}`
-        : `workforce-cleared-${confirmType}-${Date.now()}`;
-      localStorage.setItem(key, new Date().toISOString());
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      const empQ = selEmployee !== 'all' ? `?employeeId=${selEmployee}` : '';
+
+      // Map report type → API endpoint(s)
+      const endpoints: string[] = [];
+      if (confirmType === 'attendance' || confirmType === 'all') endpoints.push(`/api/attendance/bulk${empQ}`);
+      if (confirmType === 'payroll'    || confirmType === 'all') endpoints.push(`/api/payroll/bulk${empQ}`);
+      if (confirmType === 'leaves'     || confirmType === 'all') endpoints.push(`/api/leaves/bulk${empQ}`);
+      if (confirmType === 'requests'   || confirmType === 'all') endpoints.push(`/api/requests/bulk${empQ}`);
+      // notifications / activity / bonuses have no dedicated table yet — skip silently
+
+      const results = await Promise.allSettled(
+        endpoints.map(url => fetch(url, { method: 'DELETE', headers }))
+      );
+
+      const anyFailed = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok));
+      if (anyFailed) throw new Error('partial failure');
+
       setCleared(prev => [...prev, confirmType]);
       const typeLabel = confirmItem ? l(confirmItem.label) : confirmType;
       const empLabel = selEmployee !== 'all' ? ` — ${empName}` : '';
       toast({ title: `✅ ${locale === 'ar' ? 'تم مسح' : locale === 'sv' ? 'Raderade' : 'Cleared'} ${typeLabel}${empLabel}` });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: locale === 'ar' ? 'فشل المسح' : locale === 'sv' ? 'Raderingsfel' : 'Delete failed',
+        description: locale === 'ar' ? 'تحقق من الصلاحيات وأعد المحاولة.' : 'Check permissions and try again.',
+      });
     } finally {
       setClearing(false);
       setConfirmType(null);

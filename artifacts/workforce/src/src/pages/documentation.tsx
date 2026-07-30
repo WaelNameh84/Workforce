@@ -332,7 +332,7 @@ export default function Documentation() {
 
       {/* Upload Dialog */}
       <Dialog open={isAddOpen} onOpenChange={(open) => { if (!open) resetAddForm(); }}>
-        <DialogContent className="rounded-3xl border-0 card-3d max-w-md max-h-[85dvh] overflow-y-auto p-0">
+        <DialogContent className="rounded-3xl border-0 card-3d max-w-md w-[calc(100vw-2rem)] max-h-[88dvh] flex flex-col overflow-hidden p-0">
           {/* Colorful wave header */}
           <div className="relative h-20 bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 rounded-t-3xl overflow-hidden flex items-center px-5 gap-3 flex-shrink-0">
             <div className="nav-card-wave" />
@@ -347,7 +347,7 @@ export default function Documentation() {
               <p className="text-white/65 text-xs mt-0.5">{t('employee')} · {t('file')}</p>
             </div>
           </div>
-          <form onSubmit={handleAdd} className="space-y-4 p-5">
+          <form onSubmit={handleAdd} className="space-y-4 p-5 overflow-y-auto flex-1">
             <div className="space-y-1.5">
                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('employee')} *</Label>
               <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId} required>

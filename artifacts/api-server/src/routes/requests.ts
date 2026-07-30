@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { requests, employees } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { authMiddleware } from "../middlewares/auth";
 
 const router = Router();
@@ -118,6 +118,48 @@ router.put("/requests/:id", authMiddleware, async (req, res) => {
     res.json(request);
   } catch (err) {
     req.log.error({ err }, "Update request error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * DELETE /api/requests/bulk
+ * Delete all request records for the company (or a specific employee).
+ * Only admin/manager roles allowed.
+ */
+router.delete("/requests/bulk", authMiddleware, async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Only admin or manager can delete records" }); return;
+    }
+
+    const rawEmpId = req.query.employeeId;
+    const employeeId = rawEmpId ? parseInt(rawEmpId as string, 10) : undefined;
+
+    if (employeeId && !isNaN(employeeId)) {
+      const [emp] = await db
+        .select({ id: employees.id })
+        .from(employees)
+        .where(and(eq(employees.id, employeeId), eq(employees.companyId, companyId)))
+        .limit(1);
+      if (!emp) { res.status(404).json({ error: "Employee not found" }); return; }
+      await db.delete(requests).where(eq(requests.employeeId, employeeId));
+    } else {
+      const companyEmployees = await db
+        .select({ id: employees.id })
+        .from(employees)
+        .where(eq(employees.companyId, companyId));
+      if (companyEmployees.length > 0) {
+        const ids = companyEmployees.map(e => e.id);
+        await db.delete(requests).where(inArray(requests.employeeId, ids));
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Bulk delete requests error");
     res.status(500).json({ error: "Internal server error" });
   }
 });
