@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -149,14 +149,14 @@ function DetailsModal({ item, onClose }: { item: ActionItem | null; onClose: () 
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label={`تفاصيل ${item.title}`}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
+        className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
         style={{ background: 'var(--card)' }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -263,14 +263,14 @@ function StatDetailsModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label={titles[statKey]}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
+        className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl border border-border shadow-2xl animate-fadeIn"
         style={{ background: 'var(--card)' }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -353,6 +353,16 @@ function ActionRow({
   loading?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const expandedRef = useRef<HTMLDivElement>(null);
+
+  // Scroll the expanded action buttons into view so the user doesn't have to scroll manually
+  useEffect(() => {
+    if (expanded && expandedRef.current) {
+      setTimeout(() => {
+        expandedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    }
+  }, [expanded]);
   const km = kindMeta[item.kind];
   const pm = priorityMeta[item.priority];
   const canAct = !!onApprovePaid || !!onApproveUnpaid || !!onReject;
@@ -415,7 +425,7 @@ function ActionRow({
 
       {/* Expanded actions */}
       {canAct && expanded && (
-        <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2 flex-wrap">
+        <div ref={expandedRef} className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2 flex-wrap">
           {item.raw && (
             <div className="flex-1 min-w-0 text-xs text-muted-foreground space-y-0.5">
               {item.raw.startDate  && <div>من: <span className="text-foreground font-bold">{fmtDate(item.raw.startDate)}</span></div>}
@@ -990,7 +1000,7 @@ export default function ActionCenterPage() {
           </div>
 
           {/* Items */}
-          <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+          <div className="p-4 space-y-3">
             {filtered.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
                 لا توجد بنود من هذا النوع
