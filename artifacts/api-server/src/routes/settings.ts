@@ -7,6 +7,44 @@ import { eq } from "drizzle-orm";
 const router = Router();
 
 /**
+ * GET /api/settings/public
+ * Returns the company-wide public display fields (logo, appName, welcomeMsg,
+ * splash config, accent colour) WITHOUT requiring authentication.
+ * Used by the splash screen and login page before a token is available.
+ * Returns settings from the first company found (single-tenant deployment).
+ */
+router.get("/settings/public", async (_req, res) => {
+  const [company] = await db
+    .select({ appSettings: companies.appSettings })
+    .from(companies)
+    .limit(1);
+
+  if (!company?.appSettings) {
+    res.json({ settings: null });
+    return;
+  }
+
+  // Only expose visual/display fields — no sensitive config
+  const s = company.appSettings as Record<string, unknown>;
+  const publicFields: Record<string, unknown> = {};
+  const ALLOWED = [
+    "appName", "welcomeMsg", "companyName", "logoUrl", "iconUrl",
+    "splashUrl", "appColor", "splashTheme", "splashDuration",
+    "splashShowLogo", "splashShowName", "splashShowProgress",
+    "loginCardStyle", "loginCardGradientFrom", "loginCardGradientTo",
+    "loginCardRadius", "loginBgType", "loginBgColor", "loginAccentColor",
+    "loginPanelGradientFrom", "loginPanelGradientTo",
+    "loginShowLogo", "loginShowClock", "loginShowStats",
+    "fontFamily", "fontSize", "background",
+  ];
+  for (const key of ALLOWED) {
+    if (key in s) publicFields[key] = s[key];
+  }
+
+  res.json({ settings: publicFields });
+});
+
+/**
  * GET /api/settings
  * Returns the company-wide AppSettings for the caller's companyId.
  * All roles can read settings (employees need logo/welcome too).

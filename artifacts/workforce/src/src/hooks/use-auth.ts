@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { AuthUser, getMe } from '@workspace/api-client-react';
+import { useSettings } from '@/contexts/settings-context';
 
 // Extend AuthUser to include employeeId (returned by login but not in generated schema)
 export type ExtendedAuthUser = AuthUser & { employeeId?: number | null };
@@ -30,6 +31,7 @@ export function useAuthState(): AuthContextType {
   const [user, setUser] = useState<ExtendedAuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { refetchSettings } = useSettings();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -72,7 +74,10 @@ export function useAuthState(): AuthContextType {
     localStorage.setItem('token', newToken);
     setUser(newUser);
     setToken(newToken);
-  }, []);
+    // Pull latest server settings now that we have a token — ensures logo
+    // and welcome message are always up-to-date immediately after login.
+    void refetchSettings();
+  }, [refetchSettings]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('user');

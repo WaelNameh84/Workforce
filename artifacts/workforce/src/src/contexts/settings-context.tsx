@@ -305,12 +305,28 @@ interface SettingsCtx {
   save: (next?: AppSettings) => void;
   /** True once the initial server-settings fetch has resolved (success or fail) */
   serverSynced: boolean;
+  /** Re-fetch settings from the server (call after login so token is available) */
+  refetchSettings: () => Promise<void>;
 }
 
 const Ctx = createContext<SettingsCtx | null>(null);
 
 // ─── Server sync helpers ──────────────────────────────────────────────────────
-async function fetchServerSettings(): Promise<Partial<AppSettings> | null> {
+
+/** Fetch public display settings (no auth needed — logo, appName, welcomeMsg, splash config) */
+async function fetchPublicSettings(): Promise<Partial<AppSettings> | null> {
+  try {
+    const res = await fetch('/api/settings/public');
+    if (!res.ok) return null;
+    const data = await res.json() as { settings: Partial<AppSettings> | null };
+    return data.settings ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch full settings when the user is authenticated */
+async function fetchAuthSettings(): Promise<Partial<AppSettings> | null> {
   try {
     const token = localStorage.getItem('token');
     if (!token) return null;
@@ -323,6 +339,23 @@ async function fetchServerSettings(): Promise<Partial<AppSettings> | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Fetch settings from server:
+ * - If a token exists, use the authenticated endpoint (full settings)
+ * - Otherwise use the public endpoint (display fields only, no auth)
+ * The public endpoint ensures the splash screen always shows the latest
+ * logo and welcome message even before the user logs in.
+ */
+async function fetchServerSettings(): Promise<Partial<AppSettings> | null> {
+  const token = localStorage.getItem('token');
+  if (token) {
+    const full = await fetchAuthSettings();
+    if (full) return full;
+  }
+  // Fall back to public endpoint (works without token)
+  return fetchPublicSettings();
 }
 
 async function pushServerSettings(settings: AppSettings): Promise<void> {
@@ -443,7 +476,21 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  return <Ctx.Provider value={{ s, update, save, serverSynced }}>{children}</Ctx.Provider>;
+  // Can be called from outside (e.g. after login) to pull latest settings
+  const refetchSettings = useCallback(async () => {
+    const serverSettings = await fetchServerSettings();
+    if (serverSettings) {
+      setS(prev => {
+        const merged = { ...prev, ...serverSettings };
+        try {
+          localStorage.setItem('workforce-settings', JSON.stringify(merged));
+        } catch { /* ignore */ }
+        return merged;
+      });
+    }
+  }, []);
+
+  return <Ctx.Provider value={{ s, update, save, serverSynced, refetchSettings }}>{children}</Ctx.Provider>;
 }
 
 export function useSettings() {
