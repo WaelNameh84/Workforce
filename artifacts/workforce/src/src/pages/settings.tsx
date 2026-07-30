@@ -1649,10 +1649,32 @@ export default function Settings() {
 
               <SCard>
                 <CardHead icon={Monitor} color="bg-rose-500" title="محتوى الشاشة" sub="ما يظهر أثناء التحميل" />
-                <div className="space-y-1">
+                <div className="space-y-4">
+                  {/* Logo upload directly in splash section */}
+                  <ImgZone label="شعار الشاشة" sub="PNG أو SVG — يظهر في وسط شاشة الترحيب" icon={Image} value={s.logoUrl} onUpload={b => update({ logoUrl: b })} size="lg" />
+                  {s.logoUrl && (
+                    <button onClick={() => update({ logoUrl: '' })} className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/5 transition flex items-center justify-center gap-1.5">
+                      <Trash2 className="w-3.5 h-3.5" /> إزالة الشعار
+                    </button>
+                  )}
+
+                  {/* Accent color (glow / neon color) */}
+                  <Field label="لون التوهج والنيون" sub="يؤثر على توهج الشاشة وألوان الثيم">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {['#6366f1','#8b5cf6','#ec4899','#06b6d4','#10b981','#f59e0b','#ef4444','#ffffff'].map(c => (
+                        <ColorDot key={c} color={c} selected={s.appColor === c} onClick={() => update({ appColor: c })} />
+                      ))}
+                      <input type="color" value={s.appColor} onChange={e => update({ appColor: e.target.value })}
+                        className="w-9 h-9 rounded-xl cursor-pointer border border-border" />
+                      <div className="w-7 h-7 rounded-full mr-auto" style={{ background: s.appColor }} />
+                    </div>
+                  </Field>
+
+                  <div className="border-t border-border/40 pt-3 space-y-1">
                   <TRow label="إظهار الشعار" sub="اللوغو في وسط الشاشة" on={s.splashShowLogo} onToggle={() => update({ splashShowLogo: !s.splashShowLogo })} />
                   <TRow label="إظهار اسم التطبيق" sub="اسم البرنامج تحت الشعار" on={s.splashShowName} onToggle={() => update({ splashShowName: !s.splashShowName })} />
                   <TRow label="شريط التحميل" sub="مؤشر تقدم في أسفل الشاشة" on={s.splashShowProgress} onToggle={() => update({ splashShowProgress: !s.splashShowProgress })} />
+                  </div>
                 </div>
 
                 {/* Live animated splash preview */}
