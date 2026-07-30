@@ -775,8 +775,9 @@ export default function Settings() {
   const update = (patch: Partial<AppSettings>) => {
     setDraft(prev => {
       const next = { ...prev, ...patch };
-      if (patch.notif) next.notif = { ...prev.notif, ...patch.notif };
-      if (patch.apiKeys) next.apiKeys = { ...prev.apiKeys, ...patch.apiKeys };
+      if (patch.notif)     next.notif     = { ...prev.notif,     ...patch.notif };
+      if (patch.apiKeys)   next.apiKeys   = { ...prev.apiKeys,   ...patch.apiKeys };
+      if (patch.biometric) next.biometric = { ...prev.biometric, ...patch.biometric };
       return next;
     });
   };
@@ -785,8 +786,9 @@ export default function Settings() {
   const updateAndSave = (patch: Partial<AppSettings>) => {
     setDraft(prev => {
       const next = { ...prev, ...patch };
-      if (patch.notif) next.notif = { ...prev.notif, ...patch.notif };
-      if (patch.apiKeys) next.apiKeys = { ...prev.apiKeys, ...patch.apiKeys };
+      if (patch.notif)     next.notif     = { ...prev.notif,     ...patch.notif };
+      if (patch.apiKeys)   next.apiKeys   = { ...prev.apiKeys,   ...patch.apiKeys };
+      if (patch.biometric) next.biometric = { ...prev.biometric, ...patch.biometric };
       save(next);
       return next;
     });
@@ -2314,7 +2316,7 @@ export default function Settings() {
                 <div className="mt-4 space-y-3">
                   <ClearEmployeeSelector
                     selectedId={clearEmployeeId}
-                    onSelect={setClearEmployeeId}
+                    onSelect={(id, name) => { setClearEmployeeId(id); setClearEmployeeName(name); }}
                   />
                   {[
                     { id: 'attendance', label: 'سجلات الحضور', sub: 'جميع سجلات الدخول والخروج', icon: Clock, color: 'text-orange-400', border: 'border-orange-500/30 hover:bg-orange-500/5' },

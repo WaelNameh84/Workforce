@@ -866,3 +866,11 @@ button:disabled,
   .print\:hidden { display: none !important; }
 }
 
+/* ─── App-level settings CSS variables ───────────────────── */
+/* Applied by settings-context whenever the user saves settings */
+body {
+  font-weight:    var(--app-font-weight,    400);
+  line-height:    var(--app-line-height,    1.5);
+  letter-spacing: var(--app-letter-spacing, normal);
+}
+

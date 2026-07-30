@@ -495,7 +495,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty('--primary', s.appColor);
     root.style.setProperty('--ring', s.appColor);
 
-    // Font size class
+    // Font size
     root.classList.remove('text-sm-setting', 'text-base-setting', 'text-lg-setting');
     if (s.fontSize === 'small')  root.style.fontSize = '14px';
     if (s.fontSize === 'medium') root.style.fontSize = '16px';
@@ -513,7 +513,46 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (s.fontFamily !== 'system' && fontMap[s.fontFamily]) {
       root.style.setProperty('--font-sans', fontMap[s.fontFamily]);
     }
-  }, [s.appColor, s.fontSize, s.fontFamily]);
+
+    // Font weight / line-height / letter-spacing
+    root.style.setProperty('--app-font-weight',     s.fontWeight     === 'bold'    ? '700' : s.fontWeight     === 'medium' ? '500' : '400');
+    root.style.setProperty('--app-line-height',     s.lineHeight     === 'tight'   ? '1.2' : s.lineHeight     === 'relaxed' ? '1.8' : '1.5');
+    root.style.setProperty('--app-letter-spacing',  s.letterSpacing  === 'tight'   ? '-0.05em' : s.letterSpacing === 'wide' ? '0.1em' : 'normal');
+
+    // Card background
+    if (s.cardColors === 'solid-light') {
+      root.style.setProperty('--card', '#f8fafc');
+      root.style.setProperty('--card-foreground', '#0f172a');
+    } else if (s.cardColors === 'solid-dark') {
+      root.style.setProperty('--card', '#111827');
+      root.style.setProperty('--card-foreground', '#f1f5f9');
+    } else {
+      // glass / auto — let the theme stylesheet handle it
+      root.style.removeProperty('--card');
+      root.style.removeProperty('--card-foreground');
+    }
+
+    // Page background pattern — injected as a <style> tag on <head>
+    const STYLE_ID = 'app-bg-pattern';
+    let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = STYLE_ID;
+      document.head.appendChild(styleEl);
+    }
+    const color = s.appColor;
+    const bgPatterns: Record<string, string> = {
+      gradient: `linear-gradient(135deg, ${color}55 0%, #0f172a 100%)`,
+      grid:     `linear-gradient(${color}18 1px, transparent 1px), linear-gradient(90deg, ${color}18 1px, transparent 1px)`,
+      dotted:   `radial-gradient(${color}55 1px, transparent 1px)`,
+    };
+    if (s.background !== 'default' && bgPatterns[s.background]) {
+      const bgSize = s.background === 'grid' || s.background === 'dotted' ? 'background-size: 18px 18px;' : '';
+      styleEl.textContent = `body { background: ${bgPatterns[s.background]} !important; ${bgSize} }`;
+    } else {
+      styleEl.textContent = '';
+    }
+  }, [s.appColor, s.fontSize, s.fontFamily, s.fontWeight, s.lineHeight, s.letterSpacing, s.cardColors, s.background]);
 
   const update = useCallback((patch: Partial<AppSettings>) => {
     setS(prev => {
