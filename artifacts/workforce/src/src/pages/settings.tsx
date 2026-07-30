@@ -1554,6 +1554,22 @@ export default function Settings() {
           {activeSection === 'splash' && (
             <div className="grid md:grid-cols-2 gap-4">
 
+              {/* ── Live Preview — pinned at top ── */}
+              <div className="md:col-span-2">
+                <SCard>
+                  <div className="flex items-center justify-between mb-3">
+                    <CardHead icon={Monitor} color="bg-pink-500" title="معاينة مباشرة" sub="شكل شاشة الترحيب الحالية" />
+                    <button
+                      onClick={() => setPreviewKey(k => k + 1)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-pink-500/40 bg-pink-500/10 text-pink-300 hover:bg-pink-500/20 font-bold text-xs transition shrink-0"
+                    >
+                      <Play className="w-3.5 h-3.5" /> إعادة التشغيل
+                    </button>
+                  </div>
+                  <SplashLivePreview settings={s} previewKey={previewKey} />
+                </SCard>
+              </div>
+
               {/* ── Theme Picker ── */}
               <div className="md:col-span-2">
                 <SCard>
@@ -1676,9 +1692,6 @@ export default function Settings() {
                   <TRow label="شريط التحميل" sub="مؤشر تقدم في أسفل الشاشة" on={s.splashShowProgress} onToggle={() => update({ splashShowProgress: !s.splashShowProgress })} />
                   </div>
                 </div>
-
-                {/* Live animated splash preview */}
-                <SplashLivePreview settings={s} />
 
                 <div className="mt-4">
                   <SaveBtn onClick={handleSave} label="حفظ شاشة الترحيب" color="pink" icon={Sparkles} />
