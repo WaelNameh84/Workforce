@@ -231,11 +231,33 @@ function ColorDot({ color, selected, onClick }: { color: string; selected: boole
   );
 }
 
+/** Compress image to max 800px / 80% quality so it fits in localStorage (≤5 MB). */
 function readAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX = 800;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          const ratio = Math.min(MAX / width, MAX / height);
+          width  = Math.round(width  * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width  = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        // PNG for files smaller than 50 KB to preserve transparency; JPEG otherwise
+        const mime = file.size < 50_000 ? 'image/png' : 'image/jpeg';
+        resolve(canvas.toDataURL(mime, 0.82));
+      };
+      img.src = reader.result as string;
+    };
     reader.readAsDataURL(file);
   });
 }
@@ -356,7 +378,7 @@ function SplashLivePreview({ settings, previewKey = 0 }: { settings: AppSettings
   return (
     <div
       key={previewKey}
-      className="mt-5 rounded-xl overflow-hidden border border-border relative"
+      className="rounded-xl overflow-hidden border border-border relative"
       style={{
         height: 250,
         backgroundColor: settings.splashBgColor || '#0f172a',
@@ -1566,7 +1588,7 @@ export default function Settings() {
                       <Play className="w-3.5 h-3.5" /> إعادة التشغيل
                     </button>
                   </div>
-                  <SplashLivePreview settings={s} previewKey={previewKey} />
+                  <div className="mt-4"><SplashLivePreview settings={s} previewKey={previewKey} /></div>
                 </SCard>
               </div>
 

@@ -63,6 +63,11 @@ export default defineConfig({
     strictPort: true,
     host: '0.0.0.0',
     allowedHosts: true,
+    // Allow HMR to work through Replit's HTTPS/WSS reverse proxy
+    hmr: {
+      clientPort: 443,
+      protocol: 'wss',
+    },
     fs: {
       strict: true,
     },

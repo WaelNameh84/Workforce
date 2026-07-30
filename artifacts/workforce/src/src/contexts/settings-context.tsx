@@ -357,7 +357,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const save = useCallback((next?: AppSettings) => {
     setS(prev => {
       const value = next ?? prev;
-      localStorage.setItem('workforce-settings', JSON.stringify(value));
+      try {
+        localStorage.setItem('workforce-settings', JSON.stringify(value));
+      } catch (e) {
+        // localStorage quota exceeded — strip large base64 images and retry
+        console.warn('[settings] localStorage quota exceeded, retrying without images', e);
+        try {
+          const slim = {
+            ...value,
+            logoUrl: value.logoUrl?.startsWith('data:') && value.logoUrl.length > 100_000 ? '' : value.logoUrl,
+            iconUrl: value.iconUrl?.startsWith('data:') && value.iconUrl.length > 100_000 ? '' : value.iconUrl,
+            splashUrl: value.splashUrl?.startsWith('data:') && value.splashUrl.length > 100_000 ? '' : value.splashUrl,
+            assistantAvatarUrl: value.assistantAvatarUrl?.startsWith('data:') && value.assistantAvatarUrl.length > 100_000 ? '' : value.assistantAvatarUrl,
+          };
+          localStorage.setItem('workforce-settings', JSON.stringify(slim));
+        } catch {
+          // still failing — ignore; settings are still live in memory until next reload
+        }
+      }
       return value;
     });
   }, []);

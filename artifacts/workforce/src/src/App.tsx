@@ -1,14 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter, Redirect, useLocation } from 'wouter';
 import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/i18n/LanguageProvider';
 import { AuthContext, useAuthState, useAuth } from '@/hooks/use-auth';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { useSwUpdate } from '@/hooks/use-sw-update';
 
 // API and frontend are on the same origin — relative URLs work, no base URL needed.
@@ -19,39 +18,49 @@ import DashboardLayout from '@/components/layout';
 import PageTransition from '@/components/page-transition';
 import SplashScreen from '@/components/splash-screen';
 
-import {
-  ActionCenter,
-  Dashboard,
-  Employees,
-  Departments,
-  Locations,
-  Attendance,
-  Schedule,
-  Leaves,
-  Payroll,
-  Requests,
-  Reports,
-  Settings,
-  AI,
-  Communication,
-  Performance,
-  Assets as Purchases,
-  Automation,
-  Integrations,
-  Security,
-  Developers,
-  Documentation,
-  Notifications,
-} from '@/pages';
-import Profile from '@/pages/profile';
-import DetailPage from '@/pages/detail';
-import AttendanceCorrection from '@/pages/attendance-correction';
-import Bonuses from '@/pages/bonuses';
-import Advances from '@/pages/advances';
-import Holidays from '@/pages/holidays';
-import ClearReports from '@/pages/clear-reports';
+// Lazy-load all pages so the initial bundle stays small (faster first paint on mobile)
+const Dashboard           = lazy(() => import('@/pages/dashboard'));
+const ActionCenter        = lazy(() => import('@/pages/action-center'));
+const Employees           = lazy(() => import('@/pages/employees'));
+const Departments         = lazy(() => import('@/pages/departments'));
+const Locations           = lazy(() => import('@/pages/locations'));
+const Attendance          = lazy(() => import('@/pages/attendance'));
+const Schedule            = lazy(() => import('@/pages/schedule'));
+const Leaves              = lazy(() => import('@/pages/leaves'));
+const Payroll             = lazy(() => import('@/pages/payroll'));
+const Requests            = lazy(() => import('@/pages/requests'));
+const Reports             = lazy(() => import('@/pages/reports'));
+const Settings            = lazy(() => import('@/pages/settings'));
+const AI                  = lazy(() => import('@/pages/ai'));
+const Communication       = lazy(() => import('@/pages/communication'));
+const Performance         = lazy(() => import('@/pages/performance'));
+const Purchases           = lazy(() => import('@/pages/assets'));
+const Automation          = lazy(() => import('@/pages/automation'));
+const Integrations        = lazy(() => import('@/pages/integrations'));
+const Security            = lazy(() => import('@/pages/security'));
+const Developers          = lazy(() => import('@/pages/developers'));
+const Documentation       = lazy(() => import('@/pages/documentation'));
+const Notifications       = lazy(() => import('@/pages/notifications'));
+const Profile             = lazy(() => import('@/pages/profile'));
+const DetailPage          = lazy(() => import('@/pages/detail'));
+const AttendanceCorrection = lazy(() => import('@/pages/attendance-correction'));
+const Bonuses             = lazy(() => import('@/pages/bonuses'));
+const Advances            = lazy(() => import('@/pages/advances'));
+const Holidays            = lazy(() => import('@/pages/holidays'));
+const ClearReports        = lazy(() => import('@/pages/clear-reports'));
+const NotFound            = lazy(() => import('@/pages/not-found'));
 
-const queryClient = new QueryClient();
+// Optimised QueryClient: cache data for 2 min, retry once, no refetch on window focus
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000,   // treat data fresh for 2 min → fewer network calls
+      gcTime:    5 * 60 * 1000,   // keep in cache for 5 min
+      retry: 1,
+      refetchOnWindowFocus: false, // avoid surprise refetches when user switches tabs
+    },
+  },
+});
 
 // The generated API client reads the current token before every request. Keeping
 // this getter live avoids stale auth headers after login/logout or a page reload.
@@ -69,6 +78,15 @@ function ScrollToTop() {
   return null;
 }
 
+/** Minimal loading spinner shown while a lazy page chunk is downloading */
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-full min-h-[200px]">
+      <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    </div>
+  );
+}
+
 function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { component: React.ComponentType; adminOnly?: boolean; path?: string }) {
   const { user, isLoading } = useAuth();
 
@@ -81,7 +99,9 @@ function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { 
         return (
           <DashboardLayout>
             <PageTransition>
-              <Component />
+              <Suspense fallback={<PageLoader />}>
+                <Component />
+              </Suspense>
             </PageTransition>
           </DashboardLayout>
         );
@@ -134,7 +154,7 @@ function Router() {
       <ProtectedRoute path="/dashboard/holidays" component={Holidays} adminOnly />
       <ProtectedRoute path="/dashboard/clear-reports" component={ClearReports} adminOnly />
 
-      <Route component={NotFound} />
+      <Route><Suspense fallback={<PageLoader />}><NotFound /></Suspense></Route>
     </Switch>
     </>
   );
