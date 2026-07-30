@@ -231,35 +231,52 @@ function ColorDot({ color, selected, onClick }: { color: string; selected: boole
   );
 }
 
-/** Compress image to max 800px / 80% quality so it fits in localStorage (≤5 MB). */
-function readAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        const MAX = 800;
-        let { width, height } = img;
-        if (width > MAX || height > MAX) {
-          const ratio = Math.min(MAX / width, MAX / height);
-          width  = Math.round(width  * ratio);
-          height = Math.round(height * ratio);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width  = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, width, height);
-        // PNG for files smaller than 50 KB to preserve transparency; JPEG otherwise
-        const mime = file.size < 50_000 ? 'image/png' : 'image/jpeg';
-        resolve(canvas.toDataURL(mime, 0.82));
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
+/** Read file as base64, attempting canvas compression first.
+ *  Falls back to direct FileReader if canvas is unavailable (some iOS WebViews). */
+async function readAsBase64(file: File): Promise<string> {
+  // Always try compression first
+  try {
+    const raw = await new Promise<string>((res, rej) => {
+      const reader = new FileReader();
+      reader.onerror = rej;
+      reader.onload = () => res(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = raw;
+    });
+
+    const MAX = 800;
+    let { width, height } = img;
+    if (width > MAX || height > MAX) {
+      const ratio = Math.min(MAX / width, MAX / height);
+      width  = Math.round(width  * ratio);
+      height = Math.round(height * ratio);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width  = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('no 2d ctx');
+    ctx.drawImage(img, 0, 0, width, height);
+    // PNG for small files (keeps transparency); JPEG otherwise
+    const mime = file.size < 50_000 ? 'image/png' : 'image/jpeg';
+    const result = canvas.toDataURL(mime, 0.82);
+    if (!result || result === 'data:,') throw new Error('empty canvas');
+    return result;
+  } catch {
+    // Fallback: direct read without compression
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onerror = rej;
+      r.onload = () => res(r.result as string);
+      r.readAsDataURL(file);
+    });
+  }
 }
 
 function ImgZone({ label, sub, icon: Icon, value, onUpload, accept = 'image/*', size = 'md' }: {
@@ -591,8 +608,26 @@ function SettingsPreviewModal({ sectionId, sectionLabel, settings, liveTime, pre
   sectionId: string; sectionLabel: string; settings: AppSettings; liveTime: Date; previewKey: number; onClose: () => void; onReplay: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" dir="rtl">
-      <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border p-5 shadow-2xl" style={{ background: 'var(--card)' }}>
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      style={{
+        // Shrink the flex area by the safe-area insets so the modal
+        // never slides behind iOS Safari's address bar or home indicator.
+        padding: '1rem',
+        paddingTop:    'max(1rem, env(safe-area-inset-top,    1rem))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))',
+      }}
+      dir="rtl"
+    >
+      <div
+        className="relative w-full max-w-xl overflow-y-auto rounded-3xl border border-border p-5 shadow-2xl"
+        style={{
+          // dvh = dynamic viewport height (shrinks when browser chrome appears)
+          // Fallback to 85vh for older iOS that doesn't support dvh
+          maxHeight: 'min(85dvh, calc(100vh - 6rem))',
+          background: 'var(--card)',
+        }}
+      >
         <button onClick={onClose} className="absolute top-4 left-4 w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition" aria-label="إغلاق المعاينة"><X className="w-4 h-4" /></button>
         <div className="mb-4 pl-10">
           <p className="text-xs text-indigo-300 font-bold">معاينة مؤقتة</p>
