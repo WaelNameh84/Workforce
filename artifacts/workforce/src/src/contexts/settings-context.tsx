@@ -358,22 +358,40 @@ async function fetchServerSettings(): Promise<Partial<AppSettings> | null> {
   return fetchPublicSettings();
 }
 
+/** Max base64 length we'll send to the server (~200 KB decoded ≈ ~267 KB base64) */
+const SERVER_IMAGE_LIMIT = 270_000;
+
+function stripImagesForServer(settings: AppSettings): AppSettings {
+  const strip = (v: string | undefined) =>
+    v?.startsWith('data:') && v.length > SERVER_IMAGE_LIMIT ? '' : v;
+  return {
+    ...settings,
+    logoUrl:            strip(settings.logoUrl)            ?? settings.logoUrl,
+    iconUrl:            strip(settings.iconUrl)            ?? settings.iconUrl,
+    splashUrl:          strip(settings.splashUrl)          ?? settings.splashUrl,
+    assistantAvatarUrl: strip(settings.assistantAvatarUrl) ?? settings.assistantAvatarUrl,
+  };
+}
+
 async function pushServerSettings(settings: AppSettings): Promise<void> {
   try {
     const token = localStorage.getItem('token');
     if (!token) return;
-    // Strip huge base64 blobs before sending — keep only non-image keys
-    // plus the logo (server can handle it; images are the main pain point)
-    await fetch('/api/settings', {
+    // Strip large base64 images so the payload stays well under 10 MB
+    const payload = stripImagesForServer(settings);
+    const res = await fetch('/api/settings', {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ settings }),
+      body: JSON.stringify({ settings: payload }),
     });
-  } catch {
-    // Non-critical — settings still live in localStorage
+    if (!res.ok) {
+      console.warn('[settings] server push failed', res.status, await res.text().catch(() => ''));
+    }
+  } catch (err) {
+    console.warn('[settings] server push error', err);
   }
 }
 
@@ -450,30 +468,31 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const save = useCallback((next?: AppSettings) => {
+    // Capture the final value synchronously so we can push it to the server
+    // outside the state updater (side effects must not live inside setS).
+    let finalValue: AppSettings | null = null;
+
     setS(prev => {
       const value = next ?? prev;
+      finalValue = value;
       try {
         localStorage.setItem('workforce-settings', JSON.stringify(value));
       } catch (e) {
         // localStorage quota exceeded — strip large base64 images and retry
         console.warn('[settings] localStorage quota exceeded, retrying without images', e);
         try {
-          const slim = {
-            ...value,
-            logoUrl: value.logoUrl?.startsWith('data:') && value.logoUrl.length > 100_000 ? '' : value.logoUrl,
-            iconUrl: value.iconUrl?.startsWith('data:') && value.iconUrl.length > 100_000 ? '' : value.iconUrl,
-            splashUrl: value.splashUrl?.startsWith('data:') && value.splashUrl.length > 100_000 ? '' : value.splashUrl,
-            assistantAvatarUrl: value.assistantAvatarUrl?.startsWith('data:') && value.assistantAvatarUrl.length > 100_000 ? '' : value.assistantAvatarUrl,
-          };
+          const slim = stripImagesForServer(value);
           localStorage.setItem('workforce-settings', JSON.stringify(slim));
         } catch {
           // still failing — ignore; settings are still live in memory until next reload
         }
       }
-      // Push to server so all devices stay in sync (fire-and-forget)
-      void pushServerSettings(value);
       return value;
     });
+
+    // Push to server OUTSIDE the state updater so React batching can't
+    // invoke this side-effect more than once per save call.
+    if (finalValue) void pushServerSettings(finalValue);
   }, []);
 
   // Can be called from outside (e.g. after login) to pull latest settings
