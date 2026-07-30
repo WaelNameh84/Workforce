@@ -51,9 +51,35 @@ app.use("/api", router);
 const frontendDist = path.resolve(__dirname, "../../../artifacts/workforce/dist/public");
 
 if (existsSync(frontendDist)) {
+  /**
+   * A PWA can only discover a new version when the browser is allowed to fetch
+   * a fresh service-worker entry point and app shell. Do not cache these
+   * version-control files at the HTTP layer; fingerprinted build assets can
+   * still be cached safely by the browser and the service worker.
+   */
+  app.use((req: Request, res: Response, next) => {
+    const isPwaControlFile =
+      req.path === "/" ||
+      req.path === "/index.html" ||
+      req.path === "/manifest.json" ||
+      req.path === "/sw.js" ||
+      /^\/workbox-[^/]+\.js$/.test(req.path);
+
+    if (isPwaControlFile) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
+
+    next();
+  });
+
   app.use(express.static(frontendDist));
   // Catch-all: serve index.html for client-side routing (Express 5 syntax)
   app.get("/{*wildcard}", (_req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.sendFile(path.join(frontendDist, "index.html"));
   });
 } else {
