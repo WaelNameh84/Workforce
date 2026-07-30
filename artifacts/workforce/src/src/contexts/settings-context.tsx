@@ -307,6 +307,41 @@ interface SettingsCtx {
 
 const Ctx = createContext<SettingsCtx | null>(null);
 
+// ─── Server sync helpers ──────────────────────────────────────────────────────
+async function fetchServerSettings(): Promise<Partial<AppSettings> | null> {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    const res = await fetch('/api/settings', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { settings: Partial<AppSettings> | null };
+    return data.settings ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function pushServerSettings(settings: AppSettings): Promise<void> {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    // Strip huge base64 blobs before sending — keep only non-image keys
+    // plus the logo (server can handle it; images are the main pain point)
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ settings }),
+    });
+  } catch {
+    // Non-critical — settings still live in localStorage
+  }
+}
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [s, setS] = useState<AppSettings>(() => {
     try {
@@ -315,6 +350,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     } catch { /* ignore */ }
     return DEFAULTS;
   });
+
+  // On mount: fetch server settings and merge (server wins for shared keys
+  // like logoUrl and welcomeMsg so all devices stay in sync)
+  useEffect(() => {
+    fetchServerSettings().then((serverSettings) => {
+      if (!serverSettings) return;
+      setS(prev => {
+        const merged = { ...prev, ...serverSettings };
+        try {
+          localStorage.setItem('workforce-settings', JSON.stringify(merged));
+        } catch { /* ignore */ }
+        return merged;
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Apply CSS variables & body classes whenever settings change
   useEffect(() => {
@@ -375,6 +426,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           // still failing — ignore; settings are still live in memory until next reload
         }
       }
+      // Push to server so all devices stay in sync (fire-and-forget)
+      void pushServerSettings(value);
       return value;
     });
   }, []);

@@ -27,6 +27,9 @@ export const companies = pgTable('companies', {
   workStartHour: varchar('work_start', { length: 10 }).default('09:00'),
   workEndHour: varchar('work_end', { length: 10 }).default('17:00'),
   joinCode: varchar('join_code', { length: 20 }).unique(),
+  // Stores the full AppSettings JSON so all devices share the same
+  // company-wide configuration (logo, welcome message, colours, etc.)
+  appSettings: jsonb('app_settings'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

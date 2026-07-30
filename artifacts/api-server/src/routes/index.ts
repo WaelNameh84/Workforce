@@ -15,6 +15,7 @@ import workDocsRouter from "./work-docs";
 import imagesRouter from "./images";
 import maintenanceRouter from "./maintenance";
 import aiRouter from "./ai";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(assetsRouter);
 router.use(locationsRouter);
 router.use(workDocsRouter);
 router.use(imagesRouter);
+router.use(settingsRouter);
 
 export default router;
