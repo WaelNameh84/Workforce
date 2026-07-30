@@ -244,7 +244,7 @@ async function readAsBase64(file: File): Promise<string> {
     });
 
     const img = await new Promise<HTMLImageElement>((res, rej) => {
-      const i = new Image();
+      const i = document.createElement('img');
       i.onload = () => res(i);
       i.onerror = rej;
       i.src = raw;

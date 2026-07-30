@@ -5,7 +5,7 @@ import { useLocation } from 'wouter';
 import {
   useGetEmployees, useGetDepartments, useCreateEmployee, useUpdateEmployee, useDeleteEmployee,
   useGetAttendance,
-  getGetEmployeesQueryKey, getGetDepartmentsQueryKey,
+  getGetEmployeesQueryKey, getGetDepartmentsQueryKey, getGetAttendanceQueryKey,
   EmployeeInput, Employee
 } from '@workspace/api-client-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -256,11 +256,11 @@ export default function Employees() {
   // Fetch today's attendance to detect late employees
   const { data: todayAttendanceData } = useGetAttendance(
     { companyId: cid, startDate: todayStr, endDate: todayStr },
-    { query: { enabled: !!cid } }
+    { query: { enabled: !!cid, queryKey: getGetAttendanceQueryKey({ companyId: cid, startDate: todayStr, endDate: todayStr }) } }
   );
 
   const lateEmployeeIds = new Set(
-    (todayAttendanceData?.attendances || [])
+    (todayAttendanceData?.attendance || [])
       .filter((a: any) => a.isLate)
       .map((a: any) => a.employeeId)
   );
