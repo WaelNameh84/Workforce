@@ -52,10 +52,15 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
 
       const dy = e.touches[0].clientY - startYRef.current;
 
-      // Upward swipe (or neutral) — do NOT prevent default, let native scroll work
+      // Upward swipe (or neutral) — reset pull and let native scroll work
       if (dy <= 0) {
         startYRef.current = null;
         pulling.current   = false;
+        // Reset pullY if user reversed direction mid-gesture
+        if (pullYRef.current > 0) {
+          pullYRef.current = 0;
+          setPullY(0);
+        }
         return;
       }
 
@@ -75,6 +80,11 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
     const finishPull = async () => {
       if (!pulling.current) {
         startYRef.current = null;
+        // Always reset pullY — user may have reversed direction mid-gesture
+        if (pullYRef.current > 0) {
+          pullYRef.current = 0;
+          setPullY(0);
+        }
         return;
       }
       pulling.current   = false;
