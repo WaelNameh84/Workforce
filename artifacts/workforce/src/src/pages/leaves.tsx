@@ -17,6 +17,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { saveDetailAndNavigate } from '@/pages/detail';
 import { CheckCircle2, XCircle, FileText, Plus, Trash2, CalendarHeart, Upload, Image, X, Paperclip } from 'lucide-react';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 
 const ATTACHMENT_KEY = (id: number) => `leave-attachment-${id}`;
 
@@ -315,121 +316,116 @@ export default function Leaves() {
         )}
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={resetForm}>
-          <div className="rounded-3xl w-full max-w-md shadow-2xl card-3d max-h-[90dvh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
-            {/* Colorful wave header */}
-            <div className="relative h-20 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-t-3xl overflow-hidden flex items-center px-5 gap-3 flex-shrink-0">
-              <div className="nav-card-wave" />
-              <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
-              <div className="relative z-10 w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg card-icon-pulse">
-                <CalendarHeart className="h-5 w-5 text-white" />
+      {/* ── Request Drawer ── */}
+      <Drawer open={showForm} onOpenChange={open => { if (!open) resetForm(); }}>
+        <DrawerContent className="max-h-[96dvh]">
+          <DrawerHeader className="border-b border-border/50 pb-3">
+            <DrawerTitle className="flex items-center gap-2.5 font-display text-xl">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                <CalendarHeart className="w-4 h-4 text-white" />
               </div>
-              <div className="relative z-10">
-                <h2 className="font-display text-lg font-bold text-white">{t('newLeaveRequest')}</h2>
-                <p className="text-white/65 text-xs">{t('leaveType')} · {t('startDate')}</p>
-              </div>
-            </div>
-            <form onSubmit={handleCreate} className="space-y-5 p-6">
+              {t('newLeaveRequest')}
+            </DrawerTitle>
+          </DrawerHeader>
+
+          <form onSubmit={handleCreate} className="flex-1 overflow-y-auto">
+            <div className="px-4 py-4 space-y-4">
               {employeesData?.employees?.length ? (
-                <label className="block text-sm font-bold">{t('employee')}
-                  <select name="employeeId" defaultValue={String(user?.id || employeesData.employees[0].id || '')} className="mt-2 w-full rounded-xl px-4 py-3 text-sm bg-background border border-border">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('employee')}</label>
+                  <select name="employeeId" defaultValue={String(user?.id || employeesData.employees[0].id || '')}
+                    className="mt-1.5 w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
                     {employeesData.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.fullName}</option>)}
                   </select>
-                </label>
+                </div>
               ) : null}
-              <label className="block text-sm font-bold">{t('leaveType')}
-                <select name="type" defaultValue="annual" className="mt-2 w-full rounded-xl px-4 py-3 text-sm bg-background border border-border">
+
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('leaveType')}</label>
+                <select name="type" defaultValue="annual"
+                  className="mt-1.5 w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
                   {leaveTypes.map((leave) => <option key={leave.type} value={leave.type}>{t(leave.type as any)}</option>)}
                 </select>
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <label className="block text-sm font-bold">{t('startDate')}
-                  <input required name="startDate" type="date" className="mt-2 w-full rounded-xl px-3 py-3 text-sm bg-background border border-border font-data" />
-                </label>
-                <label className="block text-sm font-bold">{t('endDate')}
-                  <input required name="endDate" type="date" className="mt-2 w-full rounded-xl px-3 py-3 text-sm bg-background border border-border font-data" />
-                </label>
               </div>
-              <label className="block text-sm font-bold">{t('reason')}
-                <textarea name="reason" rows={3} className="mt-2 w-full rounded-xl px-4 py-3 text-sm resize-none bg-background border border-border" />
-              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('startDate')}</label>
+                  <input required name="startDate" type="date"
+                    className="mt-1.5 w-full rounded-xl px-3 py-3 text-sm text-foreground bg-background border border-border font-data focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('endDate')}</label>
+                  <input required name="endDate" type="date"
+                    className="mt-1.5 w-full rounded-xl px-3 py-3 text-sm text-foreground bg-background border border-border font-data focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('reason')}</label>
+                <textarea name="reason" rows={3}
+                  className="mt-1.5 w-full rounded-xl px-4 py-3 text-sm text-foreground resize-none bg-background border border-border focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition" />
+              </div>
 
               {/* ── File Upload ── */}
               <div className="space-y-2">
-                <span className="block text-sm font-bold">المستند الداعم <span className="text-muted-foreground font-normal text-xs">(اختياري)</span></span>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.pdf,.doc,.docx"
-                  className="hidden"
-                  onChange={e => handleFileChange(e.target.files?.[0] || null)}
-                />
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  المستند الداعم <span className="normal-case font-normal">(اختياري)</span>
+                </span>
+                <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx" className="hidden"
+                  onChange={e => handleFileChange(e.target.files?.[0] || null)} />
                 {!attachmentPreview ? (
                   <div
                     onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-7 cursor-pointer transition-all ${isDragging ? 'border-emerald-400 bg-emerald-500/10' : 'border-border hover:border-emerald-400/60 hover:bg-emerald-500/5'}`}
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                      <Upload className="h-6 w-6 text-emerald-500" />
+                    className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-6 cursor-pointer transition-all ${isDragging ? 'border-emerald-400 bg-emerald-500/10' : 'border-border hover:border-emerald-400/60 hover:bg-emerald-500/5'}`}>
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                      <Upload className="h-5 w-5 text-emerald-500" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-bold text-foreground">اضغط لرفع الملف أو اسحبه هنا</p>
-                      <p className="text-xs text-muted-foreground mt-1">صورة، PDF، أو مستند Word</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-xs font-bold text-muted-foreground">
-                        <Image className="h-3.5 w-3.5" /> صورة
-                      </span>
-                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-xs font-bold text-muted-foreground">
-                        <FileText className="h-3.5 w-3.5" /> PDF / Doc
-                      </span>
+                      <p className="text-xs text-muted-foreground mt-0.5">صورة، PDF، أو مستند Word</p>
                     </div>
                   </div>
                 ) : (
                   <div className="relative rounded-2xl border border-emerald-400/40 bg-emerald-500/5 p-3">
                     <div className="flex items-center gap-3">
                       {attachment?.type.startsWith('image/') ? (
-                        <img src={attachmentPreview} alt="preview" className="w-16 h-16 rounded-xl object-cover border border-border flex-shrink-0" />
+                        <img src={attachmentPreview} alt="preview" className="w-14 h-14 rounded-xl object-cover border border-border flex-shrink-0" />
                       ) : (
-                        <div className="w-16 h-16 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-                          <FileText className="h-7 w-7 text-emerald-500" />
+                        <div className="w-14 h-14 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                          <FileText className="h-6 w-6 text-emerald-500" />
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold truncate">{attachment?.name}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{((attachment?.size || 0) / 1024).toFixed(1)} KB</p>
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="mt-1 text-xs text-emerald-500 hover:text-emerald-400 font-bold transition-colors"
-                        >
+                        <button type="button" onClick={() => fileInputRef.current?.click()}
+                          className="mt-1 text-xs text-emerald-500 hover:text-emerald-400 font-bold transition-colors">
                           تغيير الملف
                         </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => { setAttachment(null); setAttachmentPreview(null); }}
-                        className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                      >
+                      <button type="button" onClick={() => { setAttachment(null); setAttachmentPreview(null); }}
+                        className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors">
                         <X className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
                 )}
               </div>
+            </div>
 
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={resetForm} className="flex-1 px-4 py-3 rounded-xl font-bold bg-muted hover:bg-muted/80 transition-colors">{t('cancel')}</button>
-                <button disabled={createMutation.isPending} type="submit" className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold shadow-lg shadow-teal-500/25">{createMutation.isPending ? t('loading') : t('submit')}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="px-4 py-3 border-t border-border/50" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}>
+              <button disabled={createMutation.isPending} type="submit"
+                className="w-full h-11 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-lg shadow-teal-500/25 disabled:opacity-40 transition">
+                {createMutation.isPending ? t('loading') : t('submit')}
+              </button>
+            </div>
+          </form>
+        </DrawerContent>
+      </Drawer>
 
       
       {deleteId && (

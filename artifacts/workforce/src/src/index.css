@@ -420,6 +420,7 @@ button:disabled,
 
 /* ─── Dark Theme ──────────────────────────────────────────────── */
 .dark {
+  color-scheme: dark;
   --background: #0B0B18;
   --foreground: #E2E8F0;
   --topbar-fg: #F4F7FF;
