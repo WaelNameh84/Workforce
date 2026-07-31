@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { useAppSettings } from '@/contexts/settings-context';
+import { useSettings } from '@/contexts/settings-context';
 import {
   Bot, Sparkles, Send, TrendingUp, AlertCircle, Lightbulb,
   Activity, Zap, Mic, MicOff, StopCircle, Users, Clock, CreditCard, CalendarCheck,
@@ -28,7 +28,7 @@ const FEATURE_CARDS = [
 
 export default function AI() {
   const { locale } = useLanguage();
-  const s = useAppSettings();
+  const { s, serverSynced } = useSettings();
   const isAr = locale === 'ar';
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -39,10 +39,11 @@ export default function AI() {
   const abortRef = useRef<AbortController | null>(null);
 
   // The user's Gemini key stored in settings
-  const userGeminiKey = (s as any)?.apiKeys?.gemini as string | undefined;
+  const userGeminiKey = s?.apiKeys?.gemini as string | undefined;
 
-  // check if key is configured (env var OR user-supplied key)
+  // check if key is configured — wait for settings to sync from server first
   useEffect(() => {
+    if (!serverSynced) return; // don't ping until we have the latest settings
     const token = localStorage.getItem('token');
     fetch('/api/ai/chat', {
       method: 'POST',
@@ -51,7 +52,7 @@ export default function AI() {
     }).then(r => {
       setConfigured(r.status !== 503);
     }).catch(() => setConfigured(false));
-  }, [userGeminiKey]);
+  }, [userGeminiKey, serverSynced]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -81,7 +82,7 @@ export default function AI() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ message: msg, history }),
+        body: JSON.stringify({ message: msg, history, ...(userGeminiKey ? { apiKey: userGeminiKey } : {}) }),
         signal: ctrl.signal,
       });
 
