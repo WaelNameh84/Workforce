@@ -755,6 +755,8 @@ export default function Settings() {
   const [previewKey, setPreviewKey] = useState(0);
   const [showKeys, setShowKeys]           = useState<Record<string, boolean>>({});
   const [showPw, setShowPw]               = useState<Record<string, boolean>>({});
+  const [keyVerify, setKeyVerify]         = useState<Record<string, 'idle'|'loading'|'ok'|'error'>>({});
+  const [keyVerifyMsg, setKeyVerifyMsg]   = useState<Record<string, string>>({});
   const [pinDialog, setPinDialog]         = useState(false);
   const [pinValue, setPinValue]           = useState('');
   const [clearDialog, setClearDialog]     = useState<string | null>(null);
@@ -802,6 +804,32 @@ export default function Settings() {
     setTheme(draftTheme);
     setLocale(draftLocale);
     toast({ title: 'تم حفظ الإعدادات بنجاح' });
+  };
+
+  const verifyKey = async (id: string, provider: string, value: string) => {
+    if (!value?.trim()) {
+      toast({ variant: 'destructive', title: 'المفتاح فارغ' });
+      return;
+    }
+    setKeyVerify(v => ({ ...v, [id]: 'loading' }));
+    setKeyVerifyMsg(v => ({ ...v, [id]: '' }));
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/settings/verify-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ provider, key: value }),
+      });
+      const data = await res.json() as { ok: boolean; message: string };
+      setKeyVerify(v => ({ ...v, [id]: data.ok ? 'ok' : 'error' }));
+      setKeyVerifyMsg(v => ({ ...v, [id]: data.message }));
+    } catch {
+      setKeyVerify(v => ({ ...v, [id]: 'error' }));
+      setKeyVerifyMsg(v => ({ ...v, [id]: 'تعذّر الاتصال بالخادم' }));
+    }
   };
 
   const toggleNotif = (k: keyof typeof s.notif) =>
@@ -1481,7 +1509,7 @@ export default function Settings() {
                       <div className="relative">
                         <input type={showKeys[id] ? 'text' : 'password'}
                           value={s.apiKeys[id] || ''}
-                          onChange={e => update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } })}
+                          onChange={e => { update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } }); setKeyVerify(v => ({ ...v, [id]: 'idle' })); }}
                           placeholder={placeholder}
                           className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-amber-500/50 pr-10 font-mono transition" />
                         <button type="button" onClick={() => setShowKeys(v => ({ ...v, [id]: !v[id] }))}
@@ -1489,11 +1517,36 @@ export default function Settings() {
                           {showKeys[id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {s.apiKeys[id] && (
-                        <div className={`flex items-center gap-1.5 mt-1 text-[11px] font-bold ${color}`}>
-                          <CheckCircle2 className="w-3 h-3" /> مفتاح مُدخل
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        {s.apiKeys[id] && (
+                          <button
+                            type="button"
+                            disabled={keyVerify[id] === 'loading'}
+                            onClick={() => verifyKey(id, id, s.apiKeys[id] || '')}
+                            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition border ${
+                              keyVerify[id] === 'ok'      ? 'border-green-500/40 bg-green-500/10 text-green-400' :
+                              keyVerify[id] === 'error'   ? 'border-red-500/40 bg-red-500/10 text-red-400' :
+                              keyVerify[id] === 'loading' ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 cursor-wait' :
+                              'border-border hover:border-amber-500/40 hover:bg-amber-500/5 text-muted-foreground hover:text-amber-400'
+                            }`}
+                          >
+                            {keyVerify[id] === 'loading' ? <RefreshCw className="w-3 h-3 animate-spin" /> :
+                             keyVerify[id] === 'ok'      ? <CheckCircle2 className="w-3 h-3" /> :
+                             keyVerify[id] === 'error'   ? <X className="w-3 h-3" /> :
+                             <Check className="w-3 h-3" />}
+                            {keyVerify[id] === 'loading' ? 'جاري التحقق...' : 'تحقق من المفتاح'}
+                          </button>
+                        )}
+                        {keyVerifyMsg[id] ? (
+                          <span className={`text-[11px] font-semibold ${keyVerify[id] === 'ok' ? color : 'text-red-400'}`}>
+                            {keyVerifyMsg[id]}
+                          </span>
+                        ) : s.apiKeys[id] && keyVerify[id] === 'idle' ? (
+                          <span className={`flex items-center gap-1 text-[11px] font-bold ${color}`}>
+                            <CheckCircle2 className="w-3 h-3" /> مفتاح مُدخل
+                          </span>
+                        ) : null}
+                      </div>
                     </Field>
                   ))}
                   <SaveBtn onClick={handleSave} label="حفظ مفاتيح الذكاء الاصطناعي" color="amber" icon={Key} />
@@ -1514,7 +1567,7 @@ export default function Settings() {
                         <div className="relative">
                           <input type={showKeys[id] ? 'text' : 'password'}
                             value={s.apiKeys[id] || ''}
-                            onChange={e => update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } })}
+                            onChange={e => { update({ apiKeys: { ...s.apiKeys, [id]: e.target.value } }); setKeyVerify(v => ({ ...v, [id]: 'idle' })); }}
                             placeholder={placeholder}
                             className="w-full rounded-xl px-4 py-2.5 text-sm border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-500/50 pr-10 font-mono transition" />
                           <button type="button" onClick={() => setShowKeys(v => ({ ...v, [id]: !v[id] }))}
@@ -1522,6 +1575,32 @@ export default function Settings() {
                             {showKeys[id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
                         </div>
+                        {s.apiKeys[id] && (
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              disabled={keyVerify[id] === 'loading'}
+                              onClick={() => verifyKey(id, id, s.apiKeys[id] || '')}
+                              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition border ${
+                                keyVerify[id] === 'ok'      ? 'border-green-500/40 bg-green-500/10 text-green-400' :
+                                keyVerify[id] === 'error'   ? 'border-red-500/40 bg-red-500/10 text-red-400' :
+                                keyVerify[id] === 'loading' ? 'border-orange-500/30 bg-orange-500/10 text-orange-400 cursor-wait' :
+                                'border-border hover:border-orange-500/40 hover:bg-orange-500/5 text-muted-foreground hover:text-orange-400'
+                              }`}
+                            >
+                              {keyVerify[id] === 'loading' ? <RefreshCw className="w-3 h-3 animate-spin" /> :
+                               keyVerify[id] === 'ok'      ? <CheckCircle2 className="w-3 h-3" /> :
+                               keyVerify[id] === 'error'   ? <X className="w-3 h-3" /> :
+                               <Check className="w-3 h-3" />}
+                              {keyVerify[id] === 'loading' ? 'جاري التحقق...' : 'تحقق من المفتاح'}
+                            </button>
+                            {keyVerifyMsg[id] && (
+                              <span className={`text-[11px] font-semibold ${keyVerify[id] === 'ok' ? 'text-green-400' : 'text-red-400'}`}>
+                                {keyVerifyMsg[id]}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </Field>
                     ))}
                     <SaveBtn onClick={handleSave} label="حفظ مفاتيح الخدمات" color="orange" />
