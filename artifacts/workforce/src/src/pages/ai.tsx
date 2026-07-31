@@ -113,12 +113,17 @@ export default function AI() {
             const json = JSON.parse(line.slice(6));
             if (json.done) break;
             if (json.error) {
-              const isInvalidKey = json.errorCode === 'INVALID_KEY' || json.error === 'INVALID_KEY';
-              const friendlyMsg = isInvalidKey
-                ? (isAr
-                    ? '🔑 مفتاح Gemini API غير صالح أو منتهي الصلاحية.\nيرجى تحديثه من الإعدادات ← مفاتيح API ← Gemini.'
-                    : '🔑 Gemini API key is invalid or expired.\nPlease update it in Settings → API Keys → Gemini.')
-                : `⚠️ ${json.error}`;
+              const code = json.errorCode ?? json.error;
+              let friendlyMsg = `⚠️ ${json.error}`;
+              if (code === 'INVALID_KEY') {
+                friendlyMsg = isAr
+                  ? '🔑 مفتاح Gemini API غير صالح أو منتهي الصلاحية.\nيرجى تحديثه من الإعدادات ← مفاتيح API ← Gemini.'
+                  : '🔑 Gemini API key is invalid or expired.\nPlease update it in Settings → API Keys → Gemini.';
+              } else if (code === 'QUOTA_EXCEEDED') {
+                friendlyMsg = isAr
+                  ? '📊 تجاوزت حصة الاستخدام المجاني لـ Gemini API.\nيرجى التحقق من خطتك على Google AI Studio أو استخدام مفتاح حساب مدفوع.'
+                  : '📊 Gemini API free quota exceeded.\nPlease check your plan on Google AI Studio or use a paid account key.';
+              }
               setMessages(prev => {
                 const copy = [...prev];
                 copy[copy.length - 1] = { role: 'model', text: friendlyMsg };

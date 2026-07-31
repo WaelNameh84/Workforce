@@ -132,7 +132,7 @@ router.post("/ai/chat", authMiddleware, async (req, res) => {
   // ── setup Gemini ─────────────────────────────────────────────────────────
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-1.5-flash",
     systemInstruction: `أنت مساعد ذكي متخصص في إدارة الموارد البشرية ضمن منصة WorkforceOS.
 تساعد المدراء والمسؤولين في تحليل بيانات الموظفين، الحضور، الرواتب، والإجازات.
 أجب دائماً بنفس لغة المستخدم (عربي أو إنجليزي). كن مختصراً ودقيقاً.
@@ -165,20 +165,17 @@ ${context}`,
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
   } catch (err: any) {
     const msg: string = err?.message ?? "";
-    // Detect invalid / expired API key (400 from Google)
     if (
       msg.includes("API key not valid") ||
       msg.includes("API_KEY_INVALID") ||
-      msg.includes("400") ||
+      msg.includes("400 Bad Request") ||
       msg.includes("403")
     ) {
-      res.write(
-        `data: ${JSON.stringify({ error: "INVALID_KEY", errorCode: "INVALID_KEY" })}\n\n`,
-      );
+      res.write(`data: ${JSON.stringify({ error: "INVALID_KEY", errorCode: "INVALID_KEY" })}\n\n`);
+    } else if (msg.includes("429") || msg.includes("quota") || msg.includes("Too Many Requests")) {
+      res.write(`data: ${JSON.stringify({ error: "QUOTA_EXCEEDED", errorCode: "QUOTA_EXCEEDED" })}\n\n`);
     } else {
-      res.write(
-        `data: ${JSON.stringify({ error: msg || "AI error" })}\n\n`,
-      );
+      res.write(`data: ${JSON.stringify({ error: msg || "AI error" })}\n\n`);
     }
   }
   res.end();
