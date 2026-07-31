@@ -132,7 +132,7 @@ router.post("/ai/chat", authMiddleware, async (req, res) => {
   // ── setup Gemini ─────────────────────────────────────────────────────────
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: process.env.GEMINI_MODEL ?? "gemini-2.0-flash-lite",
     systemInstruction: `أنت مساعد ذكي متخصص في إدارة الموارد البشرية ضمن منصة WorkforceOS.
 تساعد المدراء والمسؤولين في تحليل بيانات الموظفين، الحضور، الرواتب، والإجازات.
 أجب دائماً بنفس لغة المستخدم (عربي أو إنجليزي). كن مختصراً ودقيقاً.
