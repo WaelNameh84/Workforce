@@ -164,9 +164,22 @@ ${context}`,
     }
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
   } catch (err: any) {
-    res.write(
-      `data: ${JSON.stringify({ error: err?.message ?? "AI error" })}\n\n`,
-    );
+    const msg: string = err?.message ?? "";
+    // Detect invalid / expired API key (400 from Google)
+    if (
+      msg.includes("API key not valid") ||
+      msg.includes("API_KEY_INVALID") ||
+      msg.includes("400") ||
+      msg.includes("403")
+    ) {
+      res.write(
+        `data: ${JSON.stringify({ error: "INVALID_KEY", errorCode: "INVALID_KEY" })}\n\n`,
+      );
+    } else {
+      res.write(
+        `data: ${JSON.stringify({ error: msg || "AI error" })}\n\n`,
+      );
+    }
   }
   res.end();
 });
