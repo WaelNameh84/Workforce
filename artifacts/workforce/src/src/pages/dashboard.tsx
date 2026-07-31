@@ -588,7 +588,7 @@ function AdminDashboard() {
         <div className="mb-3 flex items-center justify-between">
           <div>
              <h2 className="font-display text-lg font-extrabold text-white">{translateText('آخر العمليات')}</h2>
-             <p className="text-[11px] font-bold text-slate-400">{translateText('آخر ما تم تسجيله في النظام')}</p>
+             <p className="text-[11px] font-bold text-slate-200">{translateText('آخر ما تم تسجيله في النظام')}</p>
           </div>
           <span className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-2 text-cyan-300"><ArrowUpRight className="h-4 w-4" /></span>
         </div>
@@ -600,13 +600,13 @@ function AdminDashboard() {
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${operation.tone}`}><Icon className="h-4 w-4" /></span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-extrabold text-white">{operation.title}</p>
-                  <p className="mt-1 truncate text-[10px] font-bold text-slate-400">{operation.text}</p>
+                  <p className="mt-1 truncate text-[10px] font-bold text-slate-300">{operation.text}</p>
                 </div>
-                <span className="shrink-0 text-[10px] font-bold text-slate-500">{operation.time}</span>
+                <span className="shrink-0 text-[10px] font-bold text-slate-300">{operation.time}</span>
               </div>
             );
           }) : (
-             <p className="rounded-2xl bg-white/[.035] p-4 text-center text-xs font-bold text-slate-500">{translateText('لا توجد عمليات حديثة')}</p>
+             <p className="rounded-2xl bg-white/[.06] p-4 text-center text-xs font-bold text-slate-200">{translateText('لا توجد عمليات حديثة')}</p>
           )}
         </div>
       </section>
@@ -616,7 +616,7 @@ function AdminDashboard() {
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="font-display text-base font-extrabold text-white">التقويم</h2>
-               <p className="text-[10px] font-bold text-slate-400">{formatDate(now, { month: 'long', year: 'numeric' })}</p>
+               <p className="text-[10px] font-bold text-purple-200">{formatDate(now, { month: 'long', year: 'numeric' })}</p>
             </div>
             <Calendar className="h-5 w-5 text-purple-300" />
           </div>
@@ -634,7 +634,7 @@ function AdminDashboard() {
       <div className="flex items-center justify-between px-1 pt-2">
         <div>
            <h2 className="font-display text-lg font-extrabold text-white">{translateText('سجل الحضور اليوم')}</h2>
-           <p className="text-[11px] text-slate-400">{attendance.length} {translateText('سجل')} • {translateText('اضغط على أي بطاقة للتفاصيل')}</p>
+           <p className="text-[11px] text-slate-200">{attendance.length} {translateText('سجل')} • {translateText('اضغط على أي بطاقة للتفاصيل')}</p>
         </div>
         <Link href="/dashboard/attendance" className="rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-3 py-2 text-[10px] font-black text-indigo-200">
            {translateText('السجل الكامل')}
@@ -657,7 +657,7 @@ function AdminDashboard() {
               </span>
               <span className="min-w-0">
                  <span className="block truncate text-sm font-extrabold text-white">{record.employeeName || t('employee')}</span>
-                <span className="mt-1 block text-[11px] font-bold text-slate-400">
+                <span className="mt-1 block text-[11px] font-bold text-slate-200">
                    {record.clockIn ? `${translateText('دخول')} ${formatTime(record.clockIn)}` : translateText('لم يسجل الدخول')}
                 </span>
               </span>
@@ -677,10 +677,10 @@ function AdminDashboard() {
             </span>
           </div>
         )) : (
-          <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/60 p-8 text-center">
-            <Clock className="mx-auto mb-2 h-7 w-7 text-slate-500" />
-             <p className="text-sm font-bold text-slate-300">{translateText('لا توجد سجلات حضور اليوم')}</p>
-             <p className="mt-1 text-xs text-slate-500">{translateText('ستظهر البطاقات عند تسجيل الحضور')}</p>
+          <div className="rounded-2xl border border-dashed border-white/30 bg-slate-800/70 p-8 text-center">
+            <Clock className="mx-auto mb-2 h-7 w-7 text-slate-300" />
+             <p className="text-sm font-bold text-white">{translateText('لا توجد سجلات حضور اليوم')}</p>
+             <p className="mt-1 text-xs text-slate-300">{translateText('ستظهر البطاقات عند تسجيل الحضور')}</p>
           </div>
         )}
       </div>
