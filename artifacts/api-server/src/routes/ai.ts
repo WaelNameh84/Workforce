@@ -9,16 +9,18 @@ const router = Router();
 
 // POST /api/ai/chat  — streaming SSE
 router.post("/ai/chat", authMiddleware, async (req, res) => {
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Accept key from request body (user's own key from settings) or fall back to env var
+  const { message, history = [], apiKey: bodyKey } = req.body as {
+    message: string;
+    history: { role: "user" | "model"; text: string }[];
+    apiKey?: string;
+  };
+
+  const apiKey = (bodyKey?.trim()) || process.env.GEMINI_API_KEY;
   if (!apiKey) {
     res.status(503).json({ error: "GEMINI_API_KEY not configured" });
     return;
   }
-
-  const { message, history = [] } = req.body as {
-    message: string;
-    history: { role: "user" | "model"; text: string }[];
-  };
 
   if (!message?.trim()) {
     res.status(400).json({ error: "message is required" });

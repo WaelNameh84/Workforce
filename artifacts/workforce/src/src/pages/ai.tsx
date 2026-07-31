@@ -38,17 +38,20 @@ export default function AI() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // check if key is configured
+  // The user's Gemini key stored in settings
+  const userGeminiKey = (s as any)?.apiKeys?.gemini as string | undefined;
+
+  // check if key is configured (env var OR user-supplied key)
   useEffect(() => {
     const token = localStorage.getItem('token');
     fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify({ message: '__ping__', history: [] }),
+      body: JSON.stringify({ message: '__ping__', history: [], ...(userGeminiKey ? { apiKey: userGeminiKey } : {}) }),
     }).then(r => {
       setConfigured(r.status !== 503);
     }).catch(() => setConfigured(false));
-  }, []);
+  }, [userGeminiKey]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
