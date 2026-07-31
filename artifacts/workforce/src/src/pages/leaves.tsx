@@ -318,15 +318,19 @@ export default function Leaves() {
 
       {/* ── Request Drawer ── */}
       <Drawer open={showForm} onOpenChange={open => { if (!open) resetForm(); }}>
-        <DrawerContent className="max-h-[96dvh]">
-          <DrawerHeader className="border-b border-border/50 pb-3">
-            <DrawerTitle className="flex items-center gap-2.5 font-display text-xl">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                <CalendarHeart className="w-4 h-4 text-white" />
-              </div>
-              {t('newLeaveRequest')}
-            </DrawerTitle>
-          </DrawerHeader>
+        <DrawerContent className="max-h-[96dvh] !bg-card flex flex-col">
+          {/* Gradient header */}
+          <div className="relative h-20 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-t-[10px] overflow-hidden flex items-center px-5 gap-3 flex-shrink-0">
+            <div className="nav-card-wave" />
+            <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
+            <div className="relative z-10 w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg card-icon-pulse">
+              <CalendarHeart className="h-5 w-5 text-white" />
+            </div>
+            <div className="relative z-10">
+              <DrawerTitle className="font-display text-lg font-bold text-white">{t('newLeaveRequest')}</DrawerTitle>
+              <p className="text-white/65 text-xs">{t('leaveType')} · {t('startDate')}</p>
+            </div>
+          </div>
 
           <form onSubmit={handleCreate} className="flex-1 overflow-y-auto">
             <div className="px-4 py-4 space-y-4">

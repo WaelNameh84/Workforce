@@ -10,6 +10,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -330,92 +331,80 @@ export default function Documentation() {
         </div>
       )}
 
-      {/* Upload Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={(open) => { if (!open) resetAddForm(); }}>
-        <DialogContent className="rounded-3xl border-0 card-3d max-w-md w-[calc(100vw-2rem)] max-h-[88dvh] flex flex-col overflow-hidden p-0">
-          {/* Colorful wave header */}
-          <div className="relative h-20 bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 rounded-t-3xl overflow-hidden flex items-center px-5 gap-3 flex-shrink-0">
+      {/* Upload Drawer */}
+      <Drawer open={isAddOpen} onOpenChange={(open) => { if (!open) resetAddForm(); }}>
+        <DrawerContent className="max-h-[96dvh] !bg-card flex flex-col">
+          {/* Gradient header */}
+          <div className="relative h-20 bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 rounded-t-[10px] overflow-hidden flex items-center px-5 gap-3 flex-shrink-0">
             <div className="nav-card-wave" />
             <div className="card-orb w-20 h-20 absolute -right-4 -top-4" />
             <div className="relative z-10 w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg card-icon-pulse">
               <Upload className="h-5 w-5 text-white" />
             </div>
             <div className="relative z-10">
-              <DialogHeader>
-                <DialogTitle className="font-display text-lg text-white">{t('uploadFileNew')}</DialogTitle>
-              </DialogHeader>
+              <DrawerTitle className="font-display text-lg font-bold text-white">{t('uploadFileNew')}</DrawerTitle>
               <p className="text-white/65 text-xs mt-0.5">{t('employee')} · {t('file')}</p>
             </div>
           </div>
-          <form onSubmit={handleAdd} className="space-y-4 p-5 overflow-y-auto flex-1">
-            <div className="space-y-1.5">
-               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('employee')} *</Label>
-              <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId} required>
-                <SelectTrigger className="rounded-xl h-11">
-                   <SelectValue placeholder={t('selectEmployee')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((e: any) => (
-                    <SelectItem key={e.id} value={String(e.id)}>
-                      {e.fullName} {e.departmentName ? `· ${e.departmentName}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
-            <div className="space-y-1.5">
-               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fileOrImageRequired')}</Label>
-              <div
-                className="relative border-2 border-dashed border-border rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-indigo-400 transition-colors overflow-hidden"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {previewImage ? (
-                  <>
-                     <img src={previewImage} alt={t('imagePreview')} className="absolute inset-0 w-full h-full object-cover rounded-xl" />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                       <span className="text-white text-xs font-bold">{t('clickToChangeFile')}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <FileImage className="w-8 h-8 text-muted-foreground" />
-                     <span className="text-xs text-muted-foreground">{t('clickToChooseFile')}</span>
-                  </>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.pdf,.doc,.docx"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
+          <form onSubmit={handleAdd} className="flex-1 overflow-y-auto">
+            <div className="space-y-4 px-5 py-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('employee')} *</Label>
+                <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId} required>
+                  <SelectTrigger className="rounded-xl h-11">
+                    <SelectValue placeholder={t('selectEmployee')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((e: any) => (
+                      <SelectItem key={e.id} value={String(e.id)}>
+                        {e.fullName} {e.departmentName ? `· ${e.departmentName}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              {photoName && (
-                <p className="text-xs text-muted-foreground truncate">{photoName}</p>
-              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fileOrImageRequired')}</Label>
+                <div
+                  className="relative border-2 border-dashed border-border rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-indigo-400 transition-colors overflow-hidden"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {previewImage ? (
+                    <>
+                      <img src={previewImage} alt={t('imagePreview')} className="absolute inset-0 w-full h-full object-cover rounded-xl" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">{t('clickToChangeFile')}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <FileImage className="w-8 h-8 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">{t('clickToChooseFile')}</span>
+                    </>
+                  )}
+                  <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx" className="hidden" onChange={handleFileChange} />
+                </div>
+                {photoName && <p className="text-xs text-muted-foreground truncate">{photoName}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fileDescriptionOptional')}</Label>
+                <Input value={caption} onChange={e => setCaption(e.target.value)} placeholder={t('shortFileDescription')} className="rounded-xl h-11" />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('fileDescriptionOptional')}</Label>
-              <Input
-                value={caption}
-                onChange={e => setCaption(e.target.value)}
-                 placeholder={t('shortFileDescription')}
-                className="rounded-xl h-11"
-              />
+            <div className="px-5 py-3 border-t border-border/50" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}>
+              <Button type="submit"
+                className="w-full rounded-xl h-11 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white border-0 font-bold"
+                disabled={createMutation.isPending || !selectedEmployeeId || !photoData}>
+                {createMutation.isPending ? t('uploading') : t('uploadFile')}
+              </Button>
             </div>
-
-            <Button
-              type="submit"
-              className="w-full rounded-xl h-11 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white border-0 font-bold"
-              disabled={createMutation.isPending || !selectedEmployeeId || !photoData}
-            >
-               {createMutation.isPending ? t('uploading') : t('uploadFile')}
-            </Button>
           </form>
-        </DialogContent>
-      </Dialog>
+        </DrawerContent>
+      </Drawer>
 
 
       {/* Preview Dialog */}
