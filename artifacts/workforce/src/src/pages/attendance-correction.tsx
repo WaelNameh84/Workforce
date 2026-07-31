@@ -10,7 +10,7 @@ import {
 
 import {
   Clock, CheckCircle2, XCircle, Search, Filter, Edit3,
-  Timer, AlertTriangle, User, Calendar, ChevronDown, RefreshCw,
+  Timer, AlertTriangle, User, Calendar, ChevronDown, RefreshCw, Trash2,
 } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 
@@ -61,6 +61,8 @@ export default function AttendanceCorrection() {
   const [editClockOut, setEditClockOut] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: attData, isLoading, refetch } = useGetAttendance(
     { companyId: cid },
@@ -135,6 +137,26 @@ export default function AttendanceCorrection() {
       toast({ title: t('rejected') });
       queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey({ companyId: cid }) });
     } catch { toast({ variant: 'destructive', title: t('error') }); }
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/attendance/${deleteId}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('failed');
+      toast({ title: 'تم حذف السجل' });
+      queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey({ companyId: cid }) });
+      setDeleteId(null);
+    } catch {
+      toast({ variant: 'destructive', title: t('error') });
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const pendingCount = rows.filter(r => r.justificationStatus === 'pending').length;
@@ -252,10 +274,31 @@ export default function AttendanceCorrection() {
                       <XCircle className="w-4 h-4" />
                     </button>
                   </>}
+                  <button onClick={() => setDeleteId(r.id ?? null)}
+                    className="p-2 rounded-xl hover:bg-red-500/15 text-red-400 transition opacity-0 group-hover:opacity-100">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete Confirm */}
+      {deleteId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="rounded-3xl p-8 max-w-sm w-full card-3d">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/15 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6 text-red-400" />
+            </div>
+            <h2 className="font-display text-xl font-bold">{t('confirmDelete')}</h2>
+            <p className="text-sm text-muted-foreground mt-2">سيتم حذف سجل الحضور هذا نهائياً ولا يمكن استعادته.</p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setDeleteId(null)} className="flex-1 rounded-xl px-4 py-3 font-bold bg-muted hover:bg-muted/80">{t('cancel')}</button>
+              <button disabled={deleting} onClick={handleDelete} className="flex-1 rounded-xl px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-bold disabled:opacity-50">{deleting ? '...' : t('delete')}</button>
+            </div>
+          </div>
         </div>
       )}
 

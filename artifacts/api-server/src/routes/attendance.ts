@@ -378,6 +378,43 @@ router.get("/attendance/today", authMiddleware, async (req, res) => {
 });
 
 /**
+ * DELETE /api/attendance/:id
+ * Delete a single attendance record by ID.
+ * Only admin/manager roles allowed.
+ */
+router.delete("/attendance/:id", authMiddleware, async (req, res) => {
+  try {
+    const id = parseInt(String(req.params.id), 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Only admin or manager can delete records" }); return;
+    }
+    const companyId = req.user?.companyId;
+    // Verify the record belongs to this company
+    const [rec] = await db
+      .select({ id: attendance.id, employeeId: attendance.employeeId })
+      .from(attendance)
+      .where(eq(attendance.id, id))
+      .limit(1);
+    if (!rec) { res.status(404).json({ error: "Record not found" }); return; }
+    // Check employee company
+    const [emp] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .where(eq(employees.id, rec.employeeId))
+      .limit(1);
+    if (!emp || emp.companyId !== companyId) {
+      res.status(403).json({ error: "Access denied" }); return;
+    }
+    await db.delete(attendance).where(eq(attendance.id, id));
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Delete attendance error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
  * DELETE /api/attendance/bulk
  * Delete all attendance records for the company (or a specific employee).
  * Only admin/manager roles allowed.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useSettings } from '@/contexts/settings-context';
 import { useGetDashboardStats, useGetAttendance, useGetEmployees, useGetLeaves, useGetPayroll, useGetRequests, getGetDashboardStatsQueryKey, getGetAttendanceQueryKey, getGetEmployeesQueryKey, getGetLeavesQueryKey, getGetPayrollQueryKey, getGetRequestsQueryKey } from '@workspace/api-client-react';
@@ -10,7 +11,7 @@ import {
   Shield, Settings, Download, Printer, DollarSign, User, CheckCircle2, AlertCircle,
   ChevronDown, UserRound, UserX, Stethoscope, Timer, ChevronLeft,
   BarChart3, Banknote, TimerReset, Calendar, Activity, ArrowUpRight, ImagePlus,
-  UserPlus, ArrowRight,
+  UserPlus, ArrowRight, Trash2,
 } from 'lucide-react';
 import { saveDetailAndNavigate } from '@/pages/detail';
 
@@ -110,6 +111,7 @@ function AdminDashboard() {
   const { s, update, save } = useSettings();
   const { t, intlLocale, locale, formatDate, formatTime, formatCurrency, translateText } = useLanguage();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const companyId = user?.companyId || 0;
   const todayStr = new Date().toISOString().split('T')[0];
   const [now, setNow] = useState(() => new Date());
@@ -192,6 +194,8 @@ function AdminDashboard() {
   const recentAttendance = stats?.recentAttendance || [];
 
   // ── Pending employee registrations banner ─────────────────────────────────
+  const [deleteAttId, setDeleteAttId] = useState<number | null>(null);
+  const [deletingAtt, setDeletingAtt] = useState(false);
   const [pendingRegs, setPendingRegs] = useState<Array<{ id: number; fullName: string; email: string; createdAt: string }>>([]);
   const [dismissedPendingBanner, setDismissedPendingBanner] = useState(false);
   const fetchPendingRegs = useCallback(async () => {
@@ -373,6 +377,25 @@ function AdminDashboard() {
         value: item.status ? `${item.meta} · ${item.status}` : item.meta,
       })),
     });
+  };
+
+  const handleDeleteAttendance = async () => {
+    if (!deleteAttId) return;
+    setDeletingAtt(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/attendance/${deleteAttId}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('failed');
+      queryClient.invalidateQueries({ queryKey: getGetAttendanceQueryKey({ companyId }) });
+      setDeleteAttId(null);
+    } catch {
+      // silent
+    } finally {
+      setDeletingAtt(false);
+    }
   };
 
   const openAttendanceDetails = (record: any) => {
@@ -620,13 +643,15 @@ function AdminDashboard() {
 
       <div className="space-y-3">
         {attendanceCards.length ? attendanceCards.map((record: any) => (
-          <button
+          <div
             key={record.id}
-            type="button"
-            onClick={() => openAttendanceDetails(record)}
             className="mobile-dashboard-card group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/95 to-slate-950 p-3.5 text-right shadow-lg"
           >
-            <span className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => openAttendanceDetails(record)}
+              className="flex min-w-0 flex-1 items-center gap-3"
+            >
               <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${record.isLate ? 'bg-violet-500 shadow-violet-500/30' : 'bg-cyan-500 shadow-cyan-500/30'}`}>
                 <UserRound className="h-5 w-5" />
               </span>
@@ -636,14 +661,21 @@ function AdminDashboard() {
                    {record.clockIn ? `${translateText('دخول')} ${formatTime(record.clockIn)}` : translateText('لم يسجل الدخول')}
                 </span>
               </span>
-            </span>
+            </button>
             <span className="flex shrink-0 items-center gap-2">
               <span className={`rounded-lg border px-2 py-1 text-[10px] font-black ${record.isLate ? 'border-violet-400/30 bg-violet-500/15 text-violet-200' : 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200'}`}>
                  {record.isLate ? t('lateArrival') : translateText('حاضر')}
               </span>
-              <ChevronLeft className="h-4 w-4 text-slate-500 transition-transform group-hover:-translate-x-1" />
+              <button
+                type="button"
+                onClick={() => setDeleteAttId(record.id)}
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 opacity-0 transition hover:bg-red-500/15 hover:text-red-400 group-hover:opacity-100"
+                aria-label="حذف السجل"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </span>
-          </button>
+          </div>
         )) : (
           <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/60 p-8 text-center">
             <Clock className="mx-auto mb-2 h-7 w-7 text-slate-500" />
@@ -653,6 +685,22 @@ function AdminDashboard() {
         )}
       </div>
 
+      {/* Delete Attendance Confirm */}
+      {deleteAttId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="rounded-3xl p-7 max-w-sm w-full bg-slate-900 border border-white/10 shadow-2xl">
+            <div className="w-11 h-11 rounded-2xl bg-red-500/15 flex items-center justify-center mb-4">
+              <Trash2 className="w-5 h-5 text-red-400" />
+            </div>
+            <h2 className="font-display text-lg font-bold text-white">حذف سجل الحضور</h2>
+            <p className="text-sm text-slate-400 mt-2">هل أنت متأكد؟ سيتم حذف هذا السجل نهائياً.</p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setDeleteAttId(null)} className="flex-1 rounded-xl px-4 py-2.5 font-bold bg-white/10 hover:bg-white/15 text-white text-sm transition">إلغاء</button>
+              <button disabled={deletingAtt} onClick={handleDeleteAttendance} className="flex-1 rounded-xl px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold text-sm disabled:opacity-50 transition">{deletingAtt ? '...' : 'حذف'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

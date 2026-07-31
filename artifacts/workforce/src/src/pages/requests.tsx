@@ -126,7 +126,7 @@ export default function Requests() {
             <p className="font-medium text-lg">{t('noData')}</p>
           </div>
         ) : requests.map((request, index) => {
-          const config = typeConfig[request.type || 'equipment'];
+          const config = typeConfig[request.type || 'equipment'] || typeConfig['equipment'];
           return (
             <div key={request.id} onClick={() => openRequest(request)} className={`overflow-hidden rounded-2xl cursor-pointer pressable animate-fadeIn stagger-${(index % 6) + 1}`} style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
               {/* Coloured banner */}
