@@ -122,6 +122,33 @@ router.put("/requests/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/requests/:id
+router.delete("/requests/:id", authMiddleware, async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    if (!companyId) { res.status(400).json({ error: "companyId required" }); return; }
+    if (req.user?.role !== "admin" && req.user?.role !== "manager") {
+      res.status(403).json({ error: "Only admin or manager can delete records" }); return;
+    }
+    const id = parseInt(String(req.params.id), 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+    const [ownedRequest] = await db
+      .select({ id: requests.id })
+      .from(requests)
+      .innerJoin(employees, eq(requests.employeeId, employees.id))
+      .where(and(eq(requests.id, id), eq(employees.companyId, companyId)))
+      .limit(1);
+    if (!ownedRequest) { res.status(404).json({ error: "Request not found" }); return; }
+
+    await db.delete(requests).where(eq(requests.id, id));
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Delete request error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 /**
  * DELETE /api/requests/bulk
  * Delete all request records for the company (or a specific employee).

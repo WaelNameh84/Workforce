@@ -4,13 +4,17 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  useGetRequests, getGetRequestsQueryKey, useCreateRequest, useUpdateRequest,
+  useGetRequests, getGetRequestsQueryKey, useCreateRequest, useUpdateRequest, useDeleteRequest,
   useGetEmployees, getGetEmployeesQueryKey,
 } from '@workspace/api-client-react';
 import {
   Banknote, CheckCircle2, XCircle, Clock, User, Plus, Search,
-  Wallet, AlertCircle, CalendarDays, Star, ChevronRight,
+  Wallet, Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 
 // ─── Advance categories ───────────────────────────────────────────────────────
@@ -58,11 +62,14 @@ export default function Advances() {
   const [selEmpId, setSelEmpId] = useState<number | null>(null);
   const [empSearch, setEmpSearch] = useState('');
   const [detailItem, setDetailItem] = useState<AdvanceRequest | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdvanceRequest | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: reqData, isLoading } = useGetRequests({ companyId: cid }, { query: { enabled: !!cid, queryKey: getGetRequestsQueryKey({ companyId: cid }) } });
   const { data: empData } = useGetEmployees({ companyId: cid }, { query: { enabled: !!cid && isAdmin, queryKey: getGetEmployeesQueryKey({ companyId: cid }) } });
   const createReq = useCreateRequest();
   const updateReq = useUpdateRequest();
+  const deleteReq = useDeleteRequest();
 
   const empMap = useMemo(() => {
     const m: Record<number, string> = {};
@@ -127,6 +134,21 @@ export default function Advances() {
       toast({ title: t('advanceRejected') || 'تم رفض السلفة' });
       queryClient.invalidateQueries({ queryKey: getGetRequestsQueryKey({ companyId: cid }) });
     } catch { toast({ variant: 'destructive', title: t('error') }); }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget?.id) return;
+    setDeleting(true);
+    try {
+      await deleteReq.mutateAsync({ id: deleteTarget.id });
+      toast({ title: 'تم مسح السلفة ✓' });
+      queryClient.invalidateQueries({ queryKey: getGetRequestsQueryKey({ companyId: cid }) });
+      setDeleteTarget(null);
+    } catch {
+      toast({ variant: 'destructive', title: t('error') });
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -239,15 +261,23 @@ export default function Advances() {
                     {(r.amount || 0).toLocaleString()} · {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
                   </p>
                 </div>
-                {isAdmin && isPending && (
-                  <div className="flex gap-2 shrink-0">
-                    <button onClick={() => handleApprove(r)}
-                      className="p-2 rounded-xl hover:bg-green-500/15 text-green-400 transition">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleReject(r)}
-                      className="p-2 rounded-xl hover:bg-red-500/15 text-red-400 transition">
-                      <XCircle className="w-4 h-4" />
+                {isAdmin && (
+                  <div className="flex gap-1.5 shrink-0">
+                    {isPending && (
+                      <>
+                        <button onClick={() => handleApprove(r)}
+                          className="p-2 rounded-xl hover:bg-green-500/15 text-green-400 transition">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleReject(r)}
+                          className="p-2 rounded-xl hover:bg-red-500/15 text-red-400 transition">
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    <button onClick={() => setDeleteTarget(r)}
+                      className="p-2 rounded-xl hover:bg-red-500/15 text-red-400/70 hover:text-red-400 transition">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 )}
@@ -256,6 +286,27 @@ export default function Advances() {
           })}
         </div>
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>مسح السلفة</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من مسح هذه السلفة؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>{t('cancel') || 'إلغاء'}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600">
+              {deleting ? 'جاري المسح...' : 'مسح'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Request Drawer */}
       <Drawer open={drawerOpen} onOpenChange={open => { setDrawerOpen(open); if (!open) { setSelCat(''); setAmount(''); setReason(''); setInstallments('1'); setSelEmpId(null); } }}>

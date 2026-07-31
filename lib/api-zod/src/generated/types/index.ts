@@ -31,6 +31,7 @@ export * from './clockOutInput';
 export * from './dashboardStats';
 export * from './dashboardStatsDepartmentStatsItem';
 export * from './dashboardStatsRecentAttendanceItem';
+export * from './deleteRequest200';
 export * from './department';
 export * from './departmentInput';
 export * from './departmentList';

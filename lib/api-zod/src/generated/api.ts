@@ -1199,6 +1199,18 @@ export const UpdateRequestResponse = zod.object({
 
 
 /**
+ * @summary Delete a single request
+ */
+export const DeleteRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteRequestResponse = zod.object({
+  "ok": zod.boolean().optional()
+})
+
+
+/**
  * @summary List assets
  */
 export const GetAssetsQueryParams = zod.object({

@@ -1014,6 +1014,10 @@ status?: string;
 type?: string;
 };
 
+export type DeleteRequest200 = {
+  ok?: boolean;
+};
+
 export type GetAssetsParams = {
 companyId: number;
 status?: string;

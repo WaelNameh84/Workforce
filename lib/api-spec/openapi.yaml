@@ -1869,6 +1869,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkRequest'
+    delete:
+      operationId: deleteRequest
+      summary: Delete a single request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
 
   # Assets
   /assets:
